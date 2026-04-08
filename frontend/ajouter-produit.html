@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="syleform.css">
+</head>
+<body>
+    <!--pour le loader-->
+    <div id="overlay"></div>
+    <div id="loader"><div class="spinner"></div></div>
+    <h1>Renseignez les informations de votre produit</h1>
+    
+    <form id="productForm">
+        <p class="p1">Remplissez le formulaire de vente</p>
+        <input type="text" id="nom" placeholder="Nom du produit" required><br>
+        <input type="number" id="prix" placeholder="Prix" required><br>
+        <input type="textarea" id="description" placeholder="Description" required></input><br>
+        <input type="text" id="image" placeholder="Lien de l'image" required><br>
+        
+        <button type="submit" id="envoyer">Terminer</button>
+    </form>
+
+    <script>
+
+        //pour le loader
+    const loader = document.getElementById('loader');
+    const overlay = document.getElementById('overlay');
+
+    function showLoading() {
+    loader.style.display = 'block';
+    overlay.style.display = 'block';
+    }
+
+    function hideLoading() {
+    loader.style.display = 'none';
+    overlay.style.display = 'none';
+    }
+
+        const form = document.getElementById('productForm');
+
+        const envoyerproduit = async (event) => {
+            event.preventDefault(); // On stop le rechargement de la page
+
+            showLoading(); // On affiche le loader
+
+            // 1. On récupère les valeurs AU MOMENT du clic
+            const nouveauProduit = {
+                nom: document.getElementById('nom').value,
+                prix: Number(document.getElementById('prix').value),
+                description: document.getElementById('description').value,
+                image: document.getElementById('image').value
+            };
+
+            try {
+                // 2. On utilise POST pour envoyer des données
+                const reponse = await fetch('http://localhost:3000/api/products', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(nouveauProduit)
+                });
+
+                if (reponse.ok) {
+                    alert('Produit ajouté avec succès ! 🔥');
+                    window.location.href = 'nav.html';
+                } else {
+                    const errorData = await reponse.json();
+                    alert('Erreur : ' + (errorData.message || 'Erreur serveur'));
+                }
+            } catch (error) {
+                console.error('Erreur Fetch :', error);
+                alert('Impossible de contacter le serveur. Vérifie si le backend tourne !');
+            }finally {
+                hideLoading(); // On cache le loader, même s'il y a eu une erreur
+            }
+        };
+
+        // On écoute le "submit" du formulaire, c'est plus propre que le "click"
+        form.addEventListener('submit', envoyerproduit);
+
+
+ 
+
+
+
+
+</script>
+</body>
+</html>

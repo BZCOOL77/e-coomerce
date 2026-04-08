@@ -1,0 +1,11 @@
+# On ignore le dossier des dépendances (TRÈS IMPORTANT)
+node_modules/
+
+# On ignore les variables d'environnement (mots de passe, clés API)
+.env
+
+# On ignore les fichiers de configuration de l'éditeur
+.vscode/
+
+# On ignore les logs d'erreurs
+npm-debug.log*

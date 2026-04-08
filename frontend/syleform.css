@@ -1,0 +1,142 @@
+:root {
+    --primary: #1565c0;
+    --primary-soft: #e3f2fd;
+}
+
+body{margin:0; padding:0;background-color:#b0cee2;}
+
+h1{color: aliceblue;text-transform: uppercase;text-align: center;font-weight: 100;
+font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;text-shadow: 20px 20px 50px red;
+}
+
+
+form{ 
+  border: 3px solid #1565c0;   /* Bordure noire de 3px */
+  border-radius: 50px;        /* Coins arrondis */
+  padding: 20px;             /* Espace intérieur */
+  margin: 20px auto;         /* Espace autour et centrage */
+  width: 300px;              /* Largeur fixe pour le formulaire */
+  background-color: #ffffff; /* Fond gris clair pour contraste */
+
+;margin-left: 250px;margin-top : 100px;
+
+}
+
+
+/*en haut en bas animation*/
+@keyframes bounce {
+  0%   { transform: translateY(0); }
+  50%  { transform: translateY(-38px); }
+  100% { transform: translateY(0); }}
+
+
+input{width:200px;
+margin-left: 50px; padding: 10px; border-radius: 20px ;display: block;       /* force chaque input à être sur une nouvelle ligne */
+  margin-bottom: 5px;}
+.p1{text-align: center; font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+animation: bounce 2s infinite;}
+
+
+.user{text-align: center; font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;font-style: italic;}
+
+
+button{text-align: center;color: black;background-color: rgb(18, 82, 165); border-color:rgb(215, 205, 193);
+border-radius: 20px;padding: 10px;margin-left: 100px;}
+button:hover {
+    background-color: #4CAF50;cursor: pointer;
+}
+
+
+/*animation input*/
+@keyframes pulse {
+  0% { box-shadow: 0 0 5px #4CAF50; }
+  50% { box-shadow: 0 0 20px #4CAF50; }
+  100% { box-shadow: 0 0 5px #4CAF50; }
+}
+input:focus {
+  animation: pulse 1s infinite;
+  border-color: #4CAF50;
+}
+
+
+/*responsive */
+form {
+  max-width: 90%;   /* largeur max relative */
+  width: 400px;     /* largeur par défaut */
+  margin: 40px auto;
+}
+
+input {
+  width: 80%;       /* largeur relative */
+  margin: 10px auto;
+}
+
+button {
+  display: block;
+  margin: 20px auto;
+  padding: 10px 20px;
+}
+
+/* Media queries pour petits écrans */
+@media (max-width: 600px) {
+  form {
+    width: 95%;   /* prend presque toute la largeur */
+    padding: 15px;
+  }
+
+  input {
+    width: 100%;  /* occupe toute la largeur */
+    margin: 8px 0;
+  }
+
+  button {
+    width: 100%;
+    margin: 10px 0;
+  }
+}
+
+
+
+/*pour le loader
+/* --- FIX DU LOADER --- */
+
+/* L'arrière-plan semi-transparent */
+#overlay {
+    display: none; /* Caché par défaut */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.7);
+    z-index: 999;
+}
+
+/* Le conteneur du spinner au centre */
+#loader {
+    display: none; /* Caché par défaut */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+}
+
+/* Le cercle qui tourne (Animation) */
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid var(--primary-soft);
+    border-top: 5px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+
+
+

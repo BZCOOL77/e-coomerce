@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="modifier.css">
+</head>
+<body>
+    <!--pour le loader-->
+    <div id="overlay"></div>
+    <div id="loader"><div class="spinner"></div></div>
+    <h1>Renseignez les informations de votre produit</h1>
+    
+    <form id="productForm">
+        <p class="p1">Remplissez le formulaire de vente</p>
+        <input type="text" id="nom" placeholder="Nom du produit" required><br>
+        <input type="number" id="prix" placeholder="Prix" required><br>
+        <textarea id="description" placeholder="Description" required></textarea><br>
+        <input type="text" id="image" placeholder="Lien de l'image" required><br>
+        
+        <button type="submit" id="envoyer">terminer</button>
+    </form>
+
+
+    <!-- script pour modifier un produit-->
+    <script>
+    // 4 Bonus : Afficher un loader pendant les requêtes
+const loader = document.getElementById('loader');
+const overlay = document.getElementById('overlay');
+
+function showLoading() {
+    loader.style.display = 'block';
+    overlay.style.display = 'block';
+}
+
+function hideLoading() {
+    loader.style.display = 'none';
+    overlay.style.display = 'none';
+}
+
+
+// script pour modifier un produit
+
+    const form = document.getElementById('productForm');
+    
+    // 1. On récupère l'ID du produit dans l'URL (ex: modifier.html?id=12345)
+    const urlParams = new URLSearchParams(window.location.search);
+    const productId = urlParams.get('id');
+
+    // 2. Dès que la page charge, on va chercher les infos du produit pour remplir les champs
+    window.addEventListener('load', async () => {
+        if (!productId) return alert("Aucun ID de produit trouvé !");
+
+        showLoading(); // On lance le spinner pendant qu'on cherche les infos
+
+        try {
+            const reponse = await fetch(`http://localhost:3000/api/products/${productId}`);
+            const produit = await reponse.json();
+            console.log("Données reçues du serveur :", produit);
+
+            // On remplit les inputs avec les données reçues
+            document.getElementById('nom').value = produit.nom;
+            document.getElementById('prix').value = produit.prix;
+            document.getElementById('description').value = produit.description;
+            document.getElementById('image').value = produit.image;
+        } catch (error) {
+            console.error("Erreur lors du chargement :", error);
+        }finally {
+        hideLoading(); // On cache le spinner une fois le formulaire rempli
+    }
+    });
+
+    // 3. On gère l'envoi des modifications avec PUT
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        showLoading(); // On affiche le loader dès que l'utilisateur clique sur "Enregistrer"
+
+        const produitModifie = {
+            nom: document.getElementById('nom').value,
+            prix: Number(document.getElementById('prix').value),
+            description: document.getElementById('description').value,
+            image: document.getElementById('image').value
+        };
+
+        try {
+            const reponse = await fetch(`http://localhost:3000/api/products/${productId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(produitModifie)
+            });
+
+            if (reponse.ok) {
+                alert('Produit mis à jour ! 🔥');
+                window.location.href = 'nav.html'; // Retour à l'accueil
+            } else {
+                alert('Erreur lors de la mise à jour');
+            }
+        } catch (error) {
+            console.error('Erreur Fetch :', error);
+        }
+        finally {
+        hideLoading(); // On cache le loader, même s'il y a eu une erreur
+    }
+    });
+
+
+</script>
+</body>
