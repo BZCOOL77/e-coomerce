@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <link rel="stylesheet" href="client.css">
+         
+    </head>
+    <body>
+    <!--pour le loader-->
+    <div id="overlay"></div>
+    <div id="loader"><div class="spinner"></div></div>
+
+
+
+
+        <header>
+            <h1>shopy-cloths</h1>
+            <h2>meilleur experience shopping en ligne</h2>
+        </header>
+        <section id="main">
+            <nav>
+                <button id="menu">menu</button>
+                <button id="hist">historique</button>
+                <button id="panier">panier</button>
+               
+
+            </nav>
+
+        </section>
+        <div class="product-grid" id="catalogue">
+            <article class="carte">
+                <div class="produit-image">
+                <img src="">
+                </div>
+                <div class="produit-info">
+                    <h3></h3>
+                    <p class="nom"></p>
+                    <p class="prix"></p>
+                    <p class="description"></p>
+                    <button class="btn-detail" id="btn-detail" data-id="${produit._id}">Détails</button>
+                    <button class="ajouter-panier" data-id="${produit._id}">Ajouter au panier</button>
+                    
+                </div>
+            </article>
+        </div>
+    <script src="client.js" ></script> 
+    </body>
+</html>
