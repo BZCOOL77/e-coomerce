@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <link rel="stylesheet" href="modifier.css">
+    <script src="header-auth.js" defer></script>
 </head>
 <body>
     <!--pour le loader-->
@@ -53,7 +54,9 @@ function hideLoading() {
         showLoading(); // On lance le spinner pendant qu'on cherche les infos
 
         try {
-            const reponse = await fetch(`http://localhost:3000/api/products/${productId}`);
+            const reponse = await fetch(`http://localhost:3000/api/products/${productId}`
+                
+            );
             const produit = await reponse.json();
             console.log("Données reçues du serveur :", produit);
 
@@ -85,7 +88,7 @@ function hideLoading() {
         try {
             const reponse = await fetch(`http://localhost:3000/api/products/${productId}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers:getHeaders(), //   le token est ajouté automatiquement !
                 body: JSON.stringify(produitModifie)
             });
 

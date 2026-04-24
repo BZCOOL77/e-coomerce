@@ -1,0 +1,497 @@
+/* ============================================================
+   PANIER - STYLE PROFESSIONNEL
+   ============================================================ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #f0f0f0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    color: #333;
+}
+
+header {
+    background: rgb(33, 34, 51);
+    padding: 30px 20px;
+    border-bottom: 1px solid #e8e8e8;
+    margin-bottom: 40px;
+}
+
+header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #1a1a1a;
+}
+
+header h2 {
+    font-size: 1rem;
+    font-weight: 400;
+    color: #666;
+}
+
+main {
+    background: #1a3d56;
+    padding: 0 20px 60px;
+}
+
+/* ============================================================
+   CONTENEUR PRINCIPAL
+   ============================================================ */
+.panier-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* ============================================================
+   LIEN CONTINUER SHOPPING
+   ============================================================ */
+.btn-detail {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #0066cc;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    font-size: 0.95rem;
+}
+
+.btn-detail:hover {
+    color: #0052a3;
+    gap: 10px;
+}
+
+/* ============================================================
+   TABLEAU DU PANIER
+   ============================================================ */
+.panier-liste {
+    background: rgb(142, 159, 178);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e8e8e8;
+}
+
+/* En-tête du tableau */
+.panier-liste::before {
+    
+    display: grid;
+    grid-template-columns: 100px 1fr 120px 100px 1fr;
+    gap: 20px;
+    align-items: center;
+    padding: 20px 24px;
+    background: #889cb6;
+    font-weight: 600;
+    color: #666;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    border-bottom: 1px solid #e8e8e8;
+}
+
+/* Message panier vide */
+.panier-liste p {
+    text-align: center;
+    padding: 80px 40px;
+    color: #999;
+    font-size: 1rem;
+    background: white;
+    border-radius: 0;
+    border: none;
+}
+
+/* ============================================================
+   PRODUITS DU PANIER
+   ============================================================ */
+.panier-item {
+    display: grid;
+    grid-template-columns: 100px 1fr 120px 100px 1fr;
+    gap: 20px;
+    align-items: center;
+    padding: 24px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: all 0.2s ease;
+}
+
+.panier-item:last-child {
+    border-bottom: none;
+}
+
+
+
+/* Image du produit */
+.panier-item img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    background: #f5f5f5;
+    border-radius: 7px;
+    border: 1px solid #e8e8e8;
+}
+
+/* Infos du produit */
+.item-infos {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.item-infos h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0;
+}
+
+.item-infos .prix {
+    font-size: 0.85rem;
+    color: #999;
+    margin: 0;
+    background: none;
+}
+
+/* Contrôle quantité */
+.item-quantite {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid #e8e8e8;
+    border-radius: 4px;
+    background: white;
+    overflow: hidden;
+}
+
+.btn-qty {
+    background: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    color: #666;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.btn-qty:hover {
+    background: #f5f5f5;
+    color: #0066cc;
+}
+
+.item-quantite span {
+    width: 50px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border-left: 1px solid #e8e8e8;
+    border-right: 1px solid #e8e8e8;
+    background: white;
+}
+
+/* Colonne Prix */
+.panier-item > div:nth-child(4) {
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-align: center;
+    color: #1a1a1a;
+}
+
+/* Colonne Total */
+.panier-item > div:last-child {
+    font-weight: 700;
+    font-size: 1rem;
+    text-align: right;
+    color: #1a1a1a;
+}
+
+/* Bouton supprimer */
+.btn-supprimer {
+    background: red;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.8rem;
+    color: #0c0909;
+    cursor: pointer;
+    padding: 0;
+    margin-top: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-supprimer:hover {
+    color: #4b0806;
+    text-decoration: underline;
+}
+
+/* ============================================================
+   RÉSUMÉ DE COMMANDE (SIDEBAR)
+   ============================================================ */
+.panier-resume {
+    background: white;
+    padding: 28px;
+    border-radius: 8px;
+    border: 1px solid #e8e8e8;
+    height: fit-content;
+    position: sticky;
+    top: 100px;
+}
+
+.panier-resume h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0 0 24px 0;
+    color: #1a1a1a;
+}
+
+.panier-resume hr {
+    border: none;
+    border-top: 1px solid #e8e8e8;
+    margin: 0 0 20px 0;
+}
+
+.resume-ligne {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    font-size: 0.9rem;
+    color: #666;
+    font-weight: 500;
+}
+
+.resume-ligne span:first-child {
+    color: #999;
+}
+
+.resume-ligne span:last-child {
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+/* Total final */
+.total-final {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid #f0f0f0;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #1a1a1a;
+}
+
+/* ============================================================
+   BOUTON COMMANDER
+   ============================================================ */
+.btn-commander {
+    width: 100%;
+    background: #0066cc;
+    color: white;
+    border: none;
+    padding: 14px 20px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-transform: capitalize;
+    cursor: pointer;
+    margin-top: 28px;
+    transition: all 0.2s ease;
+    border-radius: 6px;
+    letter-spacing: 0;
+}
+
+.btn-commander:hover {
+    background: #0052a3;
+}
+
+.btn-commander:active {
+    background: #003d7a;
+    transform: scale(0.98);
+}
+
+.btn-commander::before,
+.btn-commander::after {
+    display: none;
+}
+
+/* ============================================================
+   RESPONSIVE DESIGN
+   ============================================================ */
+@media (max-width: 1024px) {
+    .panier-wrapper {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+
+    .panier-resume {
+        position: relative;
+        top: auto;
+    }
+
+    .panier-liste::before {
+        grid-template-columns: 80px 1fr 100px 80px;
+        padding: 16px 16px;
+    }
+
+    .panier-item {
+        grid-template-columns: 80px 1fr 100px 80px;
+        gap: 16px;
+        padding: 16px;
+    }
+
+    .panier-item img {
+        width: 80px;
+        height: 80px;
+    }
+
+    .item-infos h3 {
+        font-size: 0.9rem;
+    }
+
+    .item-infos .prix {
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 768px) {
+    header {
+        padding: 20px;
+        margin-bottom: 24px;
+    }
+
+    header h1 {
+        font-size: 1.4rem;
+    }
+
+    header h2 {
+        font-size: 0.9rem;
+    }
+
+    main {
+        padding: 0 16px 40px;
+    }
+
+    .panier-wrapper {
+        gap: 24px;
+    }
+
+    .panier-resume {
+        padding: 20px;
+    }
+
+    .panier-liste::before {
+        grid-template-columns: 70px 1fr 70px 70px;
+        gap: 12px;
+        padding: 14px 12px;
+        font-size: 0.75rem;
+    }
+
+    .panier-item {
+        grid-template-columns: 70px 1fr 70px 70px;
+        gap: 12px;
+        padding: 14px 12px;
+    }
+
+    .panier-item img {
+        width: 70px;
+        height: 70px;
+    }
+
+    .item-quantite {
+        transform: scale(0.9);
+        transform-origin: center;
+    }
+}
+
+@media (max-width: 600px) {
+    .panier-wrapper {
+        grid-template-columns: 1fr;
+    }
+
+    .panier-liste::before {
+        grid-template-columns: 60px 1fr 60px;
+        content: 'Image  Produit  Total';
+        gap: 10px;
+        padding: 12px;
+    }
+
+    .panier-item {
+        grid-template-columns: 60px 1fr 60px;
+        gap: 10px;
+        padding: 12px;
+    }
+
+    .panier-item img {
+        width: 60px;
+        height: 60px;
+    }
+
+    .item-quantite {
+        transform: scale(0.85);
+        transform-origin: center;
+    }
+
+    .panier-item > div:nth-child(4) {
+        display: none;
+    }
+
+    .item-infos h3 {
+        font-size: 0.85rem;
+    }
+
+    .item-infos .prix {
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 400px) {
+    body {
+        font-size: 13px;
+    }
+
+    header h1 {
+        font-size: 1.2rem;
+    }
+
+    .panier-item {
+        grid-template-columns: 50px 1fr;
+        gap: 8px;
+        padding: 10px;
+    }
+
+    .panier-item img {
+        width: 50px;
+        height: 50px;
+    }
+
+    .item-quantite,
+    .panier-item > div:nth-child(4),
+    .btn-qty {
+        display: none;
+    }
+
+    .panier-resume {
+        padding: 16px;
+        margin-top: 20px;
+    }
+
+    .resume-ligne {
+        font-size: 0.85rem;
+        margin-bottom: 10px;
+    }
+
+    .btn-commander {
+        padding: 12px 16px;
+        font-size: 0.9rem;
+        margin-top: 20px;
+    }
+}

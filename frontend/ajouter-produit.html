@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <link rel="stylesheet" href="syleform.css">
+    <script src="header-auth.js" defer></script>
 </head>
 <body>
     <!--pour le loader-->
@@ -55,9 +56,7 @@
                 // 2. On utilise POST pour envoyer des données
                 const reponse = await fetch('http://localhost:3000/api/products', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: getHeaders(), //   le token est ajouté automatiquement !
                     body: JSON.stringify(nouveauProduit)
                 });
 

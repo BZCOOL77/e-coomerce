@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Panier | Shopy-Cloths</title>
+    
+    <link rel="stylesheet" href="../css/panier.css">
+</head>
+<body>
+
+    <header>
+        <h1>shopy-cloths</h1>
+        <h2>Votre Panier</h2>
+    </header>
+
+    <main>
+        <div style="padding: 20px; max-width: 1200px; margin: auto;">
+            <a href="client.html" class="btn-detail" style="text-decoration: none; display: inline-block; margin-bottom: 20px;">← Continuer le shopping</a>
+        </div>
+
+        <div class="panier-wrapper">
+            <div class="panier-liste" id="liste-panier">
+                <p>Votre panier est vide...</p>
+            </div>
+
+            <div class="panier-resume">
+                <h3>Résumé de la commande</h3>
+                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+                <div class="resume-ligne">
+                    <span>Sous-total</span>
+                    <span id="sous-total">0.00 €</span>
+                </div>
+                <div class="resume-ligne">
+                    <span>Livraison</span>
+                    <span>Gratuite</span>
+                </div>
+                <div class="resume-ligne total-final">
+                    <span>Total</span>
+                    <span id="total-global">0.00 €</span>
+                </div>
+                <button class="btn-commander" onclick="validerCommande()">Passer à la caisse</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 1. Initialisation : Charger le panier au démarrage
+function chargerPanier() {
+    const panier = JSON.parse(localStorage.getItem('panier_shopy')) || [];
+    const container = document.getElementById('liste-panier');
+    
+    if (panier.length === 0) {
+        container.innerHTML = "<p style='text-align:center; padding: 20px;'>Votre panier est vide. Il est temps de faire chauffer la carte ! 💳</p>";
+        calculerTotal(panier);
+        return;
+    }
+
+    // 2. On génère le HTML pour chaque produit
+    container.innerHTML = panier.map(item => `
+        <div class="panier-item">
+            <img src="${item.image}" alt="${item.nom}">
+            <div class="item-infos">
+                <h3>${item.nom}</h3>
+                <p class="prix">${item.prix.toFixed(2)} €</p>
+                <div class="item-quantite">
+                    <button class="btn-qty" onclick="modifierQuantite('${item.id}', -1)">-</button>
+                    <span>${item.quantite}</span>
+                    <button class="btn-qty" onclick="modifierQuantite('${item.id}', 1)">+</button>
+                </div>
+                <button class="btn-supprimer" onclick="supprimerArticle('${item.id}')">Supprimer</button>
+            </div>
+            <div style="font-weight: bold;">
+                ${(item.prix * item.quantite).toFixed(2)} €
+            </div>
+        </div>
+    `).join('');
+
+    calculerTotal(panier);
+}
+
+// 3. Fonction pour modifier la quantité (+ ou -)
+function modifierQuantite(id, delta) {
+    let panier = JSON.parse(localStorage.getItem('panier_shopy'));
+    const produit = panier.find(item => item.id === id);
+
+    if (produit) {
+        produit.quantite += delta;
+        // Si la quantité tombe à 0, on supprime l'article
+        if (produit.quantite <= 0) {
+            return supprimerArticle(id);
+        }
+        localStorage.setItem('panier_shopy', JSON.stringify(panier));
+        chargerPanier(); // On rafraîchit l'affichage
+    }
+}
+
+// 4. Fonction pour supprimer un article
+function supprimerArticle(id) {
+    let panier = JSON.parse(localStorage.getItem('panier_shopy'));
+    panier = panier.filter(item => item.id !== id);
+    localStorage.setItem('panier_shopy', JSON.stringify(panier));
+    chargerPanier();
+}
+
+// 5. Calculer le total final
+function calculerTotal(panier) {
+    const total = panier.reduce((acc, item) => acc + (item.prix * item.quantite), 0);
+    document.getElementById('sous-total').innerText = `${total.toFixed(2)} €`;
+    document.getElementById('total-global').innerText = `${total.toFixed(2)} €`;
+}
+
+// 6. Simulation de commande
+function validerCommande() {
+    alert("Bravo ! Ta commande est en route vers chez toi. Merci d'avoir choisi shopy-cloths ! 🚀");
+    // Optionnel : vider le panier après achat
+     localStorage.removeItem('panier_shopy');
+     window.location.href = 'client.html';
+}
+
+// Lancer le chargement
+window.onload = chargerPanier;
+    </script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscription - shopicloth</title>
+    <link rel="stylesheet" href="../css/inscrire.css"> <!-- Ton CSS -->
+    
+    <!-- L'ordre est crucial ici ! -->
+    <script src="../js/header-auth.js" defer></script>
+    <script src="../js/inscrire.js" defer></script>
+</head>
+<body>
+    <div class="signup-container">
+        <h1>Créer un compte</h1>
+        <form id="signup-form">
+            <div class="form-group">
+                <label for="nom">Nom</label>
+                <input type="text" id="nom" name="nom" required>
+            </div>
+
+            <div class="form-group">
+                <label for="prenom">Prénom</label>
+                <input type="text" id="prenom" name="prenom" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Mot de passe</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+
+            <div class="form-group">
+                <label>Vous êtes :</label>
+                <div class="radio-group">
+                    <input type="radio" id="client" name="role" value="client" checked>
+                    <label for="client">Acheteur</label>
+                    
+                    <input type="radio" id="vendeur" name="role" value="vendeur">
+                    <label for="vendeur">Vendeur</label>
+                </div>
+            </div>
+
+            <button type="submit" id="submit-btn">S'inscrire</button>
+        </form>
+        <p>Déjà un compte ? <a href="connexion.html">Connectez-vous ici</a></p>
+    </div>
+</body>
+</html>

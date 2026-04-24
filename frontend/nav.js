@@ -77,7 +77,8 @@ function deleteProduct(id) {
         showLoading(); // On affiche l'icône dès qu'on clique
 
         fetch(`http://localhost:3000/api/products/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: getHeaders() // le token est ajouté automatiquement !
         })
         .then(res => res.json())//on parse la réponse en json
         .then(data => {

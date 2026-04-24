@@ -1,8 +1,10 @@
 const express = require('express');
 const app = express();
 const mongoose = require('mongoose');
+const Thing = require('./models/Thing');
 
 const productsroutes = require('./routes/products');
+const userroutes = require('./routes/user');
 
 const cors = require('cors');
 app.use(cors());
@@ -18,12 +20,14 @@ app.use(express.json());// Middleware pour parser les requêtes JSON
 
 
 
-
-
-
-
-
 // Middleware pour gérer les routes des produits
 app.use('/api/products', productsroutes);
+
+
+// Middleware pour gérer les routes des utilisateurs
+app.use('/api/auth', userroutes);
+
+console.log("Routes d'authentification chargées !");
+
 
 module.exports = app;

@@ -56,6 +56,22 @@ exports.deleteProduct = (req, res, next) => {
     .catch(error => res.status(400).json({ error }));
 }
 
+// Middleware pour la barre de recherche
+exports.searchProducts =  async (req, res) => {
+    const query = req.query.q; // On récupère ce que l'utilisateur a tapé
+    try {
+        const produits = await Thing.find({
+            nom: { $regex: query, $options: 'i' } // 'i' veut dire qu'on ignore la casse (Maj/Min)
+        });
+        res.json(produits);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+
+
+
 //on exporte nos fonctions de contrôle pour les produits
 module.exports = {
   createProduct: exports.createProduct,
@@ -63,5 +79,7 @@ module.exports = {
   getAllProducts: exports.getAllProducts,
   updateProduct: exports.updateProduct,
   getProductForEdit: exports.getProductForEdit,
-  deleteProduct: exports.deleteProduct
+  deleteProduct: exports.deleteProduct,
+  searchProducts: exports.searchProducts
+
 };

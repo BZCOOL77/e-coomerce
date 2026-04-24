@@ -1,0 +1,9 @@
+{
+  "watch": ["*.js", "controller", "routes", "models"],
+  "ignore": ["node_modules"],
+  "delay": 1000,
+  "restartable": "rs",
+  "env": {
+    "NODE_ENV": "development"
+  }
+}

@@ -1,3 +1,16 @@
+// On récupère le bouton panier de la barre de navigation
+const btnNavPanier = document.getElementById('panier');
+
+if (btnNavPanier) {
+    btnNavPanier.addEventListener('click', () => {
+        // Redirection vers la page panier.html
+        window.location.href = 'panier.html';
+    });
+}
+
+
+
+
 // evenement de délégation pour gérer les clics sur les boutons DÉTAILS et AJOUTER AU PANIER
 const catalogue = document.getElementById('catalogue');
 
@@ -28,7 +41,7 @@ catalogue.addEventListener('click', (event) => {
         ajouterAuPanier(id, nom, prix, image);
         // Optionnel : Petit effet visuel pour confirmer l'ajout
         btnPanier.innerText = "Ajouté ! ✅";
-        setTimeout(() => btnPanier.innerText = "Ajouter au panier", 3000);
+        setTimeout(() => btnPanier.innerText = "Ajouter au panier", 2000);
     }
 });
 
@@ -50,51 +63,54 @@ function hideLoading() {
     if(overlay) overlay.style.display = 'none';
 }
 
-// Fonction unique pour charger et afficher les produits
-async function chargerEtAfficherProduits() {
+// 1. Fonction pour CHARGER les produits depuis le serveur
+async function chargerProduits() {
     showLoading(); 
-    
     try {
         const response = await fetch('http://localhost:3000/api/products');
-        
-        if (!response.ok) {
-            throw new Error("Le serveur ne répond pas correctement");
-        }
+        if (!response.ok) throw new Error("Le serveur ne répond pas correctement");
 
         const produits = await response.json();
-        const container = document.getElementById('catalogue');
+        
+        // LE PONT : On appelle la fonction d'affichage en lui passant les données
+        afficherProduits(produits); 
 
-        // On vide le container avant de le remplir
-        container.innerHTML = '';
-
-        produits.forEach(produit => {
-            container.innerHTML += `
-                <article class="carte">
-                    <div class="produit-image">
-                        <img src="${produit.image}" alt="${produit.nom}">
-                    </div>
-                    <div class="produit-info">
-                        <h3 class="nom">${produit.nom}</h3>
-                        <p class="prix">${produit.prix} €</p>
-                        <p class="description">${produit.description}</p>
-                        <button class="btn-detail" data-id="${produit._id}">Détails</button>
-                        <button class="ajouter-panier" data-id="${produit._id}">Ajouter au panier</button>
-                    </div>
-                </article>
-            `;
-        });
     } catch (error) {
-        console.error("Erreur lors du chargement des produits :", error);
-        alert("Impossible de charger les produits. Vérifiez que le Backend est lancé !");
+        console.error("Erreur lors du chargement :", error);
+        alert("Vérifiez que le Backend est lancé !");
     } finally {
         hideLoading(); 
     }
 }
 
+// 2. Fonction pour AFFICHER les produits (utilisée par le chargement ET la recherche)
+function afficherProduits(produits) {
+    const container = document.getElementById('catalogue');
+    if (!container) return; // Sécurité si l'élément n'existe pas
+
+    container.innerHTML = ''; // On vide pour repartir à zéro
+
+    produits.forEach(produit => {
+        container.innerHTML += `
+            <article class="carte">
+                <div class="produit-image">
+                    <img src="${produit.image}" alt="${produit.nom}">
+                </div>
+                <div class="produit-info">
+                    <h3 class="nom">${produit.nom}</h3>
+                    <p class="prix">${produit.prix} €</p>
+                    <p class="description">${produit.description}</p>
+                    <button class="btn-detail" data-id="${produit._id}">Détails</button>
+                    <button class="ajouter-panier" data-id="${produit._id}">Ajouter au panier</button>
+                </div>
+            </article>
+        `;
+    });
+}
 
 
 // On lance tout au chargement de la page
-window.onload = chargerEtAfficherProduits;
+window.onload = chargerProduits;
 
 /**
  * SECTION : GESTION DU PANIER 
@@ -164,3 +180,42 @@ function mettreAJourCompteurPanier() {
 
 // Initialisation au chargement de la page pour afficher le compteur stocké sur l'Acer Predator
 window.addEventListener('DOMContentLoaded', mettreAJourCompteurPanier);
+
+
+//barre de recherche
+// 1. Déclarer la variable du timer en dehors de la fonction pour qu'elle soit persistante
+let timerRecherche; 
+
+// 2. La fonction de recherche (celle qui communique avec le serveur)
+async function rechercherProduits() {
+    const input = document.getElementById('search-input').value;
+    
+    // Si la barre est vide, on recharge la liste complète
+    if (input.length < 1) return chargerProduits();
+
+    try {
+        // On utilise encodeURIComponent pour protéger les caractères spéciaux dans l'URL
+        const response = await fetch(`http://localhost:3000/api/products/search?q=${encodeURIComponent(input)}`);
+        
+        if (!response.ok) throw new Error("Erreur lors de la recherche");
+
+        const produitsFiltrés = await response.json();
+        
+        // On utilise la fonction d'affichage 
+        afficherProduits(produitsFiltrés); 
+        
+    } catch (error) {
+        console.error("Erreur recherche :", error);
+    }
+}
+
+// 3. La fonction "Bouclier" (Debounce)
+function filtrerAvecDebounce() {
+    // On annule le compte à rebours précédent si l'utilisateur tape une nouvelle lettre
+    clearTimeout(timerRecherche); 
+    
+    // On lance un nouveau compte à rebours de 300ms avant de lancer la recherche
+    timerRecherche = setTimeout(() => {
+        rechercherProduits(); 
+    }, 300);
+}
