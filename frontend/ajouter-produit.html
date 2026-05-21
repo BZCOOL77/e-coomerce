@@ -65,7 +65,12 @@
                     window.location.href = 'nav.html';
                 } else {
                     const errorData = await reponse.json();
-                    alert('Erreur : ' + (errorData.message || 'Erreur serveur'));
+                    // 2. On affiche TOUT ce que le serveur a envoyé sous forme de texte
+                    // JSON.stringify transforme l'objet en chaine de caractères
+                     alert("Détails de l'erreur serveur : " + JSON.stringify(errorData)); 
+    
+                     // 3. On garde aussi le log pour inspecter avec F12 (plus confortable)
+                     console.log("Objet d'erreur complet :", errorData);
                 }
             } catch (error) {
                 console.error('Erreur Fetch :', error);

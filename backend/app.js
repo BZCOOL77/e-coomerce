@@ -3,8 +3,9 @@ const app = express();
 const mongoose = require('mongoose');
 const Thing = require('./models/Thing');
 
-const productsroutes = require('./routes/products');
-const userroutes = require('./routes/user');
+const productsroutes = require('./routes/products');// Importer les routes des produits
+const userroutes = require('./routes/user');// Importer les routes client d'authentification
+const orderroutes = require('./routes/order');// Importer les routes des commandes
 
 const cors = require('cors');
 app.use(cors());
@@ -26,6 +27,9 @@ app.use('/api/products', productsroutes);
 
 // Middleware pour gérer les routes des utilisateurs
 app.use('/api/auth', userroutes);
+
+// Middleware pour gérer les routes des commandes
+app.use('/api/orders', orderroutes);
 
 console.log("Routes d'authentification chargées !");
 

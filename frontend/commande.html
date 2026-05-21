@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+        <script src="header-auth.js" ></script>
+        <link rel="stylesheet" href="commande.css">
+         
+    </head>
+    <body>
+        <a href="nav.html" class="btn-retour">← Retour a ma boutique</a>
+    <!--pour le loader-->
+    <div id="overlay"></div>
+    <div id="loader"><div class="spinner">
+
+    </div>
+</div>
+<main>
+    <h1>Mes Commandes</h1>
+    <div id="liste-commandes">
+        <!-- Les commandes seront affichées ici -->
+    </div>
+</main>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <!--javascript de la page commande.html-->
+    <script>
+        async function chargerMesVentes() {
+    try {
+        const response = await fetch('http://localhost:3000/api/orders/vendeur', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+
+        const commandes = await response.json();
+        
+        // 🔍 DEBUG : Voir la structure exacte des données retournées
+        console.log("Données des commandes :", commandes);
+        if (commandes.length > 0) {
+            console.log("Première commande (structure) :", commandes[0]);
+        }
+        
+        const container = document.getElementById('liste-commandes');
+        container.innerHTML = ''; // On vide avant de remplir
+
+        commandes.forEach(commande => {
+            // Sécurité : on vérifie que le produit existe encore en base de données
+            const imageProduit = commande.produitId ? commande.produitId.image : 'chemin/vers/image-par-defaut.jpg';
+            const nomProduit = commande.produitId ? commande.produitId.nom : 'Produit supprimé';
+            const descriptionProduit = commande.produitId ? commande.produitId.description : 'Description indisponible';
+            const prixProduit = commande.produitId ? commande.produitId.prix : 'Prix indisponible';
+
+            // Sécurité : on vérifie que l'acheteur existe
+            const nomAcheteur = commande.acheteurId ? commande.acheteurId.nom : 'Client inconnu';
+            const emailAcheteur = commande.acheteurId ? commande.acheteurId.email : 'Email indisponible';
+
+            // Ajout d'un log pour debug
+            console.log('Commande statut:', commande.statut, 'ID:', commande._id);
+
+            container.innerHTML += `
+                <div class="ligne-commande">
+                    <div class="col-image">
+                        <img src="${imageProduit}" alt="${nomProduit}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;">
+                    </div>
+                    <div class="col-infos">
+                        <p><strong>Produit :</strong> ${nomProduit}</p>
+                        <p><strong>Description :</strong> ${descriptionProduit}</p>
+                        <p><strong>Prix :</strong> ${prixProduit} €</p>
+                        
+                        <p><strong>Client :</strong> ${nomAcheteur}</p>
+                        <p><strong>Email :</strong> ${emailAcheteur}</p>
+                        <p><strong>Quantité :</strong> ${commande.quantite}</p>
+                        <p><strong>Statut :</strong> 
+                            <span class="badge statut-${commande.statut.toLowerCase().replace(' ', '-')}">${commande.statut}</span>
+                        </p>
+                        <div class="actions-statut">
+                            
+                            ${commande.statut && commande.statut.toLowerCase() === 'en attente' ? `<button class="btn-action btn-preparation" onclick="changerStatut('${commande._id}', 'En cours')">⚙️ Préparer</button>` : ''}
+                            ${commande.statut && commande.statut.toLowerCase() === 'en cours' ? `<button class="btn-action btn-expedier" onclick="changerStatut('${commande._id}', 'Expédiée')">🚚 Expédier</button>` : ''}
+                            ${commande.statut && commande.statut.toLowerCase() === 'expédiée' ? `<button class="btn-action btn-Livre" onclick="changerStatut('${commande._id}', 'Livrée')">✅ Marquer comme Livrée</button>` : ''}
+                        </div>
+                        <p><strong>Date :</strong> ${new Date(commande.dateCommande).toLocaleDateString()}</p>
+                        <a href="mailto:${emailAcheteur}?subject=Votre commande Shopy-Cloths - Réf ${commande._id}" class="btn-action btn-contact">
+                            ✉️ Contacter le client
+                        </a>
+                    </div>
+                </div>
+            `;
+        });
+    } catch (err) {
+        alert('Erreur lors du chargement des ventes.');
+    }
+}
+
+
+//fonction de changement des statut des commandes
+
+async function changerStatut(commandeId, nouveauStatut) {
+    console.log("Tentative de changement de statut pour :", commandeId, "vers :", nouveauStatut);
+    
+    try {
+        const response = await fetch(`http://localhost:3000/api/orders/${commandeId}/statut`, {
+            method: 'PUT', // Vérifie si ton backend attend du PUT ou du PATCH
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({ statut: nouveauStatut })
+        });
+
+        if (response.ok) {
+            console.log("Statut mis à jour avec succès !");
+            // On recharge immédiatement les ventes pour actualiser l'affichage
+            chargerMesVentes(); 
+        } else {
+            const errorData = await response.json();
+            alert("Erreur du serveur : " + (errorData.error || "Impossible de modifier le statut."));
+        }
+    } catch (err) {
+        console.error(err) 
+        alert('Erreur lors du chargement des ventes.');
+    }
+}
+
+// On lance le chargement au démarrage
+document.addEventListener('DOMContentLoaded', chargerMesVentes);
+
+    </script>
+    </body>
+</html>

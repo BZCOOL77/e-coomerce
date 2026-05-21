@@ -152,6 +152,8 @@ nav button {
     cursor: pointer;
 }
 
+#adminBtn{display:none;}
+
 nav button:hover {
     background: #5567d8;
     transform: translateY(-1px);

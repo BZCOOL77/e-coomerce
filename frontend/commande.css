@@ -1,0 +1,373 @@
+/* ===== Variables CSS ===== */
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #3498db;
+    --accent-color: #e74c3c;
+    --light-bg: #ecf0f1;
+    --white: #ffffff;
+    --text-dark: #2c3e50;
+    --text-light: #7f8c8d;
+    --border-color: #bdc3c7;
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* ===== Reset et Base ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--light-bg);
+    color: var(--text-dark);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+.btn-retour {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: var(--secondary-color);
+    color: var(--white);
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+}
+
+.btn-retour:hover {
+    background-color: var(--accent-color);
+}
+
+
+
+/* ===== Loader et Overlay ===== */
+#overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+}
+
+#overlay.active {
+    display: block;
+}
+
+#loader {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+}
+
+#loader.active {
+    display: block;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid var(--light-bg);
+    border-top: 5px solid var(--secondary-color);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* ===== Main et Titre ===== */
+main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+h1 {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    margin-bottom: 30px;
+    text-align: center;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+/* ===== Conteneur des Commandes ===== */
+#liste-commandes {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+/* ===== Ligne de Commande ===== */
+.ligne-commande {
+    background-color: var(--white);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+    transition: all 0.3s ease;
+    border-left: 4px solid var(--secondary-color);
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    overflow: hidden;
+}
+
+.ligne-commande:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateX(5px);
+    border-left-color: var(--accent-color);
+}
+
+/* ===== Colonne Image ===== */
+.col-image {
+    flex-shrink: 0;
+    min-width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--light-bg);
+    border-radius: 6px;
+}
+
+.col-image img {
+    width: 70px;
+    height: 70px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+/* ===== Colonne Infos ===== */
+.col-infos {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px 15px;
+}
+
+.col-infos p {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    margin: 0;
+    padding: 5px 0;
+}
+
+.col-infos p strong {
+    color: var(--primary-color);
+    font-weight: 600;
+    display: block;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 3px;
+}
+
+.col-infos p strong + * {
+    display: inline;
+}
+
+/* 1. Base commune pour TOUS les boutons de statut et de contact */
+.btn-action {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+}
+
+/* 2. Couleurs spécifiques par bouton */
+.btn-preparation { background: #ecc94b; color: #744210; } /* Jaune */
+.btn-expedier { background: #3182ce; color: white; }    /* Bleu */
+.btn-Livre { background: #38a169; color: white; }       /* Vert */
+.btn-contact { background: #4a5568; color: white; }     /* Gris foncé */
+
+/* ===== Responsive Design ===== */
+
+/* Tablettes (768px et plus) */
+@media (max-width: 768px) {
+    .ligne-commande {
+        padding: 15px;
+        gap: 15px;
+    }
+
+    .col-image {
+        min-width: 70px;
+        height: 70px;
+    }
+
+    .col-image img {
+        width: 60px;
+        height: 60px;
+    }
+
+    .col-infos {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 8px 12px;
+    }
+
+    .col-infos p {
+        font-size: 0.85rem;
+    }
+}
+
+/* ===== Message Vide ===== */
+.empty-message {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-light);
+}
+
+.empty-message h2 {
+    font-size: 1.8rem;
+    color: var(--text-dark);
+    margin-bottom: 10px;
+}
+
+/* ===== Responsive Design ===== */
+
+/* Tablettes (768px et plus) */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2rem;
+        margin-bottom: 25px;
+    }
+
+    main {
+        padding: 25px 15px;
+    }
+
+    #liste-commandes {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 15px;
+    }
+
+    .commande-card {
+        padding: 20px;
+    }
+
+    .commande-card h4 {
+        font-size: 1.1rem;
+    }
+}
+
+/* Mobiles (480px et plus) */
+@media (max-width: 480px) {
+    h1 {
+        font-size: 1.6rem;
+        margin-bottom: 20px;
+    }
+
+    main {
+        padding: 15px 10px;
+    }
+
+    .ligne-commande {
+        flex-direction: column;
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .col-image {
+        width: 100%;
+        min-width: auto;
+        height: auto;
+    }
+
+    .col-image img {
+        width: 100%;
+        height: auto;
+        max-width: 60px;
+    }
+
+    .col-infos {
+        grid-template-columns: 1fr;
+        gap: 8px 0;
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid var(--light-bg);
+        border-top: 4px solid var(--secondary-color);
+    }
+}
+
+/* Petits écrans (moins de 400px) */
+@media (max-width: 400px) {
+    h1 {
+        font-size: 1.4rem;
+    }
+
+    main {
+        padding: 12px 8px;
+    }
+
+    .ligne-commande {
+        padding: 10px;
+        gap: 10px;
+    }
+
+    .col-infos p {
+        font-size: 0.8rem;
+    }
+
+    .col-infos p strong {
+        font-size: 0.75rem;
+    }
+}
+
+/* ===== Animations ===== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.ligne-commande {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* ===== Accessibilité ===== */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ===== Impression ===== */
+@media print {
+    #overlay,
+    #loader {
+        display: none !important;
+    }
+
+    .ligne-commande {
+        box-shadow: none;
+        border: 1px solid var(--border-color);
+        page-break-inside: avoid;
+    }
+}

@@ -1,12 +1,27 @@
 // On récupère le bouton panier de la barre de navigation
-const btnNavPanier = document.getElementById('panier');
+const navbarre = document.getElementById('navbarre');
 
-if (btnNavPanier) {
-    btnNavPanier.addEventListener('click', () => {
+navbarre.addEventListener('click', (event) => {
+    const vendeurBtn = event.target.closest('.vendeur');
+    const histBtn = event.target.closest('.hist');
+    const adminBtn = event.target.closest('.adminBtn');
+    const panierBtn = event.target.closest('.panier');
+
+    if (panierBtn) {
         // Redirection vers la page panier.html
-        window.location.href = 'panier.html';
-    });
-}
+        window.location.href = '../html/panier.html';
+    };
+    if (adminBtn) {// Redirection vers la page nav.html
+        window.location.href = '../../frontend/nav.html';
+    };
+    if (vendeurBtn) {// Redirection vers la page vendeur.html
+        window.location.href = '../html/parvendeur.html';
+    };
+    if (histBtn) {// Redirection vers la page historique.html
+        window.location.href = '../html/historique.html';
+    };
+});
+
 
 
 
@@ -28,7 +43,12 @@ catalogue.addEventListener('click', (event) => {
 
     // 3. Logique pour le bouton AJOUTER AU PANIER
     if (btnPanier) {
+        // On récupère les IDs stockés dans les attributs data-
         const id = btnPanier.dataset.id;
+        const vendeurId = btnPanier.dataset.vendeur;
+        
+        console.log("DEBUG - dataset.id :", id); // DEBUG
+        console.log("DEBUG - dataset.vendeur :", vendeurId); // DEBUG
         
         // On récupère les infos du produit directement dans la "carte" parente
         const carte = btnPanier.closest('.carte');
@@ -38,7 +58,7 @@ catalogue.addEventListener('click', (event) => {
         const image = carte.querySelector('img').src;
 
         // On lance la fonction d'ajout avec toutes les données
-        ajouterAuPanier(id, nom, prix, image);
+        ajouterAuPanier(id, nom, prix, image, vendeurId);
         // Optionnel : Petit effet visuel pour confirmer l'ajout
         btnPanier.innerText = "Ajouté ! ✅";
         setTimeout(() => btnPanier.innerText = "Ajouter au panier", 2000);
@@ -66,11 +86,24 @@ function hideLoading() {
 // 1. Fonction pour CHARGER les produits depuis le serveur
 async function chargerProduits() {
     showLoading(); 
+
+    // 1. On analyse l'URL actuelle à la recherche de '?vendeurId=...'
+    const urlParams = new URLSearchParams(window.location.search);
+    const vendeurId = urlParams.get('vendeurId');
+
+    // 2. On prépare l'URL de notre API backend
+    // Si vendeurId existe, on l'ajoute à l'URL du fetch, sinon on garde l'URL normale
+    let urlAPI = 'http://localhost:3000/api/products';
+    if (vendeurId) {
+        urlAPI += `?vendeurId=${vendeurId}`;
+    }
     try {
-        const response = await fetch('http://localhost:3000/api/products');
+        const response = await fetch(urlAPI);
+
         if (!response.ok) throw new Error("Le serveur ne répond pas correctement");
 
         const produits = await response.json();
+        console.log("Produits reçus du serveur :", produits); // DEBUG
         
         // LE PONT : On appelle la fonction d'affichage en lui passant les données
         afficherProduits(produits); 
@@ -90,7 +123,15 @@ function afficherProduits(produits) {
 
     container.innerHTML = ''; // On vide pour repartir à zéro
 
+    if (produits.length === 0) {
+            container.innerHTML = "<p style='color: white;'>Ce vendeur n'a aucun produit en vente pour le moment.</p>";
+            return;
+        }
+
     produits.forEach(produit => {
+        console.log("Produit complet :", produit); // DEBUG - Affiche TOUT
+        console.log("VendeurId du produit :", produit.vendeurId); // DEBUG - Affiche le vendeurId
+        
         container.innerHTML += `
             <article class="carte">
                 <div class="produit-image">
@@ -101,7 +142,7 @@ function afficherProduits(produits) {
                     <p class="prix">${produit.prix} €</p>
                     <p class="description">${produit.description}</p>
                     <button class="btn-detail" data-id="${produit._id}">Détails</button>
-                    <button class="ajouter-panier" data-id="${produit._id}">Ajouter au panier</button>
+                    <button class="ajouter-panier" data-id="${produit._id}" data-vendeur="${produit.vendeurId}">Ajouter au panier</button>
                 </div>
             </article>
         `;
@@ -136,7 +177,8 @@ function sauvegarderPanier(panier) {
 }
 
 // 3. ACTION : Ajouter un produit ou augmenter sa quantité
-function ajouterAuPanier(id, nom, prix, image) {
+function ajouterAuPanier(id, nom, prix, image, vendeurId) {
+    console.log("Ajout au panier - ID:", id, "VendeurID:", vendeurId); // DEBUG
     let panier = obtenirPanier();
 
     // On vérifie si l'article est déjà présent via son ID unique
@@ -153,7 +195,8 @@ function ajouterAuPanier(id, nom, prix, image) {
             nom: nom,
             prix: parseFloat(prix), // On s'assure que le prix est un nombre
             image: image,
-            quantite: 1
+            quantite: 1,
+            vendeurId: vendeurId
         };
         panier.push(nouveauProduit);
         console.log(`${nom} ajouté au panier !`);
@@ -218,4 +261,21 @@ function filtrerAvecDebounce() {
     timerRecherche = setTimeout(() => {
         rechercherProduits(); 
     }, 300);
-}
+}//FIN DE LA FONCTION POUR LA BARRE DE RECHERCHE 
+
+
+//l'ecouteur pour voir si vendeur ou si client
+ document.addEventListener('DOMContentLoaded', () => {
+    const role = localStorage.getItem('role');
+    const adminBtn = document.getElementById('adminBtn');
+
+    if (role === 'vendeur') {
+        // 1. On le rend visible
+        adminBtn.style.display = 'block'; 
+        
+        
+    } else {
+        // Un client ne doit même pas voir que ce bouton existe dans le DOM
+        if (adminBtn) adminBtn.remove(); 
+    }
+});

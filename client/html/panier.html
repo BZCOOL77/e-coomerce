@@ -39,7 +39,7 @@
                     <span>Total</span>
                     <span id="total-global">0.00 €</span>
                 </div>
-                <button class="btn-commander" onclick="validerCommande()">Passer à la caisse</button>
+                <button class="btn-commander" onclick="validerPanierEtCommander()">Passer à la caisse</button>
             </div>
         </div>
     </main>
@@ -58,7 +58,7 @@ function chargerPanier() {
 
     // 2. On génère le HTML pour chaque produit
     container.innerHTML = panier.map(item => `
-        <div class="panier-item">
+        <div class="panier-item" data-id="${item.id}" data-vendeur="${item.vendeurId}">
             <img src="${item.image}" alt="${item.nom}">
             <div class="item-infos">
                 <h3>${item.nom}</h3>
@@ -111,12 +111,62 @@ function calculerTotal(panier) {
 }
 
 // 6. Simulation de commande
-function validerCommande() {
-    alert("Bravo ! Ta commande est en route vers chez toi. Merci d'avoir choisi shopy-cloths ! 🚀");
-    // Optionnel : vider le panier après achat
-     localStorage.removeItem('panier_shopy');
-     window.location.href = 'client.html';
+// A. Fonction qui envoie un seul article au serveur
+async function envoyerUneCommande(produit) {
+    console.log("Objet envoyé au serveur :", produit);
+    const detailsCommande = {
+        produitId: produit.id,
+        vendeurId: produit.vendeurId,
+        quantite: produit.quantite || 1 // On prend la quantité ou 1 par défaut
+    };
+
+    const response = await fetch('http://localhost:3000/api/orders', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(detailsCommande)
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Échec de l'envoi");
+    }
+    return response.json();
 }
+
+// B. La fonction principale appelée par ton bouton "Passer à la caisse"
+async function validerPanierEtCommander() {
+    // 1. On récupère le panier sur ton Acer Predator
+    const panier = JSON.parse(localStorage.getItem('panier_shopy')) || [];
+
+    if (panier.length === 0) {
+        alert("Votre panier est vide, allez donc faire quelques emplettes ! 🛒");
+        return;
+    }
+
+    try {
+        // 2. On boucle sur chaque produit du panier
+        // On utilise for...of pour attendre que chaque requête finisse (async/await)
+        for (const article of panier) {
+            await envoyerUneCommande(article);
+            console.log(`Commande envoyée pour : ${article.nom}`);
+        }
+
+        // 3. Si tout s'est bien passé
+        alert('Félicitations ! Toutes vos commandes ont été transmises aux vendeurs. 🎉');
+        
+        // 4. Nettoyage après la victoire
+        localStorage.removeItem('panier_shopy');
+        window.location.href = 'client.html';
+
+    } catch (err) {
+        console.error('Erreur lors de la commande groupée :', err);
+        alert("Une erreur est survenue pendant la validation : " + err.message);
+    }
+}
+    
 
 // Lancer le chargement
 window.onload = chargerPanier;

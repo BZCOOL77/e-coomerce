@@ -1,19 +1,26 @@
 const Thing = require('../models/Thing');// Importer le modèle de données pour les produits
 
-exports.createProduct = (req, res, next) => {// Middleware pour créer une nouvelle marchandise
+
+
+// Middleware pour créer une nouvelle marchandise
+exports.createProduct = (req, res, next) => {
   delete req.body._id; // Supprimer l'ID généré par le client
   
     const thing = new Thing({
-        ...req.body
+        ...req.body,
+        vendeurId: req.auth.userId // Associer le vendeurId à l'utilisateur authentifié qui crée le produit 
     });
     thing.save()
         .then(() => res.status(201).json({ message: 'Objet enregistré !' }))
-        .catch(error => res.status(400).json({ error }));
-}
+        .catch(error =>// On log l'erreur et on envoie UNE SEULE réponse d'erreur
+            console.error("ERREUR MONGOOSE :", error) || res.status(400).json({ error: error.message || error })
+        );
+};
 
 // Middleware pour envoyer les marchandises au frontend
 exports.getOneProduct =  (req, res, next) => {
   Thing.findOne({ _id: req.params.id })
+    .populate('vendeurId', 'nom')
     .then((thing) => {
       if (!thing) {
         return res.status(404).json({ message: 'Objet non trouvé !' });
@@ -27,7 +34,12 @@ exports.getOneProduct =  (req, res, next) => {
 
 // Middleware pour envoyer toutes les marchandises au frontend
 exports.getAllProducts = (req, res, next) => {
-  Thing.find()
+  // 1. On regarde si un vendeurId est présent dans l'URL (ex: ?vendeurId=65f...)
+    const filtreVendeur = req.query.vendeurId;
+    
+    // 2. Si oui, on cherche uniquement ses produits. Si non, on cherche TOUS les produits.
+    const conditionDeRecherche = filtreVendeur ? { vendeurId: filtreVendeur } : {};
+  Thing.find(conditionDeRecherche)
     .then((things) => res.status(200).json(things))
     .catch((error) => res.status(400).json({ error }));
 }
@@ -57,7 +69,7 @@ exports.deleteProduct = (req, res, next) => {
 }
 
 // Middleware pour la barre de recherche
-exports.searchProducts =  async (req, res) => {
+exports.searchProducts =  async (req, res, next) => {
     const query = req.query.q; // On récupère ce que l'utilisateur a tapé
     try {
         const produits = await Thing.find({
@@ -70,6 +82,14 @@ exports.searchProducts =  async (req, res) => {
 };
 
 
+// 2. Pour ne récupérer que MES produits (la boutique du vendeur)
+exports.getMyProducts = (req, res) => {
+    // On ne cherche que les produits correspondants à l'ID du token
+    Thing.find({ vendeurId: req.auth.userId }) 
+        .then(products => res.status(200).json(products))
+        .catch(error => res.status(400).json({ error }));
+};
+
 
 
 //on exporte nos fonctions de contrôle pour les produits
@@ -80,6 +100,7 @@ module.exports = {
   updateProduct: exports.updateProduct,
   getProductForEdit: exports.getProductForEdit,
   deleteProduct: exports.deleteProduct,
-  searchProducts: exports.searchProducts
+  searchProducts: exports.searchProducts,
+  getMyProducts: exports.getMyProducts
 
 };

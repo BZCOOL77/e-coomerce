@@ -29,10 +29,16 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
         const data = await response.json();
 
         if (response.ok) {
+            // --- ÉTAPE CRUCIALE ---
+            // On stocke le userId et le token dans le localStorage
+            localStorage.setItem('userId', data.userId);
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('role', data.role); // C'est ça qui permet de s'en souvenir au prochain refresh
+
             // Succès !
             alert("Compte créé avec succès ! Bienvenue chez shopycloth.");
-            // On redirige vers la page de connexion
-            window.location.href = 'connexion.html';
+            // On redirige vers la page de la boutique
+            window.location.href = 'client.html';
         } else {
             // Le serveur a renvoyé une erreur (ex: email déjà utilisé)
             alert("Erreur lors de l'inscription : " + (data.error || data.message));

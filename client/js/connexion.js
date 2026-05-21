@@ -20,6 +20,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
             // On stocke le userId et le token dans le localStorage
             localStorage.setItem('userId', data.userId);
             localStorage.setItem('token', data.token);
+            localStorage.setItem('role', data.role); // C'est ça qui permet de s'en souvenir au prochain refresh
 
             alert("Connexion réussie ! Ravie de vous revoir.");
             

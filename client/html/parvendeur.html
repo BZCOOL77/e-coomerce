@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Nos Vendeurs | Shopy-Cloths</title>
+    <link rel="stylesheet" href="../css/parvendeur.css">
+   
+</head>
+<body>
+
+    <header>
+        <h1>Shopy-Cloths</h1>
+        <h2>Découvrez nos boutiques partenaires</h2>
+    </header>
+
+    <main>
+        <div id="liste-vendeurs" class="vendeurs-grid">
+            <p>Chargement des boutiques...</p>
+        </div>
+    </main>
+
+    <script>
+        async function chargerLesVendeurs() {
+    try {
+        const response = await fetch('http://localhost:3000/api/auth/vendeurs'); // Ajuste l'URL selon tes routes backend
+        
+        if (!response.ok) {
+            throw new Error("Impossible de charger les vendeurs");
+        }
+
+        const vendeurs = await response.json();
+        const container = document.getElementById('liste-vendeurs');
+        container.innerHTML = ''; // On vide le message de chargement
+
+        if (vendeurs.length === 0) {
+            container.innerHTML = '<p>Aucun vendeur disponible pour le moment.</p>';
+            return;
+        }
+
+        vendeurs.forEach(vendeur => {
+            // On génère une carte pour chaque vendeur
+            // Au clic, on envoie le client vers client.html avec l'ID du vendeur en paramètre URL
+            container.innerHTML += `
+                <div class="vendeur-card">
+                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">🏪</div>
+                    <h3>${vendeur.nom}</h3>
+                    <p style="color: #666; font-size: 0.9rem;">${vendeur.email}</p>
+                    <a href="client.html?vendeurId=${vendeur._id}" class="btn-voir-boutique">
+                        Visiter la boutique
+                    </a>
+                </div>
+            `;
+        });
+
+    } catch (error) {
+        console.error("Erreur :", error);
+        document.getElementById('liste-vendeurs').innerHTML = 
+            '<p style="color: red;">Erreur lors du chargement des vendeurs.</p>';
+    }
+}
+
+// Lancement au chargement du DOM
+document.addEventListener('DOMContentLoaded', chargerLesVendeurs);
+    </script>
+</body>
+</html>
