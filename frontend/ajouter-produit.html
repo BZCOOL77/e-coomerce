@@ -17,6 +17,8 @@
         <input type="number" id="prix" placeholder="Prix" required><br>
         <input type="textarea" id="description" placeholder="Description" required></input><br>
         <input type="text" id="image" placeholder="Lien de l'image" required><br>
+        <input type="number" id="stock" name="stock" min="1" value="10" placeholder="quantité en stock" required class="form-input"><br>
+        
         
         <button type="submit" id="envoyer">Terminer</button>
     </form>
@@ -49,7 +51,8 @@
                 nom: document.getElementById('nom').value,
                 prix: Number(document.getElementById('prix').value),
                 description: document.getElementById('description').value,
-                image: document.getElementById('image').value
+                image: document.getElementById('image').value,
+                stock: Number(document.getElementById('stock').value)
             };
 
             try {

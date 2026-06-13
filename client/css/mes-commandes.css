@@ -1,0 +1,154 @@
+/* --- Styles modernes et professionnels pour la page Mes Commandes --- */
+
+body {
+	background: linear-gradient(120deg, #f8fafc 0%, #e2e8f0 100%);
+	font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+	color: #2d3748;
+	margin: 0;
+	min-height: 100vh;
+}
+
+.main-mes-commandes {
+	padding: 2rem;
+	max-width: 900px;
+	margin: 0 auto;
+	background: #fff;
+	border-radius: 18px;
+	box-shadow: 0 4px 24px 0 rgba(44, 62, 80, 0.08);
+	margin-top: 2rem;
+}
+
+.onglets-container {
+	display: flex;
+	gap: 10px;
+	margin-bottom: 24px;
+	border-bottom: 2px solid #e2e8f0;
+	padding-bottom: 10px;
+}
+.onglet {
+	padding: 12px 28px;
+	border: none;
+	background: none;
+	font-size: 1.08rem;
+	font-weight: 600;
+	color: #718096;
+	cursor: pointer;
+	border-radius: 7px 7px 0 0;
+	transition: background 0.2s, color 0.2s;
+}
+.onglet.active {
+	color: #2563eb;
+	border-bottom: 3px solid #2563eb;
+	background-color: #e0e7ff;
+}
+
+/* Cartes commandes */
+.commande-card {
+	background: #f9fafb;
+	border-radius: 12px;
+	box-shadow: 0 2px 8px 0 rgba(44, 62, 80, 0.06);
+	margin-bottom: 22px;
+	padding: 18px 22px;
+	transition: box-shadow 0.2s;
+	border-left: 5px solid #2563eb;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+.commande-card[data-statut="Livrée"] {
+	border-left: 5px solid #38a169;
+}
+.commande-header {
+	display: flex;
+	gap: 18px;
+	align-items: center;
+}
+.commande-header img {
+	width: 80px;
+	height: 80px;
+	object-fit: cover;
+	border-radius: 8px;
+	border: 2px solid #cbd5e1;
+	background: #fff;
+}
+.commande-header h3 {
+	margin: 0 0 6px 0;
+	font-size: 1.15rem;
+	color: #1a202c;
+}
+.commande-header p {
+	margin: 0 0 2px 0;
+	font-size: 0.98rem;
+	color: #475569;
+}
+
+.suivi-colis {
+	margin-top: 10px;
+	padding: 12px;
+	background: #e0e7ff;
+	border-radius: 8px;
+	font-size: 0.98rem;
+	color: #373a47;
+	border-left: 3px solid #2563eb;
+}
+.commande-card[data-statut="Livrée"] .suivi-colis {
+	background: #e6fffa;
+	border-left: 3px solid #38a169;
+}
+
+/* Loader/Spinner */
+.loader-overlay {
+	position: fixed;
+	top: 0; left: 0; right: 0; bottom: 0;
+	background: rgba(255,255,255,0.7);
+	z-index: 1000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.spinner {
+	border: 6px solid #e2e8f0;
+	border-top: 6px solid #2563eb;
+	border-radius: 50%;
+	width: 60px;
+	height: 60px;
+	animation: spin 1s linear infinite;
+}
+@keyframes spin {
+	0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); }
+}
+
+#liste-achats {
+	min-height: 200px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: flex-start;
+	color: #2d3748;
+	margin-top: 10px;
+}
+
+/* Bouton d'annulation de commande */
+.btn-annuler {
+	align-self: flex-end;
+	padding: 10px 18px;
+	background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+	color: white;
+	border: none;
+	border-radius: 8px;
+	font-size: 0.95rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+.btn-annuler:hover {
+	background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+	box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+	transform: translateY(-2px);
+}
+.btn-annuler:active {
+	transform: translateY(0);
+	box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+}

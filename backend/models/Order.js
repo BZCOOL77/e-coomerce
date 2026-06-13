@@ -12,9 +12,12 @@ const orderSchema = mongoose.Schema({
     // Le statut permet au vendeur de gérer l'avancement
     statut: { 
     type: String, 
-    enum: ['en attente', 'En cours', 'expédiée', 'livrée', 'annulée'], 
+    enum: ['en attente', 'En cours', 'expédiée', 'livrée', 'annulée', 'annulée par acheteur'], 
     default: 'en attente' },
-    dateCommande: { type: Date, default: Date.now }
+    dateCommande: { type: Date, default: Date.now },
+    // 📦 C'EST ICI : Le numéro unique qui va lier les produits du même vendeur dans un seul carton
+    colisGroupId: { type: String, required: true }
+}, { timestamps: true  // Ajoute automatiquement la date de commande
 });
 
 module.exports = mongoose.model('Order', orderSchema);

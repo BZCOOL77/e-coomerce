@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Mes Achats | Shopy-Cloths</title>
+    
+     <link rel="stylesheet" href="../css/mes-commandes.css">
+    <script src="../js/mes-commandes.js" defer></script>
+    <!-- Styles déplacés dans mes-commandes.css -->
+</head>
+<body>
+    <p><a href="../html/client.html">Retour à l'accueil</a></p>
+
+    <header>
+        <h1>Mon Espace Shopy-Cloths</h1>
+        <h2>Suivi de mes commandes</h2>
+    </header>
+
+    <main class="main-mes-commandes">
+        <div class="onglets-container">
+            <button id="onglet-en-cours" class="onglet active" onclick="basculerOnglet('en-cours')">
+                🚚 En cours de livraison
+            </button>
+            <button id="onglet-historique" class="onglet" onclick="basculerOnglet('historique')">
+                📜 Commandes reçues (Historique)
+            </button>
+        </div>
+
+        <!-- Loader/Spinner -->
+        <div id="loader-mes-commandes" class="loader-overlay" style="display:none;">
+            <div class="spinner"></div>
+        </div>
+
+        <div id="liste-achats">
+            <p>Chargement de vos achats...</p>
+        </div>
+    </main>
+    
+  
+</body>
+</html>

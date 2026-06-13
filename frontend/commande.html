@@ -5,18 +5,43 @@
         
         <script src="header-auth.js" ></script>
         <link rel="stylesheet" href="commande.css">
-         
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
     <body>
-        <a href="nav.html" class="btn-retour">← Retour a ma boutique</a>
-    <!--pour le loader-->
-    <div id="overlay"></div>
-    <div id="loader"><div class="spinner">
-
+    <!-- Séparateur d'onglets pour le tableau de bord -->
+    <div class="onglets-container">
+        <button id="onglet-en-cours" class="onglet active" onclick="basculerOnglet('en-cours')">
+            📦 Commandes en cours
+        </button>
+        <button id="onglet-historique" class="onglet" onclick="basculerOnglet('historique')">
+            📜 Historique (Livrées)
+        </button>
     </div>
-</div>
+        <!-- Loader et overlay (doivent être uniques dans la page) -->
+        <div id="overlay"></div>
+        <div id="loader"><div class="spinner"></div></div>
+
+        <a href="nav.html" class="btn-retour">← Retour a ma boutique</a>
 <main>
-    <h1>Mes Commandes</h1>
+    <div class="commande-topbar">
+        <div class="page-title">
+            <h1>Mes Commandes</h1>
+            <small>Suivez vos colis, mettez à jour les statuts et gérez les annulations rapidement.</small>
+        </div>
+        <div class="commande-actions">
+            <div class="search-box">
+                <input type="search" placeholder="Rechercher ID, client, article..." aria-label="Recherche de commande">
+                <button type="button">🔍</button>
+            </div>
+            <div class="filter-group">
+                <button class="filter-pill active" type="button">Toutes</button>
+                <button class="filter-pill" type="button">En attente</button>
+                <button class="filter-pill" type="button">En cours</button>
+                <button class="filter-pill" type="button">Expédiée</button>
+                <button class="filter-pill" type="button">Livrée</button>
+            </div>
+        </div>
+    </div>
     <div id="liste-commandes">
         <!-- Les commandes seront affichées ici -->
     </div>
@@ -39,84 +64,348 @@
 
     <!--javascript de la page commande.html-->
     <script>
-        async function chargerMesVentes() {
+        // Variable globale pour stocker le filtre actuel ('en-cours' par défaut)
+let filtreActuel = 'en-cours';
+
+// Charge et affiche les ventes du vendeur, groupées par colisGroupId
+async function chargerMesVentes() {
+    document.getElementById('overlay').classList.add('active');
+    document.getElementById('loader').classList.add('active');
+
     try {
         const response = await fetch('http://localhost:3000/api/orders/vendeur', {
             method: 'GET',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+
+        const commandes = await response.json();
+        console.log("Données des commandes :", commandes);
+
+        const container = document.getElementById('liste-commandes');
+        container.innerHTML = '';
+
+        if (!Array.isArray(commandes)) {
+            throw new Error('Format inattendu des commandes');
+        }
+
+        commandes.forEach(colis => {
+            // Si la réponse est déjà groupée par colis
+            
+            const articles = Array.isArray(colis.articles) ? colis.articles : [colis];
+            const statutGlobal = colis.statutGlobal || colis.statut || 'N/A';
+            const nomAcheteur = colis.acheteur ? (colis.acheteur.nom || 'Client inconnu') : (colis.acheteurId ? colis.acheteurId.nom : 'Client inconnu');
+            const emailAcheteur = colis.acheteur ? (colis.acheteur.email || '') : (colis.acheteurId ? colis.acheteurId.email : '');
+            const idColis = colis.colisGroupId || colis._id;
+            const prochainStatutColis = nextStatusFor(statutGlobal);
+
+            let articlesHtml = '';
+            articles.forEach(article => {
+                const produit = article.produitInfo || article.produitId;
+                const imageProduit = produit ? (produit.image || produit.imageUrl || produit.photo || produit.picture) : '';
+                const imageSrc = imageProduit
+                    ? (imageProduit.startsWith('http://') || imageProduit.startsWith('https://') || imageProduit.startsWith('/')
+                        ? imageProduit
+                        : imageProduit)//toutes ses acrobatie parce que les données peuvent être très variées, on tente de deviner l'url de l'image, sinon on met une image par défaut
+                    : 'chemin/vers/image-par-defaut.jpg';
+                const nomProduit = produit ? (produit.nom || produit.title || 'Produit supprimé') : 'Produit supprimé';
+                const descriptionProduit = produit ? (produit.description || '') : '';
+                const quantite = article.quantite || article.quantite === 0 ? article.quantite : 'N/A';
+                const prixProduit = article.prixUnitaire || (produit ? (produit.prix || produit.price) : 'Prix indisponible');
+                const statutArticle = article.statutIndividuel || article.statut || 'N/A';
+                const orderId = article.orderId || article._id;
+
+                const estLivree = statutArticle.toLowerCase() === 'livrée';
+                const estAnnulee = statutArticle.toLowerCase() === 'annulée';
+                const estAnnuleeParAcheteur = statutArticle.toLowerCase() === 'annulée par acheteur';
+                const peutAnnuler = !estLivree && !estAnnulee && !estAnnuleeParAcheteur;
+
+                articlesHtml += `
+                    <div class="ligne-commande commande-card ${estLivree ? 'commande-livree' : ''}" data-statut="${statutArticle}">
+                        <div class="col-image commande-header">
+                            <img src="${imageSrc}" alt="${nomProduit}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;">
+                        </div>
+                        <div class="col-infos">
+                            <div class="info-main">
+                                <span class="info-item"><span class="info-label">Nom :</span> <span class="info-value">${nomProduit}</span></span>
+                                <span class="badge statut-${statutArticle.toLowerCase().replace(/ /g,'-')}">${statutArticle}</span>
+                            </div>
+                            <div class="info-secondary">
+                                <span class="info-item"><span class="info-label">Description :</span> <span class="info-value">${descriptionProduit || 'Pas de description'}</span></span>
+                                <span class="info-item"><span class="info-label">Prix :</span> <span class="info-value">${prixProduit} €</span></span>
+                                <span class="info-item"><span class="info-label">Qté :</span> <span class="info-value">${quantite}</span></span>
+                            </div>
+                        </div>
+                        <div class="actions-statut">
+                            ${peutAnnuler ? `
+                                <button class="btn-action btn-annuler" onclick="annulerCommande('${orderId}')">
+                                    ❌ Annuler
+                                </button>
+                            ` : (estAnnuleeParAcheteur ? '<span class="annulee-acheteur">⚠️ Annulée par l\'acheteur</span>' : (estAnnulee ? '<span>❌ Vente annulée</span>' : '<span>✅ Vente terminée</span>'))}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML += `
+                <section class="colis-block" data-statut="${statutGlobal}">
+                    <header class="colis-header">
+                        <div>
+                            <h2>Colis: ${idColis}</h2>
+                            <p><strong>Acheteur:</strong> ${nomAcheteur} ${emailAcheteur ? `• <a href="mailto:${emailAcheteur}">${emailAcheteur}</a>` : ''}</p>
+                            <p><strong>Statut global:</strong> <span class="badge statut-${statutGlobal.toLowerCase().replace(/ /g,'-')}">${statutGlobal}</span></p>
+                        </div>
+                        <div class="colis-actions">
+                            ${prochainStatutColis ? `<button class="btn-action btn-suivant" onclick="changerStatutColis('${idColis}', '${prochainStatutColis}')">➡️ Passer le colis à : ${prochainStatutColis}</button>` : ''}
+                        </div>
+                    </header>
+                    <div class="colis-articles">${articlesHtml}</div>
+                </section>
+            `;
+        });
+
+        appliquerFiltrage();
+    } catch (err) {
+        console.error(err);
+        alert('Erreur lors du chargement des ventes.');
+    } finally {
+        document.getElementById('overlay').classList.remove('active');
+        document.getElementById('loader').classList.remove('active');
+    }
+}
+
+function nextStatusFor(statut) {
+    if (!statut) return '';
+    switch (statut.toLowerCase()) {
+        case 'en attente': return 'En cours';
+        case 'en cours': return 'expédiée';
+        case 'expédiée': return 'livrée';
+        default: return '';
+    }
+}
+
+// Détermine le prochain statut logique pour le colis (valeurs compatibles schéma)
+function nextStatusFor(statut) {
+    if (!statut) return '';
+    switch (statut.toLowerCase()) {
+        case 'en attente': return 'En cours';
+        case 'en cours': return 'expédiée';
+        case 'expédiée': return 'livrée';
+        default: return '';
+    }
+}
+
+// Change le statut d'un colis entier (route: PUT /api/orders/colis/:colisGroupId/statut)
+async function changerStatutColis(colisGroupId, nouveauStatut) {
+    if (!confirm(`Confirmer passage du colis ${colisGroupId} au statut "${nouveauStatut}" ?`)) return;
+    document.getElementById('overlay').classList.add('active');
+    document.getElementById('loader').classList.add('active');
+    try {
+        const response = await fetch(`http://localhost:3000/api/orders/colis/${colisGroupId}/statut`, {
+            method: 'PUT',
             headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({ statut: nouveauStatut })
+        });
+        if (response.ok) {
+            alert('Statut du colis mis à jour.');
+            chargerMesVentes();
+        } else {
+            const data = await response.json().catch(()=>({}));
+            alert('Erreur serveur : ' + (data.error || response.status));
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Erreur réseau lors du changement de statut du colis.');
+    } finally {
+        document.getElementById('overlay').classList.remove('active');
+        document.getElementById('loader').classList.remove('active');
+    }
+}
+
+// applique le filtrage selon l'onglet (compatible avec .commande-card et .colis-block)
+function appliquerFiltrage() {
+    // Statuts considérés comme historiques
+    const historiqueStatuses = ['livrée', 'livree', 'annulée', 'annulee', 'annulée par acheteur', 'annulee par acheteur'];
+
+    // Normalisation utile : enlève accents, met en minuscule, remplace tirets/underscores par espaces
+    function normalizeStatus(s) {
+        return (s || '')
+            .toString()
+            .trim()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[-_]/g, ' ')
+            .replace(/\s+/g, ' ');
+    }
+
+    const filtreNorm = normalizeStatus(filtreActuel || 'toutes');// Normalisation du filtre actif pour comparaison robuste
+
+    // Détermine si un statut donné doit être affiché selon le filtre actif.
+    const filtreAffiche = statutRaw => {
+        const statutNorm = normalizeStatus(statutRaw || '');
+        if (filtreNorm === 'toutes') return true;
+        if (filtreNorm === 'historique') return historiqueStatuses.map(normalizeStatus).includes(statutNorm);
+        // Filtrage strict par égalité normalisée (ex : 'en cours' vs 'expediee')
+        return statutNorm === filtreNorm;
+    };
+
+    // Applique le filtrage aux cartes individuelles
+    document.querySelectorAll('.commande-card').forEach(carte => {
+        const statutRaw = carte.getAttribute('data-statut') || '';
+        carte.style.display = filtreAffiche(statutRaw) ? 'block' : 'none';
+    });
+
+    // Applique également le filtrage aux blocs de colis (groupe)
+    document.querySelectorAll('.colis-block').forEach(bloc => {
+        const statutRaw = bloc.getAttribute('data-statut') || '';
+        bloc.style.display = filtreAffiche(statutRaw) ? 'block' : 'none';
+    });
+}
+
+function basculerOnglet(mode) {
+    filtreActuel = mode === 'historique' ? 'historique' : 'en-cours';
+
+    document.querySelectorAll('.onglet').forEach(btn => {
+        btn.classList.toggle('active', btn.id === `onglet-${mode}`);
+    });
+
+    document.querySelectorAll('.filter-pill').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.trim().toLowerCase() === 'toutes');
+    });
+
+    appliquerFiltrage();
+}
+
+function initialiserFiltres() {
+    // Initialise les boutons "filter-pill".
+    // Comportements couverts :
+    // - clic souris
+    // - activation au clavier (Enter / Espace)
+    // - gestion d'un seul bouton actif à la fois
+    // - mise à jour de la variable `filtreActuel` suivie d'un appel à `appliquerFiltrage()`
+
+    const pills = Array.from(document.querySelectorAll('.filter-pill'));
+
+    // Normalise une étiquette pour comparaison (minuscules, sans espaces multiples, sans accents)
+    function normalizeLabel(label) {
+        return label
+            .toString()
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, ' ')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+    }
+
+    // Mappe l'étiquette affichée vers la valeur attendue par `appliquerFiltrage()`.
+    // On conserve certaines valeurs avec accents pour correspondre aux statuts présents dans les données.
+    function mapToFiltre(normalized) {
+        if (normalized === 'toutes' || normalized === 'tout') return 'toutes';
+        if (normalized === 'en cours' || normalized === 'encours' || normalized === 'en-cours') return 'en-cours';
+        if (normalized === 'en attente' || normalized === 'en-attente') return 'en attente';
+        if (normalized === 'expediee' || normalized === 'expedie' || normalized === 'expedier' || normalized === 'expedier') return 'expédiée';
+        if (normalized === 'expedie' || normalized === 'expediee') return 'expédiée';
+        if (normalized === 'livree' || normalized === 'livree' || normalized === 'livree') return 'livrée';
+        if (normalized === 'historique') return 'historique';
+        // Par défaut, retourne la forme normalisée (utile si les statuts sont identiques aux labels)
+        return normalized;
+    }
+
+    // Active visuellement un bouton et met à jour les attributs accessibilité
+    function activatePill(targetBtn) {
+        pills.forEach(p => {
+            const isTarget = p === targetBtn;
+            p.classList.toggle('active', isTarget);
+            p.setAttribute('aria-pressed', isTarget ? 'true' : 'false');
+        });
+
+        const label = normalizeLabel(targetBtn.textContent || targetBtn.innerText || 'toutes');
+        filtreActuel = mapToFiltre(label);
+
+        // Synchronise l'état des onglets principaux (en-cours / historique)
+        document.querySelectorAll('.onglet').forEach(el => {
+            if (filtreActuel === 'historique') {
+                el.classList.toggle('active', el.id === 'onglet-historique');
+            } else {
+                el.classList.toggle('active', el.id === 'onglet-en-cours');
+            }
+        });
+
+        // Appliquer immédiatement le filtrage sur les cartes affichées
+        appliquerFiltrage();
+    }
+
+    // Handler clavier pour accessibilité (Enter / Space déclenchent l'action)
+    function pillKeyHandler(e) {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {// 'Spacebar' pour compatibilité avec d'anciens navigateurs
+            e.preventDefault();
+            activatePill(e.currentTarget);
+        }
+    }
+
+    // Attach listeners et initialise l'état
+    pills.forEach(btn => {
+        // role/button semantics for screenreaders
+        btn.setAttribute('role', 'button');
+        btn.setAttribute('tabindex', '0');
+        btn.setAttribute('aria-pressed', btn.classList.contains('active') ? 'true' : 'false');
+
+        btn.addEventListener('click', () => activatePill(btn));
+        btn.addEventListener('keydown', pillKeyHandler);
+    });
+
+    // Si aucun bouton n'est actif, on active le premier par défaut
+    const initiallyActive = pills.find(p => p.classList.contains('active')) || pills[0];
+    if (initiallyActive) activatePill(initiallyActive);
+}
+
+
+
+
+
+// Annulation par le vendeur (PUT /api/orders/:id/annuler)
+async function annulerCommande(commandeId) {
+    if (!confirm('Êtes-vous sûr de vouloir annuler cette commande ? Cette action est irréversible.')) return;
+
+    document.getElementById('overlay').classList.add('active');
+    document.getElementById('loader').classList.add('active');
+    try {
+        const response = await fetch(`http://localhost:3000/api/orders/${commandeId}/annuler`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
         });
 
-        const commandes = await response.json();
-        
-        // 🔍 DEBUG : Voir la structure exacte des données retournées
-        console.log("Données des commandes :", commandes);
-        if (commandes.length > 0) {
-            console.log("Première commande (structure) :", commandes[0]);
+        if (response.ok) {
+            alert("Commande annulée avec succès !");
+            chargerMesVentes();
+        } else {
+            const errorData = await response.json().catch(() => ({}));
+            alert("Erreur du serveur : " + (errorData.error || "Impossible d'annuler la commande, veuillez vérifier son statut."));
         }
-        
-        const container = document.getElementById('liste-commandes');
-        container.innerHTML = ''; // On vide avant de remplir
-
-        commandes.forEach(commande => {
-            // Sécurité : on vérifie que le produit existe encore en base de données
-            const imageProduit = commande.produitId ? commande.produitId.image : 'chemin/vers/image-par-defaut.jpg';
-            const nomProduit = commande.produitId ? commande.produitId.nom : 'Produit supprimé';
-            const descriptionProduit = commande.produitId ? commande.produitId.description : 'Description indisponible';
-            const prixProduit = commande.produitId ? commande.produitId.prix : 'Prix indisponible';
-
-            // Sécurité : on vérifie que l'acheteur existe
-            const nomAcheteur = commande.acheteurId ? commande.acheteurId.nom : 'Client inconnu';
-            const emailAcheteur = commande.acheteurId ? commande.acheteurId.email : 'Email indisponible';
-
-            // Ajout d'un log pour debug
-            console.log('Commande statut:', commande.statut, 'ID:', commande._id);
-
-            container.innerHTML += `
-                <div class="ligne-commande">
-                    <div class="col-image">
-                        <img src="${imageProduit}" alt="${nomProduit}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;">
-                    </div>
-                    <div class="col-infos">
-                        <p><strong>Produit :</strong> ${nomProduit}</p>
-                        <p><strong>Description :</strong> ${descriptionProduit}</p>
-                        <p><strong>Prix :</strong> ${prixProduit} €</p>
-                        
-                        <p><strong>Client :</strong> ${nomAcheteur}</p>
-                        <p><strong>Email :</strong> ${emailAcheteur}</p>
-                        <p><strong>Quantité :</strong> ${commande.quantite}</p>
-                        <p><strong>Statut :</strong> 
-                            <span class="badge statut-${commande.statut.toLowerCase().replace(' ', '-')}">${commande.statut}</span>
-                        </p>
-                        <div class="actions-statut">
-                            
-                            ${commande.statut && commande.statut.toLowerCase() === 'en attente' ? `<button class="btn-action btn-preparation" onclick="changerStatut('${commande._id}', 'En cours')">⚙️ Préparer</button>` : ''}
-                            ${commande.statut && commande.statut.toLowerCase() === 'en cours' ? `<button class="btn-action btn-expedier" onclick="changerStatut('${commande._id}', 'Expédiée')">🚚 Expédier</button>` : ''}
-                            ${commande.statut && commande.statut.toLowerCase() === 'expédiée' ? `<button class="btn-action btn-Livre" onclick="changerStatut('${commande._id}', 'Livrée')">✅ Marquer comme Livrée</button>` : ''}
-                        </div>
-                        <p><strong>Date :</strong> ${new Date(commande.dateCommande).toLocaleDateString()}</p>
-                        <a href="mailto:${emailAcheteur}?subject=Votre commande Shopy-Cloths - Réf ${commande._id}" class="btn-action btn-contact">
-                            ✉️ Contacter le client
-                        </a>
-                    </div>
-                </div>
-            `;
-        });
     } catch (err) {
-        alert('Erreur lors du chargement des ventes.');
+        console.error(err);
+        alert("Erreur lors de l'annulation de la commande.");
+    } finally {
+        document.getElementById('overlay').classList.remove('active');
+        document.getElementById('loader').classList.remove('active');
     }
 }
 
-
-//fonction de changement des statut des commandes
-
+// Changement de statut d'une commande individuelle (PUT /api/orders/:id/statut)
 async function changerStatut(commandeId, nouveauStatut) {
-    console.log("Tentative de changement de statut pour :", commandeId, "vers :", nouveauStatut);
-    
+    if (!confirm(`Confirmer passage de la commande ${commandeId} au statut "${nouveauStatut}" ?`)) return;
+
+    document.getElementById('overlay').classList.add('active');
+    document.getElementById('loader').classList.add('active');
     try {
         const response = await fetch(`http://localhost:3000/api/orders/${commandeId}/statut`, {
-            method: 'PUT', // Vérifie si ton backend attend du PUT ou du PATCH
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -125,22 +414,26 @@ async function changerStatut(commandeId, nouveauStatut) {
         });
 
         if (response.ok) {
-            console.log("Statut mis à jour avec succès !");
-            // On recharge immédiatement les ventes pour actualiser l'affichage
-            chargerMesVentes(); 
+            chargerMesVentes();
         } else {
-            const errorData = await response.json();
+            const errorData = await response.json().catch(() => ({}));
             alert("Erreur du serveur : " + (errorData.error || "Impossible de modifier le statut."));
         }
     } catch (err) {
-        console.error(err) 
-        alert('Erreur lors du chargement des ventes.');
+        console.error(err);
+        alert("Erreur lors du changement de statut.");
+    } finally {
+        document.getElementById('overlay').classList.remove('active');
+        document.getElementById('loader').classList.remove('active');
     }
 }
 
-// On lance le chargement au démarrage
-document.addEventListener('DOMContentLoaded', chargerMesVentes);
+// Lancement initial
+document.addEventListener('DOMContentLoaded', () => {
+    initialiserFiltres();
+    chargerMesVentes();
+});
 
-    </script>
+       </script>
     </body>
 </html>

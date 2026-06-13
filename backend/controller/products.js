@@ -83,7 +83,7 @@ exports.searchProducts =  async (req, res, next) => {
 
 
 // 2. Pour ne récupérer que MES produits (la boutique du vendeur)
-exports.getMyProducts = (req, res) => {
+exports.getMyProducts = (req, res, next) => {
     // On ne cherche que les produits correspondants à l'ID du token
     Thing.find({ vendeurId: req.auth.userId }) 
         .then(products => res.status(200).json(products))

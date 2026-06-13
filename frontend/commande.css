@@ -93,103 +93,339 @@ body {
 
 /* ===== Main et Titre ===== */
 main {
-    max-width: 1200px;
+    max-width: 1100px;
     margin: 0 auto;
-    padding: 40px 20px;
+    padding: 26px 16px;
 }
 
-h1 {
-    font-size: 2.5rem;
+.commande-topbar {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1.1rem;
+    align-items: start;
+    margin-bottom: 18px;
+}
+
+.page-title h1 {
+    font-size: 2.15rem;
     color: var(--primary-color);
-    margin-bottom: 30px;
-    text-align: center;
-    font-weight: 700;
-    letter-spacing: 0.5px;
+    margin: 0;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+}
+
+.page-title small {
+    display: block;
+    margin-top: 8px;
+    color: var(--text-light);
+    font-size: 0.98rem;
+}
+
+.commande-actions {
+    display: grid;
+    gap: 1rem;
+    justify-items: end;
+}
+
+.search-box {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    background: var(--white);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 0.65rem 0.8rem;
+}
+
+.search-box input {
+    border: none;
+    outline: none;
+    width: 260px;
+    font-size: 0.95rem;
+    color: var(--text-dark);
+    background: transparent;
+}
+
+.search-box button {
+    border: none;
+    border-radius: 10px;
+    background: var(--secondary-color);
+    color: var(--white);
+    padding: 0.65rem 0.9rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+
+.filter-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    justify-content: flex-end;
+}
+
+.filter-pill {
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: #f8fafc;
+    color: #475569;
+    border-radius: 999px;
+    padding: 0.65rem 1rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.filter-pill.active,
+.filter-pill:hover {
+    background: #eff6ff;
+    border-color: #93c5fd;
+    color: #1d4ed8;
 }
 
 /* ===== Conteneur des Commandes ===== */
 #liste-commandes {
+    display: grid;
+    gap: 18px;
+    margin-top: 10px;
+}
+
+.colis-block {
+    background: var(--white);
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    border-radius: 22px;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+    padding: 18px;
+}
+
+.colis-header {
     display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin-top: 30px;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 14px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.colis-header h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    color: var(--primary-color);
+}
+
+.colis-header p {
+    margin: 6px 0 0;
+    color: var(--text-light);
+    font-size: 0.92rem;
+}
+
+.colis-header p a {
+    color: var(--secondary-color);
+    text-decoration: none;
+}
+
+.colis-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.colis-articles {
+    display: grid;
+    gap: 10px;
+}
+
+/* ===== Badges de statut ===== */
+.badge {
+    display: inline-block;
+    padding: 0.28rem 0.6rem;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: var(--text-dark);
+    background: rgba(0,0,0,0.04);
+    box-shadow: none;
+}
+
+/* Badges qui s'accordent avec le thème du colis (pair/impair) */
+.colis-block:nth-of-type(odd) .badge {
+    background: linear-gradient(90deg, rgba(59,130,246,0.18), rgba(59,130,246,0.08));
+    color: #0b3d91;
+}
+.colis-block:nth-of-type(even) .badge {
+    background: linear-gradient(90deg, rgba(249,115,22,0.16), rgba(249,115,22,0.06));
+    color: #7a2b00;
+}
+
+/* Couleurs prioritaires pour statuts explicites */
+.badge.statut-livree,
+.badge.statut-livrée {
+    background: linear-gradient(90deg,#38a169,#2f855a);
+    color: #ffffff;
+}
+.badge.statut-annulée,
+.badge.statut-annulee,
+.badge.statut-annulée-par-acheteur,
+.badge.statut-annulee-par-acheteur {
+    background: linear-gradient(90deg,#f56565,#c53030);
+    color: #ffffff;
+}
+
+/* Petite adaptation responsive si l'espace manque */
+@media (max-width: 520px) {
+    .badge { font-size: 0.75rem; padding: 0.2rem 0.45rem; }
+}
+
+/* Alternance harmonieuse : deux palettes complémentaires par bloc */
+#liste-commandes .colis-block {
+    --colis-bg: #f0f8ff; /* bleu pâle plus visible */
+    --ligne-bg: #e6f2ff; /* ligne légèrement plus saturée */
+    --colis-accent: rgba(59,130,246,0.18);
+    background: var(--colis-bg);
+    border: 1px solid rgba(59,130,246,0.08);
+}
+
+/* Palette alternative pour les blocs pairs */
+#liste-commandes .colis-block:nth-of-type(even) {
+    --colis-bg: #fff7ec; /* crème chaude plus visible */
+    --ligne-bg: #fff0d9; /* ligne chaude plus saturée */
+    --colis-accent: rgba(249,115,22,0.14);
+    background: var(--colis-bg);
+    border: 1px solid rgba(249,115,22,0.06);
+}
+
+/* Appliquer la couleur de ligne aux articles à l'intérieur du colis */
+.colis-block .ligne-commande {
+    background: var(--ligne-bg);
+    border-radius: 12px;
+    border: 1px solid rgba(15, 23, 42, 0.04);
+    padding: 10px;
+}
+
+/* Accent visuel à gauche pour renforcer la distinction */
+#liste-commandes .colis-block:nth-of-type(odd) .ligne-commande {
+    box-shadow: 0 1px 0 rgba(59,130,246,0.04) inset;
+    border-left: 6px solid var(--colis-accent);
+}
+
+#liste-commandes .colis-block:nth-of-type(even) .ligne-commande {
+    box-shadow: 0 1px 0 rgba(249,115,22,0.03) inset;
+    border-left: 6px solid var(--colis-accent);
+}
+
+/* Garder la section colis distincte visuellement tout en gardant contraste doux */
+.colis-block .col-infos,
+.colis-block .actions-statut,
+.colis-block .col-image {
+    background: transparent;
 }
 
 /* ===== Ligne de Commande ===== */
 .ligne-commande {
     background-color: var(--white);
-    border-radius: 8px;
-    padding: 20px;
+    border-radius: 16px;
+    padding: 12px;
     box-shadow: var(--shadow);
-    transition: all 0.3s ease;
-    border-left: 4px solid var(--secondary-color);
-    display: flex;
-    align-items: flex-start;
-    gap: 20px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: grid;
+    grid-template-columns: 50px minmax(220px, 1fr) 140px;
+    gap: 12px;
+    align-items: center;
     overflow: hidden;
+    border: 1px solid rgba(15, 23, 42, 0.06);
 }
 
 .ligne-commande:hover {
     box-shadow: var(--shadow-lg);
-    transform: translateX(5px);
-    border-left-color: var(--accent-color);
+    transform: translateY(-1px);
 }
 
 /* ===== Colonne Image ===== */
 .col-image {
-    flex-shrink: 0;
-    min-width: 80px;
-    height: 80px;
+    width: 50px;
+    height: 50px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--light-bg);
-    border-radius: 6px;
+    background-color: rgba(52, 152, 219, 0.08);
+    border-radius: 14px;
 }
 
 .col-image img {
-    width: 70px;
-    height: 70px;
+    width: 42px;
+    height: 42px;
     object-fit: cover;
-    border-radius: 4px;
+    border-radius: 12px;
 }
 
 /* ===== Colonne Infos ===== */
 .col-infos {
-    flex: 1;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 10px 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
-.col-infos p {
+.info-main,
+.info-secondary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.info-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.18rem;
+    color: var(--text-dark);
+    font-size: 0.84rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.info-label {
     color: var(--text-light);
-    font-size: 0.9rem;
-    margin: 0;
-    padding: 5px 0;
+    font-weight: 700;
 }
 
-.col-infos p strong {
-    color: var(--primary-color);
-    font-weight: 600;
-    display: block;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 3px;
+.info-value {
+    font-weight: 500;
+    color: var(--text-dark);
 }
 
-.col-infos p strong + * {
-    display: inline;
+.info-secondary {
+    color: var(--text-light);
+    font-size: 0.82rem;
+}
+
+.info-secondary .info-value {
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
 }
 
 /* 1. Base commune pour TOUS les boutons de statut et de contact */
 .btn-action {
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
+    padding: 0.55rem 1rem;
+    border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
     border: none;
+    background: linear-gradient(90deg, var(--secondary-color) 60%, var(--primary-color) 100%);
+    color: var(--white);
+    box-shadow: var(--shadow-lg);
+    font-size: 0.92rem;
+    letter-spacing: 0.02em;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+    outline: none;
+    margin: 0.25rem 0;
 }
 
 /* 2. Couleurs spécifiques par bouton */
@@ -198,10 +434,183 @@ h1 {
 .btn-Livre { background: #38a169; color: white; }       /* Vert */
 .btn-contact { background: #4a5568; color: white; }     /* Gris foncé */
 
+/* 3. Effets de survol */
+.btn-action:hover {
+    background: linear-gradient(90deg, var(--accent-color) 60%, var(--secondary-color) 100%);
+    box-shadow: 0 6px 24px rgba(52, 152, 219, 0.18);
+    transform: translateY(-3px) scale(1.04);
+    opacity: 1;
+}
+
+/* 4. Actions Statut - Conteneur des boutons */
+.actions-statut {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 120px;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.actions-statut button {
+    width: auto;
+    min-width: 110px;
+    max-width: 140px;
+    font-size: 0.88rem;
+}
+
+.actions-statut span {
+    color: #38a169;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+/* Statut "Annulée par acheteur" - Alerte */
+.actions-statut span.annulee-acheteur {
+    color: #f56565;
+    font-weight: 700;
+    font-size: 0.95rem;
+    padding: 0.5rem 1rem;
+    background-color: #fed7d7;
+    border-radius: 6px;
+    border-left: 4px solid #f56565;
+}
+
+/* Bouton Suivant (vert) */
+.btn-suivant {
+    background: linear-gradient(90deg, #38a169 60%, #2d7a4a 100%);
+    color: white;
+}
+
+.btn-suivant:hover {
+    background: linear-gradient(90deg, #2d7a4a 60%, #1f5333 100%);
+}
+
+/* Bouton Annuler (rouge) */
+.btn-annuler {
+    background: linear-gradient(90deg, #e74c3c 60%, #c0392b 100%);
+    color: white;
+}
+
+.btn-annuler:hover {
+    background: linear-gradient(90deg, #c0392b 60%, #a93226 100%);
+}
+
+/* bouton des onglet historique et encours */
+/* Conteneur des onglets */
+.onglets-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 10px;
+}
+
+/* Style de base des boutons onglets */
+.onglet {
+    padding: 10px 20px;
+    border: none;
+    background: none;
+    font-size: 1rem;
+    font-weight: bold;
+    color: #718096;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 5px 5px 0 0;
+}
+
+/* Style de l'onglet survolé */
+.onglet:hover {
+    color: #4a5568;
+    background-color: #edf2f7;
+}
+
+/* Style de l'onglet actif (sélectionné) */
+.onglet.active {
+    color: #3182ce; /* Un joli bleu moderne */
+    border-bottom: 3px solid #3182ce;
+    background-color: #ebf8ff;
+}
+
+/* Optionnel : Une classe pour griser légèrement les cartes dans l'historique */
+.commande-livree {
+    border-left: 4px solid #38a169; /* Barre verte pour signifier le succès */
+    background-color: #f7fafc;
+}
+
+/* Le conteneur du spinner au centre */
+#loader {
+    display: none; /* Caché par défaut */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+}
+
+/* Le cercle qui tourne (Animation) */
+.spinner {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 6px solid transparent;
+    border-top: 6px solid #3498db;
+    border-right: 6px solid #e74c3c;
+    border-bottom: 6px solid #f1c40f;
+    border-left: 6px solid #2ecc71;
+    box-shadow: 0 0 20px 2px #3498db44, 0 0 20px 2px #e74c3c44 inset;
+    animation: spin 1s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+    position: relative;
+}
+
+/* Ajout d'un effet de "bulle" au centre */
+.spinner::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 18px;
+    height: 18px;
+    background: linear-gradient(135deg, #e74c3c 40%, #f1c40f 100%);
+    border-radius: 50%;
+    box-shadow: 0 0 8px 2px #e74c3c55;
+    z-index: 2;
+}
+
+
+
+
+
+
 /* ===== Responsive Design ===== */
 
 /* Tablettes (768px et plus) */
 @media (max-width: 768px) {
+    .commande-topbar {
+        grid-template-columns: 1fr;
+    }
+
+    .commande-actions {
+        justify-items: stretch;
+    }
+
+    .search-box {
+        width: 100%;
+    }
+
+    .search-box input {
+        width: 100%;
+    }
+
+    .filter-group {
+        justify-content: flex-start;
+    }
+
+    .filter-pill {
+        padding: 0.55rem 0.95rem;
+    }
+
     .ligne-commande {
         padding: 15px;
         gap: 15px;
@@ -296,6 +705,19 @@ h1 {
         max-width: 60px;
     }
 
+    .actions-statut {
+        flex-direction: row;
+        width: 100%;
+        gap: 8px;
+    }
+
+    .btn-action {
+        flex: 1;
+        padding: 0.5rem 0.8rem;
+        font-size: 0.85rem;
+        margin: 0;
+    }
+
     .col-infos {
         grid-template-columns: 1fr;
         gap: 8px 0;
@@ -355,6 +777,256 @@ h1 {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
+    }
+}
+
+/* ===== Commandes adaptatives ===== */
+#liste-commandes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.colis-block {
+    background-color: var(--white);
+    border: 1px solid rgba(44, 62, 80, 0.08);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.colis-block:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.colis-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.85rem;
+    align-items: center;
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.colis-header h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    color: var(--primary-color);
+}
+
+.colis-header p {
+    margin: 0;
+    color: var(--text-light);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.colis-header a {
+    color: var(--secondary-color);
+    text-decoration: none;
+}
+
+.colis-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.85rem;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.colis-articles {
+    display: grid;
+}
+
+.article-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.9rem;
+    align-items: center;
+    padding: 0.95rem 1rem;
+    border-bottom: 1px solid rgba(44, 62, 80, 0.08);
+}
+
+.article-row:last-child {
+    border-bottom: none;
+}
+
+.article-row .col-image {
+    min-width: 54px;
+    width: 54px;
+    height: 54px;
+    background-color: var(--light-bg);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.article-row .col-image img {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+.article-row .col-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    color: var(--text-dark);
+    font-size: 0.88rem;
+}
+
+.article-row .col-info p {
+    margin: 0;
+}
+
+.article-row .col-info p strong {
+    display: inline-block;
+    margin-bottom: 4px;
+    font-size: 0.8rem;
+    color: var(--primary-color);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.col-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.col-actions .btn-action {
+    width: 100%;
+    min-width: 120px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    background: rgba(52, 152, 219, 0.12);
+    color: var(--secondary-color);
+}
+
+.badge.statut-expédiée,
+.badge.statut-expediee,
+.badge.statut-livrée,
+.badge.statut-livree {
+    background: rgba(56, 161, 105, 0.14);
+    color: #2d7a4a;
+}
+
+.badge.statut-annulée,
+.badge.statut-annulee,
+.badge.statut-annulée-par-acheteur,
+.badge.statut-annulee-par-acheteur {
+    background: rgba(231, 76, 60, 0.14);
+    color: #992d22;
+}
+
+@media (max-width: 900px) {
+    .colis-header {
+        grid-template-columns: 1fr;
+    }
+
+    .colis-actions {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 720px) {
+    main {
+        padding: 30px 18px;
+    }
+
+    #liste-commandes {
+        grid-template-columns: 1fr;
+    }
+
+    .article-row {
+        grid-template-columns: 1fr;
+        padding: 1rem 1.3rem;
+    }
+
+    .col-actions {
+        flex-direction: row;
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .col-actions .btn-action {
+        flex: 1 1 calc(50% - 0.5rem);
+        min-width: 130px;
+    }
+}
+
+@media (max-width: 520px) {
+    .btn-retour {
+        width: 100%;
+        text-align: center;
+    }
+
+    .onglets-container {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .onglet {
+        flex: 1 1 48%;
+        min-width: 140px;
+        padding: 10px 12px;
+    }
+
+    .colis-header {
+        padding: 1.2rem 1rem;
+    }
+
+    .article-row {
+        gap: 0.85rem;
+        padding: 0.95rem 1rem;
+    }
+
+    .article-row .col-image {
+        width: 58px;
+        height: 58px;
+    }
+
+    .article-row .col-info {
+        font-size: 0.92rem;
+    }
+
+    .col-actions {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .btn-action {
+        padding: 0.85rem 1rem;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 400px) {
+    h1 {
+        font-size: 1.5rem;
+    }
+
+    body {
+        padding: 0;
+    }
+
+    .colis-header p,
+    .article-row .col-info {
+        font-size: 0.9rem;
     }
 }
 

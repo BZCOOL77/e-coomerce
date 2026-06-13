@@ -1,26 +1,27 @@
 // On récupère le bouton panier de la barre de navigation
 const navbarre = document.getElementById('navbarre');
+if (navbarre) {
+    navbarre.addEventListener('click', (event) => {
+        const vendeurBtn = event.target.closest('.vendeur');
+        const mescommandesBtn = event.target.closest('.mescommandes');
+        const adminBtn = event.target.closest('.adminBtn');
+        const panierBtn = event.target.closest('.panier');
 
-navbarre.addEventListener('click', (event) => {
-    const vendeurBtn = event.target.closest('.vendeur');
-    const histBtn = event.target.closest('.hist');
-    const adminBtn = event.target.closest('.adminBtn');
-    const panierBtn = event.target.closest('.panier');
-
-    if (panierBtn) {
-        // Redirection vers la page panier.html
-        window.location.href = '../html/panier.html';
-    };
-    if (adminBtn) {// Redirection vers la page nav.html
-        window.location.href = '../../frontend/nav.html';
-    };
-    if (vendeurBtn) {// Redirection vers la page vendeur.html
-        window.location.href = '../html/parvendeur.html';
-    };
-    if (histBtn) {// Redirection vers la page historique.html
-        window.location.href = '../html/historique.html';
-    };
-});
+        if (panierBtn) {
+            // Redirection vers la page panier.html
+            window.location.href = '../html/panier.html';
+        }
+        if (adminBtn) {// Redirection vers la page nav.html
+            window.location.href = '../../frontend/nav.html';
+        }
+        if (vendeurBtn) {// Redirection vers la page vendeur.html
+            window.location.href = '../html/parvendeur.html';
+        }
+        if (mescommandesBtn) {// Redirection vers la page historique.html
+            window.location.href = '../html/mes-commandes.html';
+        }
+    });
+}
 
 
 
@@ -28,42 +29,43 @@ navbarre.addEventListener('click', (event) => {
 
 // evenement de délégation pour gérer les clics sur les boutons DÉTAILS et AJOUTER AU PANIER
 const catalogue = document.getElementById('catalogue');
+if (catalogue) {
+    catalogue.addEventListener('click', (event) => {
+        // 1. On cherche si l'élément cliqué est un de nos deux boutons
+        const btnDetail = event.target.closest('.btn-detail');
+        const btnPanier = event.target.closest('.ajouter-panier');
 
-catalogue.addEventListener('click', (event) => {
-    // 1. On cherche si l'élément cliqué est un de nos deux boutons
-    const btnDetail = event.target.closest('.btn-detail');
-    const btnPanier = event.target.closest('.ajouter-panier');
+        // 2. Logique pour le bouton DÉTAILS
+        if (btnDetail) {
+            const id = btnDetail.dataset.id;
+            console.log("Direction -> Page Détails pour :", id);
+            window.location.href = `detail.html?id=${id}`;
+        }
 
-    // 2. Logique pour le bouton DÉTAILS
-    if (btnDetail) {
-        const id = btnDetail.dataset.id;
-        console.log("Direction -> Page Détails pour :", id);
-        window.location.href = `detail.html?id=${id}`;
-    }
+        // 3. Logique pour le bouton AJOUTER AU PANIER
+        if (btnPanier) {
+            // On récupère les IDs stockés dans les attributs data-
+            const id = btnPanier.dataset.id;
+            const vendeurId = btnPanier.dataset.vendeur;
+            
+            console.log("DEBUG - dataset.id :", id); // DEBUG
+            console.log("DEBUG - dataset.vendeur :", vendeurId); // DEBUG
+            
+            // On récupère les infos du produit directement dans la "carte" parente
+            const carte = btnPanier.closest('.carte');
+            const nom = carte.querySelector('.nom').innerText;
+            const prixTexte = carte.querySelector('.prix').innerText;
+            const prix = prixTexte.replace(/[^\d.]/g, ''); // On garde juste les chiffres et le point
+            const image = carte.querySelector('img').src;
 
-    // 3. Logique pour le bouton AJOUTER AU PANIER
-    if (btnPanier) {
-        // On récupère les IDs stockés dans les attributs data-
-        const id = btnPanier.dataset.id;
-        const vendeurId = btnPanier.dataset.vendeur;
-        
-        console.log("DEBUG - dataset.id :", id); // DEBUG
-        console.log("DEBUG - dataset.vendeur :", vendeurId); // DEBUG
-        
-        // On récupère les infos du produit directement dans la "carte" parente
-        const carte = btnPanier.closest('.carte');
-        const nom = carte.querySelector('.nom').innerText;
-        const prixTexte = carte.querySelector('.prix').innerText;
-        const prix = prixTexte.replace(/[^\d.]/g, ''); // On garde juste les chiffres et le point
-        const image = carte.querySelector('img').src;
-
-        // On lance la fonction d'ajout avec toutes les données
-        ajouterAuPanier(id, nom, prix, image, vendeurId);
-        // Optionnel : Petit effet visuel pour confirmer l'ajout
-        btnPanier.innerText = "Ajouté ! ✅";
-        setTimeout(() => btnPanier.innerText = "Ajouter au panier", 2000);
-    }
-});
+            // On lance la fonction d'ajout avec toutes les données
+            ajouterAuPanier(id, nom, prix, image, vendeurId);
+            // Optionnel : Petit effet visuel pour confirmer l'ajout
+            btnPanier.innerText = "Ajouté ! ✅";
+            setTimeout(() => btnPanier.innerText = "Ajouter au panier", 2000);
+        }
+    });
+}
 
 
 
@@ -129,6 +131,8 @@ function afficherProduits(produits) {
         }
 
     produits.forEach(produit => {
+        // On vérifie si le produit est épuisé
+        const estEpuise = produit.stock <= 0;
         console.log("Produit complet :", produit); // DEBUG - Affiche TOUT
         console.log("VendeurId du produit :", produit.vendeurId); // DEBUG - Affiche le vendeurId
         
@@ -142,7 +146,20 @@ function afficherProduits(produits) {
                     <p class="prix">${produit.prix} €</p>
                     <p class="description">${produit.description}</p>
                     <button class="btn-detail" data-id="${produit._id}">Détails</button>
-                    <button class="ajouter-panier" data-id="${produit._id}" data-vendeur="${produit.vendeurId}">Ajouter au panier</button>
+                    <p class="stock-info" style="color: ${estEpuise ? 'red' : 'green'}; font-size: 0.85rem;">
+                        ${estEpuise ? '❌ Rupture de stock' : ` disponibles`}
+                    </p>
+
+            ${estEpuise ? `
+                <button class="ajouter-panier btn-disabled" disabled style="background-color: #cbd5e0; cursor: not-allowed;" data-id="${produit._id}" data-vendeur="${produit.vendeurId}">
+                    Indisponible
+                </button>
+            ` : `
+                <button class="ajouter-panier" data-id="${produit._id}" data-vendeur="${produit.vendeurId}">
+                    Ajouter au panier
+                </button>
+            `}
+
                 </div>
             </article>
         `;
@@ -180,20 +197,18 @@ function sauvegarderPanier(panier) {
 function ajouterAuPanier(id, nom, prix, image, vendeurId) {
     console.log("Ajout au panier - ID:", id, "VendeurID:", vendeurId); // DEBUG
     let panier = obtenirPanier();
-
-    // On vérifie si l'article est déjà présent via son ID unique
-    const produitExistant = panier.find(item => item.id === id);
+    // Toujours comparer les IDs comme des chaînes
+    const idStr = String(id);
+    const produitExistant = panier.find(item => String(item.id) === idStr);
 
     if (produitExistant) {
-        // Si le produit est déjà là, on incrémente juste la quantité
         produitExistant.quantite += 1;
         console.log(`+1 pour ${nom} (Nouvelle qté: ${produitExistant.quantite})`);
     } else {
-        // Sinon, on crée un nouvel objet produit et on l'ajoute au tableau
         const nouveauProduit = {
-            id: id,
+            id: idStr,
             nom: nom,
-            prix: parseFloat(prix), // On s'assure que le prix est un nombre
+            prix: parseFloat(prix),
             image: image,
             quantite: 1,
             vendeurId: vendeurId
@@ -201,8 +216,6 @@ function ajouterAuPanier(id, nom, prix, image, vendeurId) {
         panier.push(nouveauProduit);
         console.log(`${nom} ajouté au panier !`);
     }
-
-    // On enregistre les modifications
     sauvegarderPanier(panier);
 }
 
@@ -269,13 +282,13 @@ function filtrerAvecDebounce() {
     const role = localStorage.getItem('role');
     const adminBtn = document.getElementById('adminBtn');
 
-    if (role === 'vendeur') {
-        // 1. On le rend visible
-        adminBtn.style.display = 'block'; 
-        
-        
-    } else {
-        // Un client ne doit même pas voir que ce bouton existe dans le DOM
-        if (adminBtn) adminBtn.remove(); 
+    if (adminBtn) {
+        if (role === 'vendeur') {
+            // 1. On le rend visible
+            adminBtn.style.display = 'block'; 
+        } else {
+            // Un client ne doit même pas voir que ce bouton existe dans le DOM
+            adminBtn.remove(); 
+        }
     }
 });
