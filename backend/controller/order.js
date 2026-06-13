@@ -99,7 +99,7 @@ const getVendeurOrders = async (req, res) => {
             if (!colisRegroupes[idGroupe]) {
                 colisRegroupes[idGroupe] = {
                     colisGroupId: idGroupe,
-                    statutGlobal: commande.statut,
+                    statutGlobal: '', // 🌟 On le laisse vide au départ pour éviter la confusion !
                     dateCommande: commande.createdAt,
                     acheteur: commande.acheteurId, // Infos de l'acheteur commun au colis
                     articles: []
@@ -115,6 +115,36 @@ const getVendeurOrders = async (req, res) => {
                 statutIndividuel: commande.statut
             });
         });
+
+        // 🧠 RECALCUL DU STATUT GLOBAL (Plus clair et ultra-sécurisé)
+        Object.values(colisRegroupes).forEach(colis => {
+            // On extrait tous les statuts des articles en minuscules
+            const statuts = colis.articles.map(a => a.statutIndividuel.toLowerCase());
+
+            // 1. Si TOUS les articles sont annulés (par le vendeur ou l'acheteur)
+            if (statuts.every(s => s === 'annulée' || s === 'annulée par acheteur')) {
+                colis.statutGlobal = 'annulée';
+            }
+            // 2. S'il reste au moins un article en attente
+            else if (statuts.includes('en attente')) {
+                colis.statutGlobal = 'en attente';
+            }
+            // 3. S'il n'y a plus d'attente mais qu'au moins un est en cours de préparation
+            else if (statuts.includes('en cours')) {
+                colis.statutGlobal = 'En cours';
+            }
+            // 4. Si tout le reste est expédié
+            else if (statuts.includes('expédiée')) {
+                colis.statutGlobal = 'expédiée';
+            }
+            // 5. Si toutes les conditions précédentes échouent, c'est que tout est livré !
+            else {
+                colis.statutGlobal = 'livrée';
+            }
+        });
+
+        res.status(200).json(Object.values(colisRegroupes));
+
 
         // On convertit notre dictionnaire en un beau tableau JSON pour le frontend
         res.status(200).json(Object.values(colisRegroupes));
@@ -196,7 +226,7 @@ const annulerCommandeParVendeur = async (req, res, next) => {
         }
 
         const statutNettoye = (commande.statut || '').toLowerCase();
-        if (statutNettoye === 'livrée' || statutNettoye === 'annulée' || statutNettoye === 'annulée par acheteur') {
+        if (statutNettoye === 'livrée' || statutNettoye === 'annulée' || statutNettoye === 'annulée par acheteur' || statutNettoye === 'expédiée') {
             return res.status(400).json({ error: "Impossible d'annuler une commande déjà clôturée." });
         }
 

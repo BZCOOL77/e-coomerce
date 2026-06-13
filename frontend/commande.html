@@ -114,6 +114,9 @@ async function chargerMesVentes() {
                 const statutArticle = article.statutIndividuel || article.statut || 'N/A';
                 const orderId = article.orderId || article._id;
 
+
+                
+
                 const estLivree = statutArticle.toLowerCase() === 'livrée';
                 const estAnnulee = statutArticle.toLowerCase() === 'annulée';
                 const estAnnuleeParAcheteur = statutArticle.toLowerCase() === 'annulée par acheteur';
@@ -353,8 +356,8 @@ function initialiserFiltres() {
         btn.setAttribute('tabindex', '0');
         btn.setAttribute('aria-pressed', btn.classList.contains('active') ? 'true' : 'false');
 
-        btn.addEventListener('click', () => activatePill(btn));
-        btn.addEventListener('keydown', pillKeyHandler);
+        btn.addEventListener('click', () => activatePill(btn));// clic souris 
+        btn.addEventListener('keydown', pillKeyHandler);// activation clavier (Enter / Space)
     });
 
     // Si aucun bouton n'est actif, on active le premier par défaut
