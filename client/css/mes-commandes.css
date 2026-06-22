@@ -8,6 +8,35 @@ body {
 	min-height: 100vh;
 }
 
+/* compteur acheteur */
+.badge-compteur {
+	background: #ef4444;
+	color: white;
+	border-radius: 50%;
+	padding: 4px 8px;
+	font-size: 0.9rem;
+	font-weight: bold;
+}
+
+
+.btn-valider-reception {
+    background-color: #2ed573; /* Un beau vert Vinted / Succès */
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background 0.2s ease;
+    width: 100%;
+}
+
+.btn-valider-reception:hover {
+    background-color: #26af5f;
+}
+
+
 .main-mes-commandes {
 	padding: 2rem;
 	max-width: 900px;

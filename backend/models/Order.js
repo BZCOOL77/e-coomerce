@@ -16,7 +16,7 @@ const orderSchema = mongoose.Schema({
     default: 'en attente' },
     dateCommande: { type: Date, default: Date.now },
     // 📦 C'EST ICI : Le numéro unique qui va lier les produits du même vendeur dans un seul carton
-    colisGroupId: { type: String, required: true }
+    colisGroupId: { type: String, }
 }, { timestamps: true  // Ajoute automatiquement la date de commande
 });
 

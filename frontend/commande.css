@@ -38,6 +38,35 @@ body {
     transition: background-color 0.3s ease;
 }
 
+/* COMPTEUR DE COMMANDES À TRAITER */
+.badge-compteur {
+    background-color: #ff4757; /* Un beau rouge notification */
+    color: white;
+    font-size: 0.8rem;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-left: 8px;
+    vertical-align: middle;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+
+.badge-attente-acheteur {
+    display: inline-block;
+    background-color: #f1f2f6;
+    color: #57606f;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border: 1px dashed #ced6e0;
+    text-align: center;
+    width: 100%;
+}
+
+
+/* Effet de survol pour le bouton de retour */
 .btn-retour:hover {
     background-color: var(--accent-color);
 }

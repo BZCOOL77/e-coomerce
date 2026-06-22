@@ -158,7 +158,7 @@ async function validerPanierEtCommander() {
 
     for (const vendeurId of vendeurs) {// Traiter chaque vendeur séparément
         const articles = panierParVendeur[vendeurId];// Les articles à commander pour ce vendeur
-        const colisGroupId = `COLIS-${vendeurId}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+        
 
         try {
             const response = await fetch('http://localhost:3000/api/orders', {
@@ -167,7 +167,7 @@ async function validerPanierEtCommander() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ articles, colisGroupId })
+                body: JSON.stringify({ articles })
             });
 
             const data = await response.json().catch(() => ({}));

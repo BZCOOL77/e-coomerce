@@ -11,10 +11,10 @@
     <!-- Séparateur d'onglets pour le tableau de bord -->
     <div class="onglets-container">
         <button id="onglet-en-cours" class="onglet active" onclick="basculerOnglet('en-cours')">
-            📦 Commandes en cours
+            📦 Commandes à traité <span id="compteur-en-cours" class="badge-compteur" style="display: none;">0</span>
         </button>
         <button id="onglet-historique" class="onglet" onclick="basculerOnglet('historique')">
-            📜 Historique (Livrées)
+            📜 Historique (Livrées, annulée)
         </button>
     </div>
         <!-- Loader et overlay (doivent être uniques dans la page) -->
@@ -38,7 +38,7 @@
                 <button class="filter-pill" type="button">En attente</button>
                 <button class="filter-pill" type="button">En cours</button>
                 <button class="filter-pill" type="button">Expédiée</button>
-                <button class="filter-pill" type="button">Livrée</button>
+                
             </div>
         </div>
     </div>
@@ -84,7 +84,7 @@ async function chargerMesVentes() {
         const container = document.getElementById('liste-commandes');
         container.innerHTML = '';
 
-        if (!Array.isArray(commandes)) {
+        if (!Array.isArray(commandes)) {// Vérification de la structure attendue (tableau d'objets)
             throw new Error('Format inattendu des commandes');
         }
 
@@ -157,14 +157,39 @@ async function chargerMesVentes() {
                             <p><strong>Acheteur:</strong> ${nomAcheteur} ${emailAcheteur ? `• <a href="mailto:${emailAcheteur}">${emailAcheteur}</a>` : ''}</p>
                             <p><strong>Statut global:</strong> <span class="badge statut-${statutGlobal.toLowerCase().replace(/ /g,'-')}">${statutGlobal}</span></p>
                         </div>
-                        <div class="colis-actions">
-                            ${prochainStatutColis ? `<button class="btn-action btn-suivant" onclick="changerStatutColis('${idColis}', '${prochainStatutColis}')">➡️ Passer le colis à : ${prochainStatutColis}</button>` : ''}
-                        </div>
+                       <div class="colis-actions">
+                        ${(prochainStatutColis && prochainStatutColis.toLowerCase() !== 'livrée' && prochainStatutColis.toLowerCase() !== 'livree')
+                        ? `<button class="btn-action btn-suivant" onclick="changerStatutColis('${idColis}', '${prochainStatutColis}')">➡️ Passer le colis à : ${prochainStatutColis}</button>`
+                        : (prochainStatutColis ? `<span class="badge-attente-acheteur">⏳ En attente de livraison (Acheteur)</span>` : '')
+                     }
+                    </div>
                     </header>
                     <div class="colis-articles">${articlesHtml}</div>
                 </section>
             `;
         });
+
+        //COMPTEUR DES COMMANDES A TRAITER
+            let totalCommandesEnCours = 0;
+        const statutsHistoriques = ['livrée', 'livree', 'annulée', 'annulee', 'annulée par acheteur', 'annulee par acheteur'];
+
+        commandes.forEach(colis => {
+            const statutGlobal = (colis.statutGlobal || colis.statut || 'N/A').toLowerCase();
+            // Si le statut global du colis n'est pas dans l'historique, c'est qu'il est "En cours" !
+            if (!statutsHistoriques.includes(statutGlobal)) {
+                totalCommandesEnCours++;
+            }
+        });
+
+        const badgeCompteur = document.getElementById('compteur-en-cours');
+        if (badgeCompteur) {
+            if (totalCommandesEnCours > 0) {
+                badgeCompteur.textContent = totalCommandesEnCours;
+                badgeCompteur.style.display = 'inline-block'; // On l'affiche s'il y a du travail
+            } else {
+                badgeCompteur.style.display = 'none'; // Caché s'il n'y a rien à faire
+            }
+        }
 
         appliquerFiltrage();
     } catch (err) {
@@ -247,8 +272,9 @@ function appliquerFiltrage() {
     const filtreNorm = normalizeStatus(filtreActuel || 'toutes');// Normalisation du filtre actif pour comparaison robuste
 
     // Détermine si un statut donné doit être affiché selon le filtre actif.
-    const filtreAffiche = statutRaw => {
+   const filtreAffiche = statutRaw => {
         const statutNorm = normalizeStatus(statutRaw || '');
+        if (filtreActuel !== 'historique' && historiqueStatuses.map(normalizeStatus).includes(statutNorm)) return false;
         if (filtreNorm === 'toutes') return true;
         if (filtreNorm === 'historique') return historiqueStatuses.map(normalizeStatus).includes(statutNorm);
         // Filtrage strict par égalité normalisée (ex : 'en cours' vs 'expediee')

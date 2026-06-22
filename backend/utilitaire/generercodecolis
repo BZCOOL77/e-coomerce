@@ -1,0 +1,39 @@
+const crypto = require('crypto');
+
+/**
+ * Génère un identifiant de colis professionnel, lisible et hautement sécurisé
+ * Format : BZ-AAMJJ-RANDOM (Ex: BZ-26G16-K9F3)
+ */
+function genererCodeColisPro() {
+    const maintenant = new Date();
+    
+    // 1. Extraction de la date
+    const annee = maintenant.getFullYear().toString().slice(-2); // "26"
+    const jour = maintenant.getDate().toString().padStart(2, '0'); // "16"
+    
+    // 2. Encodage du mois en lettre (A = Janvier, B = Février, etc.)
+    // Idéal pour économiser de l'espace et rester lisible
+    const alphabetMois = 'ABCDEFGHIJKL';
+    const moisLettre = alphabetMois[maintenant.getMonth()]; // "G" pour Juillet (0-indexed, donc 6)
+
+    const blocDate = `${annee}${moisLettre}${jour}`; // "26G16"
+
+    // 3. Génération d'un bloc aléatoire sécurisé (Base36 : chiffres + lettres majuscules)
+    // On génère des octets asynchrones convertis en chaîne de caractères
+    const caracteresAutorises = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const tailleRandom = 4;
+    let blocRandom = '';
+    
+    // On utilise un tampon de sécurité crypto
+    const octetsAleatoires = crypto.randomBytes(tailleRandom);
+    for (let i = 0; i < tailleRandom; i++) {
+        // On s'assure de rester dans les limites de notre alphabet
+        const index = octetsAleatoires[i] % caracteresAutorises.length;
+        blocRandom += caracteresAutorises[index];
+    }
+
+    // 4. Assemblage final
+    return `BZ-${blocDate}-${blocRandom}`;
+}
+
+module.exports = { genererCodeColisPro };

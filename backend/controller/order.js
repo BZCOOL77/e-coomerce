@@ -1,5 +1,6 @@
 const Order = require('../models/Order');
 const Thing = require('../models/Thing');
+const { genererCodeColisPro } = require('../utilitaire/generercodecolis'); // Importation de la fonction de génération d'ID de colis
 
 // =========================================================================
 // 1. CRÉER UNE COMMANDE (Gère 1 seul produit OU un panier groupé sans casser l'ancien code)
@@ -15,8 +16,10 @@ const createOrder = async (req, res, next) => {
             return res.status(400).json({ error: 'Aucun article à traiter.' });
         }
 
-        // Générer un colisGroupId si absent (toujours présent selon le schéma)
-        const colisGroupId = req.body.colisGroupId || `COLIS-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+       
+
+        
+        const colisGroupId = genererCodeColisPro();// Génération d'un ID unique pour ce groupe de commandes
 
         const createdOrders = [];
 
@@ -143,15 +146,12 @@ const getVendeurOrders = async (req, res) => {
             }
         });
 
-        res.status(200).json(Object.values(colisRegroupes));
-
-
         // On convertit notre dictionnaire en un beau tableau JSON pour le frontend
-        res.status(200).json(Object.values(colisRegroupes));
+        return res.status(200).json(Object.values(colisRegroupes));
 
     } catch (error) {
         console.error(error);
-        res.status(400).json({ error: "Erreur lors de la récupération des colis vendeur." });
+        return res.status(400).json({ error: "Erreur lors de la récupération des colis vendeur." });
     }
 };
 
@@ -162,11 +162,38 @@ const getVendeurOrders = async (req, res) => {
 const updateColisStatut = async (req, res, next) => {
     try {
         const { colisGroupId } = req.params;
-        const nouveauStatut = req.body.statut; // Ex: 'En préparation', 'Expédié', 'Livré'
+        const nouveauStatut = req.body.statut; // Ex: 'En cours', 'Expédiée', 'Livrée'
+        const idUtilisateurConnecte = req.auth.userId; // La personne qui fait la requête
 
-        // On met à jour toutes les marchandises qui partagent ce code de carton
+        
+        const statutNorm = (nouveauStatut || '').toLowerCase();
+
+        // 🛑 LE VERROU DE SÉCURITÉ ANTI-TRICHE
+        if (statutNorm === 'livrée' || statutNorm === 'livree' || statutNorm === 'livré' || statutNorm === 'livre') {
+            
+            // On va chercher une commande de ce carton pour voir qui est l'acheteur
+            const commandeTemoin = await Order.findOne({ colisGroupId: colisGroupId });
+            
+            if (!commandeTemoin) {
+                return res.status(404).json({ error: "Aucun colis correspondant trouvé." });
+            }
+
+            console.log("📦 Commande témoin trouvée :", commandeTemoin);
+
+            // On vérifie si l'ID de la personne connectée correspond à l'acheteur du carton
+            if (commandeTemoin.acheteurId.toString() !== idUtilisateurConnecte.toString()) {
+                return res.status(403).json({ 
+                    error: "🛑 Sécurité : Seul le client qui a acheté ce colis peut confirmer sa réception !" 
+                });
+            }
+        }
+
+        // 🟢 FIN DE LA SÉCURITÉ : Si on arrive ici, soit ce n'est pas un statut "Livré" (c'est le vendeur qui expédie),
+        // soit c'est bien l'acheteur qui a validé la réception. On peut mettre à jour !
+        
+        
         const result = await Order.updateMany(
-            { colisGroupId: colisGroupId, vendeurId: req.auth.userId },
+            { colisGroupId: colisGroupId },
             { $set: { statut: nouveauStatut } }
         );
 
@@ -184,22 +211,48 @@ const updateColisStatut = async (req, res, next) => {
 // =========================================================================
 // 4. ANCIENNE FONCTION DE STATUT UNIQUE (Gardée intacte pour tes boutons au cas par cas)
 // =========================================================================
-const updateStatut = (req, res, next) => {
-    const nouveauStatut = req.body.statut;
+const updateStatut = async (req, res, next) => {
+    try {
+        const nouveauStatut = req.body.statut;
+        const idUtilisateurConnecte = req.auth.userId; // La personne qui clique actuellement
 
-    Order.updateOne(
-        { _id: req.params.id }, 
-        { statut: nouveauStatut }
-    )
-    .then((result) => {
+        const statutNorm = (nouveauStatut || '').toLowerCase();
+
+        // 🛑 LE VERROU DE SÉCURITÉ ANTI-TRICHE
+        if (statutNorm === 'livrée' || statutNorm === 'livree' || statutNorm === 'livré' || statutNorm === 'livre') {
+            
+            // On va chercher LA commande en question pour vérifier l'identité de l'acheteur
+            const commande = await Order.findOne({ _id: req.params.id });
+            
+            if (!commande) {
+                return res.status(404).json({ error: "Commande introuvable." });
+            }
+
+            // On vérifie si l'ID de la personne connectée correspond à l'acheteur
+            // ⚠️ Remplace 'userId' par le nom exact de ton champ acheteur dans ton modèle si besoin
+            if (commande.acheteurId.toString() !== idUtilisateurConnecte.toString()) {
+                return res.status(403).json({ 
+                    error: "🛑 Sécurité : Seul le client qui a acheté cet article peut confirmer sa réception !" 
+                });
+            }
+        }
+
+        // 🟢 MISE À JOUR : Si la sécurité est OK (ou si ce n'est pas un statut "Livré")
+        const result = await Order.updateOne(
+            { _id: req.params.id }, 
+            { statut: nouveauStatut }
+        );
+
         if (result.matchedCount === 0) {
             return res.status(404).json({ error: "Commande introuvable." });
         }
-        res.status(200).json({ message: `Statut mis à jour : ${nouveauStatut} !` });
-    })
-    .catch(error => res.status(400).json({ error }));
-};
 
+        res.status(200).json({ message: `Statut mis à jour : ${nouveauStatut} !` });
+
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
 
 // =========================================================================
 // 5. AFFICHAGE DES ACHATS CLIENT (Acheteur)

@@ -110,6 +110,8 @@ async function chargerProduits() {
         // LE PONT : On appelle la fonction d'affichage en lui passant les données
         afficherProduits(produits); 
 
+        
+
     } catch (error) {
         console.error("Erreur lors du chargement :", error);
         alert("Vérifiez que le Backend est lancé !");

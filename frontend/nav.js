@@ -84,6 +84,20 @@ async function chargerproduit() {
     container.innerHTML = '';
 
     produits.forEach(produit => {//html pour chaque produit dans la liste des produits
+
+        // 🔍 On récupère la quantité (adapte le nom du champ s'il s'appelle 'quantity' ou 'stock')
+    const stock = produit.stock; 
+    
+    // 🎨 On crée un petit affichage intelligent selon le stock disponible
+    let badgeStock = '';
+    if (stock === 0) {
+        badgeStock = `<span style="color: red; font-weight: bold;">❌ Rupture de stock</span>`;
+    } else if (stock <= 5) {
+        badgeStock = `<span style="color: orange; font-weight: bold;">⚠️ Stock critique : ${stock} restants</span>`;
+    } else {
+        badgeStock = `<span style="color: green;">📦 En stock : ${stock} unités</span>`;
+    }
+
         container.innerHTML += `
         <article class="carte">
             <div class="produit-image">
@@ -93,7 +107,9 @@ async function chargerproduit() {
             <h3 class="nom">${produit.nom}</h3>
             <p class="prix">${produit.prix} €</p>
             <p class="description">${produit.description}</p>
-            
+            <div class="stock-status">
+                ${badgeStock}
+            </div>
             <a href="modifier.html?id=${produit._id}"><button class="modifier">Modifier</button></a>
             <button onclick="deleteProduct('${produit._id}')" class="supprimer">Supprimer</button>
             </div>
