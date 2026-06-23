@@ -28,5 +28,11 @@ router.put('/:id/annuler', auth, orderCtrl.annulerCommandeParVendeur);
 //ROUTE POUR QUE LE CLIENT PUISSE ANNULER UNE COMMANDE (en changeant le statut à "annulée par acheteur")
 router.put('/:id/annuler-acheteur', auth, orderCtrl.annulerCommandeParAcheteur);
 
+
+// 🆕 NOUVELLE ROUTE : Téléchargement du PDF par l'ID du groupe de colis
+router.get('/:colisGroupId/invoice', auth, orderCtrl.downloadInvoice);
+
+
+
 module.exports = router;
 

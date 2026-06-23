@@ -8,6 +8,6 @@ const thingSchema = mongoose.Schema({
     vendeurId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     stock: { type: Number, required: true, default: 10 }
     
-});
+});                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
 
 module.exports = mongoose.model('Thing', thingSchema);

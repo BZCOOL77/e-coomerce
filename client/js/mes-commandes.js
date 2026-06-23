@@ -48,6 +48,13 @@ async function chargerMesAchats() {
                 ? `<button class="btn-valider-reception" onclick="validerReception('${commande._id}')">🛬 J'ai bien reçu mon colis</button>`
                 : '';
             
+            //bouton pour télécharger la facture PDF
+            let boutonFacture = `<button onclick="telechargerFacturePDF('${commande.colisGroupId}')" class="btn-pdf">
+            📥 Télécharger ma facture (PDF)
+            </button>`;
+
+
+
             container.innerHTML += `
                 <div class="commande-card" data-statut="${commande.statut}">
                     <div class="commande-header">
@@ -64,6 +71,7 @@ async function chargerMesAchats() {
                     </div>
                     ${boutonAnnuler}
                     ${boutonValider}
+                    ${boutonFacture}
                 </div>
             `;
         });
@@ -205,6 +213,7 @@ async function annulerCommande(commandeId) {
 
         if (!response.ok) {
             throw new Error(data.error || "Erreur lors de l'annulation");
+            console.error('Détails de l\'erreur:', data);
         }
 
         alert('✅ ' + data.message);
@@ -215,3 +224,46 @@ async function annulerCommande(commandeId) {
         alert('❌ ' + err.message);
     }
 }
+
+// FONCTION POUR IMPRIMER FACTURE COMMANDES
+async function telechargerFacturePDF(colisGroupId) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        alert("Session expirée. Veuillez vous reconnecter.");
+        return;
+    }
+
+    try {
+        // Appeler la route API du backend
+        const response = await fetch(`http://localhost:3000/api/orders/${colisGroupId}/invoice`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error("Impossible de récupérer le fichier PDF.");
+        }
+
+        // Convertir la réponse HTTP brute en fichier Blob (Binary Large Object)
+        const blob = await response.blob();
+        
+        // Créer un lien caché dans le navigateur pour lancer le téléchargement
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Facture-${colisGroupId}.pdf`; // Nom du fichier sur la machine du client
+        document.body.appendChild(a);
+        a.click(); // Clique automatiquement sur le lien
+        
+        // Nettoyage de la mémoire du navigateur
+        a.remove();
+        window.URL.revokeObjectURL(url);
+
+    } catch (error) {
+        console.error("Erreur de téléchargement :", error);
+        alert("Erreur lors du téléchargement de la facture PDF.");
+    }
+}
+//=============================================================

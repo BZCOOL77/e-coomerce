@@ -65,6 +65,40 @@ body {
     width: 100%;
 }
 
+/* =========================================================================
+   STYLE DU BOUTON DE TÉLÉCHARGEMENT DE LA FACTURE (PDF)
+   ========================================================================= */
+
+.btn-pdf {
+    background-color: #1a365d; /* Bleu foncé pro (le même que l'en-tête de ta facture) */
+    color: #ffffff;            /* Texte blanc */
+    border: 1px solid #1a365d;
+    padding: 8px 14px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-radius: 6px;        /* Bords légèrement arrondis */
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;                  /* Espace entre l'émoji 📥 et le texte */
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 2px 4px rgba(26, 54, 93, 0.1);
+}
+
+/* Effet au survol (Hover) : le bleu s'éclaircit légèrement */
+.btn-pdf:hover {
+    background-color: #2b4c7e;
+    border-color: #2b4c7e;
+    transform: translateY(-1px); /* Petit effet de soulèvement très chic */
+    box-shadow: 0 4px 6px rgba(26, 54, 93, 0.15);
+}
+
+/* Effet au clic (Active) */
+.btn-pdf:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(26, 54, 93, 0.1);
+}
+
 
 /* Effet de survol pour le bouton de retour */
 .btn-retour:hover {

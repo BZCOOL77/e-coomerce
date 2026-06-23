@@ -88,6 +88,8 @@ async function chargerMesVentes() {
             throw new Error('Format inattendu des commandes');
         }
 
+        
+
         commandes.forEach(colis => {
             // Si la réponse est déjà groupée par colis
             
@@ -113,6 +115,7 @@ async function chargerMesVentes() {
                 const prixProduit = article.prixUnitaire || (produit ? (produit.prix || produit.price) : 'Prix indisponible');
                 const statutArticle = article.statutIndividuel || article.statut || 'N/A';
                 const orderId = article.orderId || article._id;
+                 
 
 
                 
@@ -145,14 +148,22 @@ async function chargerMesVentes() {
                                 </button>
                             ` : (estAnnuleeParAcheteur ? '<span class="annulee-acheteur">⚠️ Annulée par l\'acheteur</span>' : (estAnnulee ? '<span>❌ Vente annulée</span>' : '<span>✅ Vente terminée</span>'))}
                         </div>
+                       
                     </div>
                 `;
             });
 
+            //bouton pour télécharger la facture PDF
+                let boutonFacture = `<button onclick="telechargerFacturePDF('${idColis}')" class="btn-pdf">
+                                        📥 Télécharger ma facture (PDF)
+                                        </button>`;
+
             container.innerHTML += `
                 <section class="colis-block" data-statut="${statutGlobal}">
                     <header class="colis-header">
+                         ${boutonFacture}
                         <div>
+                            
                             <h2>Colis: ${idColis}</h2>
                             <p><strong>Acheteur:</strong> ${nomAcheteur} ${emailAcheteur ? `• <a href="mailto:${emailAcheteur}">${emailAcheteur}</a>` : ''}</p>
                             <p><strong>Statut global:</strong> <span class="badge statut-${statutGlobal.toLowerCase().replace(/ /g,'-')}">${statutGlobal}</span></p>
@@ -456,6 +467,50 @@ async function changerStatut(commandeId, nouveauStatut) {
         document.getElementById('loader').classList.remove('active');
     }
 }
+
+
+// FONCTION POUR IMPRIMER FACTURE COMMANDES
+async function telechargerFacturePDF(colisGroupId) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        alert("Session expirée. Veuillez vous reconnecter.");
+        return;
+    }
+
+    try {
+        // Appeler la route API du backend
+        const response = await fetch(`http://localhost:3000/api/orders/${colisGroupId}/invoice`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error("Impossible de récupérer le fichier PDF.");
+        }
+
+        // Convertir la réponse HTTP brute en fichier Blob (Binary Large Object)
+        const blob = await response.blob();
+        
+        // Créer un lien caché dans le navigateur pour lancer le téléchargement
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Facture-${colisGroupId}.pdf`; // Nom du fichier sur la machine du client
+        document.body.appendChild(a);
+        a.click(); // Clique automatiquement sur le lien
+        
+        // Nettoyage de la mémoire du navigateur
+        a.remove();
+        window.URL.revokeObjectURL(url);
+
+    } catch (error) {
+        console.error("Erreur de téléchargement :", error);
+        alert("Erreur lors du téléchargement de la facture PDF.");
+    }
+}
+//=============================================================
 
 // Lancement initial
 document.addEventListener('DOMContentLoaded', () => {

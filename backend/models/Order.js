@@ -14,6 +14,12 @@ const orderSchema = mongoose.Schema({
     type: String, 
     enum: ['en attente', 'En cours', 'expédiée', 'livrée', 'annulée', 'annulée par acheteur'], 
     default: 'en attente' },
+    //INFOS SUR LE PRIX
+    prixUnitaire: { type: Number, required: true },
+    prixUnitaireHT: { type: Number, required: true },
+    totalHT: { type: Number, required: true },
+    montantTVA: { type: Number, required: true },
+    totalTTC: { type: Number, required: true },
     dateCommande: { type: Date, default: Date.now },
     // 📦 C'EST ICI : Le numéro unique qui va lier les produits du même vendeur dans un seul carton
     colisGroupId: { type: String, }
