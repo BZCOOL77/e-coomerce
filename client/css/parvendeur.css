@@ -1,19 +1,61 @@
 
+:root {
+    --bg: #f5f1ea;
+    --surface: #ffffff;
+    --primary: #132238;
+    --accent: #e9a94a;
+    --text: #17202b;
+    --muted: #6a7280;
+    --border: rgba(16, 29, 49, 0.08);
+    --shadow: 0 20px 50px rgba(19, 34, 56, 0.12);
+}
+
 body {
-    background: linear-gradient(120deg, #e0e7ff 0%, #f8fafc 100%);
-    font-family: 'Segoe UI', Arial, sans-serif;
+    background:
+        radial-gradient(circle at top left, rgba(233, 169, 74, 0.18), transparent 24%),
+        linear-gradient(180deg, #f8f3ec 0%, #f2eee8 100%);
+    font-family: "Poppins", "Segoe UI", Arial, sans-serif;
     margin: 0;
     min-height: 100vh;
+    color: var(--text);
+}
+
+.client-return-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--primary);
+    font-weight: 700;
+    text-decoration: none;
+    padding: 0.72rem 1rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.9);
+    border: 1px solid rgba(19, 34, 56, 0.1);
+    box-shadow: 0 8px 18px rgba(19, 34, 56, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    margin: 1rem 0 0 1rem;
+}
+
+.client-return-link::before {
+    content: "←";
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.client-return-link:hover {
+    transform: translateX(-3px);
+    background: #fff;
+    box-shadow: 0 12px 24px rgba(19, 34, 56, 0.12);
 }
 
 header {
     text-align: center;
     padding: 2rem 1rem 1rem 1rem;
-    background: #667eea;
+    background: linear-gradient(145deg, rgba(19, 34, 56, 0.97), rgba(26, 49, 80, 0.94));
     color: white;
     border-bottom-left-radius: 32px;
     border-bottom-right-radius: 32px;
-    box-shadow: 0 2px 8px rgba(102,126,234,0.08);
+    box-shadow: var(--shadow);
 }
 
 main {
@@ -21,57 +63,63 @@ main {
 }
 
 .vendeurs-grid {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 2rem;
     padding: 2rem 1rem;
-    max-width: 600px;
+    max-width: 900px;
     margin: 0 auto;
 }
 
 .vendeur-card {
-    background: white;
-    border-radius: 16px;
+    background: rgba(255,255,255,0.94);
+    border-radius: 20px;
     padding: 2rem 1.5rem;
     text-align: center;
-    box-shadow: 0 4px 16px rgba(102,126,234,0.10);
+    box-shadow: 0 12px 24px rgba(19, 34, 56, 0.08);
     transition: transform 0.2s, box-shadow 0.2s;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border);
     position: relative;
 }
+
 .vendeur-card:hover {
     transform: translateY(-6px) scale(1.01);
-    box-shadow: 0 8px 24px rgba(102,126,234,0.18);
+    box-shadow: 0 16px 34px rgba(19, 34, 56, 0.14);
 }
+
 .vendeur-card h3 {
     margin: 0.5rem 0 0.25rem 0;
-    font-size: 1.3rem;
-    color: #374151;
+    font-size: 1.25rem;
+    color: var(--primary);
 }
+
 .vendeur-card p {
-    color: #6b7280;
+    color: var(--muted);
     font-size: 1rem;
     margin: 0.25rem 0 0 0;
 }
+
 .vendeur-card .icon-shop {
     font-size: 2.5rem;
     margin-bottom: 0.5rem;
 }
+
 .btn-voir-boutique {
     display: inline-block;
     margin-top: 1.2rem;
-    padding: 0.6rem 1.4rem;
-    background: linear-gradient(90deg, #667eea 0%, #5a67d8 100%);
+    padding: 0.75rem 1.4rem;
+    background: linear-gradient(135deg, #132238, #23416d);
     color: white;
     text-decoration: none;
-    border-radius: 8px;
-    font-weight: bold;
-    box-shadow: 0 2px 8px rgba(102,126,234,0.10);
-    transition: background 0.2s, box-shadow 0.2s;
+    border-radius: 12px;
+    font-weight: 700;
+    box-shadow: 0 10px 22px rgba(19, 34, 56, 0.18);
+    transition: transform 0.2s, box-shadow 0.2s;
     border: none;
     outline: none;
 }
+
 .btn-voir-boutique:hover {
-    background: linear-gradient(90deg, #5a67d8 0%, #667eea 100%);
-    box-shadow: 0 4px 16px rgba(102,126,234,0.18);
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px rgba(19, 34, 56, 0.24);
 }

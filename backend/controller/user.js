@@ -79,3 +79,23 @@ exports.getAllVendeurs = (req, res, next) => {
         .then(vendeurs => res.status(200).json(vendeurs))
         .catch(error => res.status(400).json({ error }));
 };
+
+
+// 🟢 Fonction pour récupérer le profil de l'utilisateur connecté
+exports.getProfile = async (req, res) => {
+    try {
+        // req.auth.userId a été injecté au préalable par ton middleware "auth" !
+        // Le ".select('-password')" permet de ne JAMAIS renvoyer le mot de passe sur le réseau.
+        const user = await User.findById(req.auth.userId).select('-password');
+        
+        if (!user) {
+            return res.status(404).json({ message: "Utilisateur introuvable dans la base de données !" });
+        }
+
+        // On renvoie les infos de l'utilisateur (id, email, etc.)
+        res.status(200).json(user);
+    } catch (error) {
+        console.error("Erreur dans getProfile Controller :", error);
+        res.status(500).json({ error: "Une erreur est survenue lors de la récupération du profil." });
+    }
+};

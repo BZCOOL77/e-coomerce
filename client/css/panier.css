@@ -1,5 +1,5 @@
 /* ============================================================
-   PANIER - STYLE PROFESSIONNEL
+   PANIER - STYLE PROFESSIONNEL UNIFIÉ
    ============================================================ */
 
 * {
@@ -8,40 +8,53 @@
     box-sizing: border-box;
 }
 
+:root {
+    --bg: #f5f1ea;
+    --surface: #ffffff;
+    --surface-soft: #f8f4ee;
+    --primary: #132238;
+    --primary-strong: #0d1726;
+    --accent: #e9a94a;
+    --accent-strong: #c8851f;
+    --text: #17202b;
+    --muted: #6a7280;
+    --border: rgba(16, 29, 49, 0.08);
+    --shadow: 0 20px 50px rgba(19, 34, 56, 0.12);
+}
+
 body {
-    background: #f0f0f0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    color: #333;
+    background:
+        radial-gradient(circle at top left, rgba(233, 169, 74, 0.18), transparent 24%),
+        linear-gradient(180deg, #f8f3ec 0%, #f2eee8 100%);
+    font-family: "Poppins", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--text);
 }
 
 header {
-    background: rgb(33, 34, 51);
+    background: linear-gradient(145deg, rgba(19, 34, 56, 0.97), rgba(26, 49, 80, 0.94));
     padding: 30px 20px;
-    border-bottom: 1px solid #e8e8e8;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
     margin-bottom: 40px;
+    color: #fff;
 }
 
 header h1 {
     font-size: 1.8rem;
-    font-weight: 700;
+    font-weight: 800;
     margin-bottom: 8px;
-    color: #1a1a1a;
+    color: #fff;
 }
 
 header h2 {
     font-size: 1rem;
-    font-weight: 400;
-    color: #666;
+    font-weight: 500;
+    color: rgba(255,255,255,0.82);
 }
 
 main {
-    background: #1a3d56;
     padding: 0 20px 60px;
 }
 
-/* ============================================================
-   CONTENEUR PRINCIPAL
-   ============================================================ */
 .panier-wrapper {
     display: grid;
     grid-template-columns: 1fr 350px;
@@ -50,73 +63,75 @@ main {
     margin: 0 auto;
 }
 
-/* ============================================================
-   LIEN CONTINUER SHOPPING
-   ============================================================ */
-.btn-detail {
+.client-return-link {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    color: #0066cc;
-    font-weight: 500;
+    gap: 8px;
+    color: var(--primary);
+    font-weight: 700;
     text-decoration: none;
-    transition: all 0.2s ease;
-    font-size: 0.95rem;
+    padding: 0.72rem 1rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.9);
+    border: 1px solid rgba(19, 34, 56, 0.1);
+    box-shadow: 0 8px 18px rgba(19, 34, 56, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    margin-bottom: 20px;
 }
 
-.btn-detail:hover {
-    color: #0052a3;
-    gap: 10px;
+.client-return-link::before {
+    content: "←";
+    font-size: 1rem;
+    line-height: 1;
 }
 
-/* ============================================================
-   TABLEAU DU PANIER
-   ============================================================ */
+.client-return-link:hover {
+    transform: translateX(-3px);
+    background: #fff;
+    box-shadow: 0 12px 24px rgba(19, 34, 56, 0.12);
+}
+
 .panier-liste {
-    background: rgb(142, 159, 178);
-    border-radius: 8px;
+    background: rgba(255,255,255,0.82);
+    border-radius: 20px;
     overflow: hidden;
-    border: 1px solid #e8e8e8;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
 }
 
-/* En-tête du tableau */
 .panier-liste::before {
-    
+    content: "";
     display: grid;
     grid-template-columns: 100px 1fr 120px 100px 1fr;
     gap: 20px;
     align-items: center;
-    padding: 20px 24px;
-    background: #889cb6;
-    font-weight: 600;
-    color: #666;
-    font-size: 0.8rem;
+    padding: 18px 24px;
+    background: #f8f4ee;
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 0.78rem;
     text-transform: uppercase;
-    letter-spacing: 0.4px;
-    border-bottom: 1px solid #e8e8e8;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
 }
 
-/* Message panier vide */
 .panier-liste p {
     text-align: center;
     padding: 80px 40px;
-    color: #999;
+    color: var(--muted);
     font-size: 1rem;
-    background: white;
+    background: #fff;
     border-radius: 0;
     border: none;
 }
 
-/* ============================================================
-   PRODUITS DU PANIER
-   ============================================================ */
 .panier-item {
     display: grid;
     grid-template-columns: 100px 1fr 120px 100px 1fr;
     gap: 20px;
     align-items: center;
     padding: 24px;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid rgba(19, 34, 56, 0.07);
     transition: all 0.2s ease;
 }
 
@@ -124,19 +139,15 @@ main {
     border-bottom: none;
 }
 
-
-
-/* Image du produit */
 .panier-item img {
     width: 100px;
     height: 100px;
     object-fit: cover;
-    background: #f5f5f5;
-    border-radius: 7px;
-    border: 1px solid #e8e8e8;
+    background: var(--surface-soft);
+    border-radius: 12px;
+    border: 1px solid var(--border);
 }
 
-/* Infos du produit */
 .item-infos {
     display: flex;
     flex-direction: column;
@@ -145,30 +156,29 @@ main {
 
 .item-infos h3 {
     font-size: 0.95rem;
-    font-weight: 600;
-    color: #1a1a1a;
+    font-weight: 700;
+    color: var(--primary-strong);
     margin: 0;
 }
 
 .item-infos .prix {
     font-size: 0.85rem;
-    color: #999;
+    color: var(--muted);
     margin: 0;
     background: none;
 }
 
-/* Contrôle quantité */
 .item-quantite {
     display: inline-flex;
     align-items: center;
-    border: 1px solid #e8e8e8;
-    border-radius: 4px;
-    background: white;
+    border: 1px solid rgba(19, 34, 56, 0.12);
+    border-radius: 10px;
+    background: #fff;
     overflow: hidden;
 }
 
 .btn-qty {
-    background: white;
+    background: #fff;
     border: none;
     width: 40px;
     height: 40px;
@@ -177,84 +187,79 @@ main {
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    color: #666;
-    font-weight: 600;
+    color: var(--primary);
+    font-weight: 700;
     font-size: 1rem;
 }
 
 .btn-qty:hover {
-    background: #f5f5f5;
-    color: #0066cc;
+    background: #f7f5ef;
+    color: var(--accent-strong);
 }
 
 .item-quantite span {
-    width: 50px;
+    width: 52px;
     text-align: center;
-    font-weight: 600;
-    font-size: 0.95rem;
-    border-left: 1px solid #e8e8e8;
-    border-right: 1px solid #e8e8e8;
-    background: white;
-}
-
-/* Colonne Prix */
-.panier-item > div:nth-child(4) {
-    font-weight: 600;
-    font-size: 0.95rem;
-    text-align: center;
-    color: #1a1a1a;
-}
-
-/* Colonne Total */
-.panier-item > div:last-child {
     font-weight: 700;
+    font-size: 0.95rem;
+    border-left: 1px solid rgba(19, 34, 56, 0.12);
+    border-right: 1px solid rgba(19, 34, 56, 0.12);
+    background: #fff;
+}
+
+.panier-item > div:nth-child(4) {
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-align: center;
+    color: var(--primary-strong);
+}
+
+.panier-item > div:last-child {
+    font-weight: 800;
     font-size: 1rem;
     text-align: right;
-    color: #1a1a1a;
+    color: var(--primary-strong);
 }
 
-/* Bouton supprimer */
 .btn-supprimer {
-    background: red;
-    border-radius: 4px;
+    background: transparent;
+    border-radius: 999px;
     text-decoration: none;
     font-size: 0.8rem;
-    color: #0c0909;
+    color: var(--danger);
     cursor: pointer;
-    padding: 0;
+    padding: 0.35rem 0.65rem;
     margin-top: 8px;
-    font-weight: 500;
+    font-weight: 700;
     transition: all 0.2s ease;
 }
 
 .btn-supprimer:hover {
-    color: #4b0806;
-    text-decoration: underline;
+    background: rgba(217, 72, 95, 0.08);
+    text-decoration: none;
 }
 
-/* ============================================================
-   RÉSUMÉ DE COMMANDE (SIDEBAR)
-   ============================================================ */
 .panier-resume {
-    background: white;
+    background: rgba(255,255,255,0.92);
     padding: 28px;
-    border-radius: 8px;
-    border: 1px solid #e8e8e8;
+    border-radius: 20px;
+    border: 1px solid var(--border);
     height: fit-content;
     position: sticky;
     top: 100px;
+    box-shadow: var(--shadow);
 }
 
 .panier-resume h3 {
     font-size: 1.1rem;
-    font-weight: 700;
+    font-weight: 800;
     margin: 0 0 24px 0;
-    color: #1a1a1a;
+    color: var(--primary-strong);
 }
 
 .panier-resume hr {
     border: none;
-    border-top: 1px solid #e8e8e8;
+    border-top: 1px solid rgba(19, 34, 56, 0.08);
     margin: 0 0 20px 0;
 }
 
@@ -264,59 +269,79 @@ main {
     align-items: center;
     margin-bottom: 14px;
     font-size: 0.9rem;
-    color: #666;
-    font-weight: 500;
+    color: var(--muted);
+    font-weight: 600;
 }
 
 .resume-ligne span:first-child {
-    color: #999;
+    color: var(--muted);
 }
 
 .resume-ligne span:last-child {
-    font-weight: 600;
-    color: #1a1a1a;
+    font-weight: 700;
+    color: var(--primary-strong);
 }
 
-/* Total final */
 .total-final {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-top: 20px;
     padding-top: 20px;
-    border-top: 2px solid #f0f0f0;
-    font-weight: 700;
-    font-size: 1.1rem;
-    color: #1a1a1a;
+    border-top: 2px solid rgba(19, 34, 56, 0.08);
+    font-weight: 800;
+    font-size: 1.08rem;
+    color: var(--primary-strong);
 }
 
-/* ============================================================
-   BOUTON COMMANDER
-   ============================================================ */
 .btn-commander {
     width: 100%;
-    background: #0066cc;
+    background: linear-gradient(135deg, #132238, #23416d);
     color: white;
     border: none;
     padding: 14px 20px;
     font-size: 0.95rem;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: capitalize;
     cursor: pointer;
     margin-top: 28px;
     transition: all 0.2s ease;
-    border-radius: 6px;
+    border-radius: 12px;
     letter-spacing: 0;
+    box-shadow: 0 10px 22px rgba(19, 34, 56, 0.18);
 }
 
 .btn-commander:hover {
-    background: #0052a3;
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px rgba(19, 34, 56, 0.24);
 }
 
 .btn-commander:active {
-    background: #003d7a;
     transform: scale(0.98);
 }
+
+@media (max-width: 900px) {
+    .panier-wrapper {
+        grid-template-columns: 1fr;
+    }
+
+    .panier-resume {
+        position: static;
+    }
+}
+
+@media (max-width: 640px) {
+    .panier-item {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .panier-item img {
+        width: 100%;
+        height: 180px;
+    }
+}
+
 
 .btn-commander::before,
 .btn-commander::after {

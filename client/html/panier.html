@@ -16,7 +16,7 @@
 
     <main>
         <div style="padding: 20px; max-width: 1200px; margin: auto;">
-            <a href="client.html" class="btn-detail" style="text-decoration: none; display: inline-block; margin-bottom: 20px;">← Continuer le shopping</a>
+            <a href="client.html" class="client-return-link">Continuer le shopping</a>
         </div>
 
         <div class="panier-wrapper">
@@ -110,7 +110,7 @@ function calculerTotal(panier) {
     document.getElementById('total-global').innerText = `${total.toFixed(2)} €`;
 }
 
-// 6. Simulation de commande
+// 6. Simulation de commande (Version corrigée et groupée)
 async function validerPanierEtCommander() {
     let panier = JSON.parse(localStorage.getItem('panier_shopy')) || [];
     if (panier.length === 0) {
@@ -118,31 +118,23 @@ async function validerPanierEtCommander() {
         return;
     }
 
-    // Regroupe les articles par vendeur
-    const panierParVendeur = panier.reduce((groups, item) => {
-        const vendeurId = item.vendeurId || item.sellerId || item.userId;
-        const produitId = String(item.id);
+    // 🚀 UNIFICATION : On prépare TOUS les articles en un seul tableau clean
+    const articlesToProcess = [];
 
+    for (const item of panier) {
+        const produitId = String(item.id);
         if (!produitId || produitId === 'undefined' || produitId === 'null') {
             console.warn("Produit invalide ignoré", item);
-            return groups;
-        }
-        if (!vendeurId) {
-            console.warn("Vendeur manquant pour l'article", item);
-            return groups;
+            continue;
         }
 
-        groups[vendeurId] = groups[vendeurId] || [];
-        groups[vendeurId].push({
-            produitId,
-            quantite: Number(item.quantite) > 0 ? Number(item.quantite) : 1,
-            nom: item.nom
+        articlesToProcess.push({
+            produitId: produitId,
+            quantite: Number(item.quantite) > 0 ? Number(item.quantite) : 1
         });
-        return groups;
-    }, {});
+    }
 
-    const vendeurs = Object.keys(panierParVendeur);
-    if (vendeurs.length === 0) {
+    if (articlesToProcess.length === 0) {
         alert("Aucun article valide dans le panier.");
         return;
     }
@@ -153,59 +145,32 @@ async function validerPanierEtCommander() {
         return;
     }
 
-    // Tableaux pour suivre l'état des commandes par vendeur
-    let vendeursReussis = [];
-    let erreursRencontrees = false;
+    try {
+        // 📡 UNE SEULE REQUÊTE HTTP pour tout le panier
+        const response = await fetch('http://localhost:3000/api/orders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ articles: articlesToProcess }) // On envoie TOUT
+        });
 
-    for (const vendeurId of vendeurs) {
-        const articles = panierParVendeur[vendeurId];
+        const data = await response.json().catch(() => ({}));
 
-        try {
-            const response = await fetch('http://localhost:3000/api/orders', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ articles })
-            });
-
-            const data = await response.json().catch(() => ({}));
-
-            if (response.ok) {
-                // On mémorise que ce vendeur a fonctionné
-                vendeursReussis.push(vendeurId);
-            } else {
-                erreursRencontrees = true;
-                if (response.status === 404) {
-                    console.error(`Certains produits du vendeur ${vendeurId} n'existent plus.`);
-                } else {
-                    console.error(`Erreur vendeur ${vendeurId}:`, data.error || response.status);
-                }
-            }
-        } catch (error) {
-            erreursRencontrees = true;
-            console.error("Erreur réseau pour le vendeur", vendeurId, error);
+        if (response.ok) {
+            // 🎉 Succès total : on vide complètement le panier local
+            localStorage.setItem('panier_shopy', JSON.stringify([]));
+            alert("🎉 Toutes vos commandes ont été validées avec succès !");
+            window.location.href = 'mes-commandes.html';
+        } else {
+            // Gestion des erreurs de stock ou autres renvoyées par le backend
+            alert(`❌ Impossible de valider la commande : ${data.error || 'Erreur serveur'}`);
         }
-    }
 
-    // 🔄 MISE À JOUR DU PANIER FINALE : On filtre en retirant UNIQUEMENT les vendeurs qui ont réussi
-    let panierRestant = panier.filter(item => {
-        const vendeurCourant = item.vendeurId || item.sellerId || item.userId;
-        return !vendeursReussis.includes(vendeurCourant);
-    });
-
-    localStorage.setItem('panier_shopy', JSON.stringify(panierRestant));
-
-    // 📢 Message de conclusion adapté à la réalité
-    if (!erreursRencontrees) {
-        alert("🎉 Toutes vos commandes ont été validées avec succès !");
-        window.location.href = 'mes-commandes.html';
-    } else if (vendeursReussis.length > 0) {
-        alert("⚠️ Certaines commandes ont été validées, mais d'autres ont échoué. Les articles restants sont toujours dans votre panier.");
-        window.location.reload(); // Actualise l'affichage du panier
-    } else {
-        alert("❌ Impossible de valider vos commandes pour le moment (Problème de stock ou réseau).");
+    } catch (error) {
+        console.error("Erreur réseau globale", error);
+        alert("❌ Erreur réseau. Impossible de contacter le serveur.");
     }
 }
 

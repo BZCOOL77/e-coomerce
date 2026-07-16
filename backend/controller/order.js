@@ -1,5 +1,6 @@
 const Order = require('../models/Order');
 const Thing = require('../models/Thing');
+const mongoose = require('mongoose');
 const User = require('../models/User'); // Import du modèle User pour récupérer les noms
 const { genererCodeColisPro } = require('../utilitaire/generercodecolis'); // Importation de la fonction de génération d'ID de colis
 const PDFDocument = require('pdfkit');// Importation de PDFKit pour la génération de factures PDF
@@ -59,21 +60,7 @@ const createOrder = async (req, res, next) => {
             // 🧾 2. Extraction des valeurs unitaires pour la facture légale
             const prixUnitaireHT = prixUnitaireTTC / (1 + tauxTVA);
 
-            // ==========================================
-            // 📊 ZONE DE LOGS DE SÉCURITÉ FINANCIÈRE (Optionnel mais recommandé pour tes tests)
-            // ==========================================
-            console.log("\n=========================================");
-            console.log("💰 CALCULS DE COMMANDE SÉCURISÉS (BACKEND)");
-            console.log("=========================================");
-            console.log(`📦 Produit ID     : ${produit._id}`);
-            console.log(`🔢 Quantité       : ${quantite}`);
-            console.log(`💵 Prix Unit. TTC : ${prixUnitaireTTC.toFixed(2)} €`);
-            console.log(`📉 Prix Unit. HT  : ${prixUnitaireHT.toFixed(2)} €`);
-            console.log("-----------------------------------------");
-            console.log(`📉 TOTAL HT       : ${totalHT.toFixed(2)} €`);
-            console.log(`🏦 MONTANT TVA    : ${montantTVA.toFixed(2)} €`);
-            console.log(`🚀 TOTAL TTC      : ${totalTTC.toFixed(2)} €`);
-            console.log("=========================================\n");
+            
 
 
             // 💎 3. Construire les données de la commande parfaitement formatées
@@ -389,118 +376,177 @@ const annulerCommandeParAcheteur = async (req, res, next) => {
 // =========================================================================
 const downloadInvoice = async (req, res) => {
     try {
-        // 1. Récupérer les articles associés à ce groupe de colis
-        const orders = await Order.find({ colisGroupId: req.params.colisGroupId })
-                                  .populate('produitId', 'title name nom'); 
+        const userIdConnecte = req.auth.userId.toString(); 
         
-        if (!orders || orders.length === 0) {
-            // Ici le "return" est crucial pour ARRÊTER le code si rien n'est trouvé !
-            return res.status(404).json({ error: "Facture introuvable pour ce colis." });
+        // 🎛️ EXTRACTEUR DE CONTEXTE : On récupère le rôle demandé dans l'URL (?role=vendeur)
+        // Si rien n'est spécifié, on considère par défaut que c'est un client.
+        const roleDemande = req.query.role === 'vendeur' ? 'vendeur' : 'client';
+
+        // 🟢 1. RECHERCHE ET POPULATE DES LIENS
+        const allOrders = await Order.find({ colisGroupId: req.params.colisGroupId })
+                                     .populate('produitId', 'nom prix description')
+                                     .populate('acheteurId', 'nom prenom email')
+                                     .populate('vendeurId', 'nom prenom'); 
+        
+        if (!allOrders || allOrders.length === 0) {
+            return res.status(404).json({ error: "Facture introuvable." });
         }
 
-        // 🛡️ BARRIÈRE DE SÉCURITÉ ANTI-INTRUSION
-        const userIdConnecte = req.auth.userId; 
-        const estAcheteur = orders[0].acheteurId === userIdConnecte;
-        const estVendeur = orders[0].vendeurId === userIdConnecte;
+        // 🧙‍♂️ LE NETTOYEUR SÉCURISÉ (Extrait l'ID de 24 caractères du texte corrompu ou de l'objet)
+        const extraireIdPur = (vendeurField) => {
+            if (!vendeurField) return 'INCONNU';
+            if (vendeurField._id) return vendeurField._id.toString();
+            
+            const rawString = vendeurField.toString();
+            const match = rawString.match(/[0-9a-fA-F]{24}/);
+            if (match) {
+                return match[0];
+            }
+            return rawString.trim();
+        };
 
-        if (!estAcheteur && !estVendeur) {
-            console.warn(`🚨 Tentative d'accès non autorisée au colis ${req.params.colisGroupId}`);
-            return res.status(403).json({ error: "Accès refusé." });
+        // 🛡️ ANALYSE SÉCURISÉE DES ACCÈS
+        const estAcheteur = allOrders[0].acheteurId && allOrders[0].acheteurId._id?.toString() === userIdConnecte;
+        
+        const estUnDesVendeurs = allOrders.some(order => {
+            return extraireIdPur(order.vendeurId) === userIdConnecte;
+        });
+
+        // Si l'utilisateur n'a rien à faire ici, on bloque direct !
+        if (!estAcheteur && !estUnDesVendeurs) {
+            console.warn(`🚨 Intrusion bloquée pour le colis ${req.params.colisGroupId}`);
+            return res.status(403).json({ error: "Accès refusé. Vous n'avez aucun droit sur ce colis." });
         }
 
-        // 🔍 2. ENQUÊTE BDD : Aller chercher les profils utilisateurs
-        const [profilAcheteur, profilVendeur] = await Promise.all([
-            User.findById(orders[0].acheteurId),
-            User.findById(orders[0].vendeurId)
-        ]);
+        // 🔮 FILTRAGE ULTRA-ÉTANCHE : Basé sur l'intention (roleDemande) !
+        let ordersAFFICHEES = [];
+        
+        if (roleDemande === 'client' && estAcheteur) {
+            // L'utilisateur demande l'interface client ET il est bien l'acheteur -> Il voit tout le panier global
+            ordersAFFICHEES = allOrders; 
+        } else {
+            // L'utilisateur demande l'interface vendeur (ou il n'est pas l'acheteur de toute façon)
+            // -> VERROU STRICT : On ne lui montre QUE ses propres articles, même s'il est aussi l'acheteur !
+            ordersAFFICHEES = allOrders.filter(order => {
+                return extraireIdPur(order.vendeurId) === userIdConnecte;
+            });
+        }
 
-        const nomAcheteur = profilAcheteur 
-            ? `${profilAcheteur.prenom} ${profilAcheteur.nom}`.toUpperCase() 
-            : `CLIENT (ID: #${orders[0].acheteurId.toString().substring(0, 6)}...)`;
+        // Sécurité finale : si après filtre un vendeur essaie de forcer l'accès sur un colis où il n'a rien vendu
+        if (ordersAFFICHEES.length === 0) {
+            return res.status(403).json({ error: "Aucun produit ne vous appartient dans cette facture." });
+        }
 
-        const nomVendeur = profilVendeur 
-            ? `${profilVendeur.prenom} ${profilVendeur.nom}`.toUpperCase() 
-            : `VENDEUR (ID: #${orders[0].vendeurId.toString().substring(0, 6)}...)`;
+        // 👥 2. FORMATTAGE DES COORDONNÉES DE L'ACHETEUR
+        const client = ordersAFFICHEES[0].acheteurId;
+        const nomAcheteur = client 
+            ? `${client.prenom || ''} ${client.nom || ''}`.trim().toUpperCase() 
+            : `CLIENT (ID: #${ordersAFFICHEES[0].acheteurId?.toString().substring(0, 6)}...)`;
 
-        // 3. Configurer les en-têtes HTTP (On le fait juste avant de créer le PDF)
+        // 🔄 3. REGROUPEMENT PAR BLOC VENDEUR (Sur le tableau filtré ordersAFFICHEES !)
+        const groupeParVendeur = {};
+        
+        for (const item of ordersAFFICHEES) {
+            const vId = extraireIdPur(item.vendeurId);
+
+            if (!groupeParVendeur[vId]) {
+                let nomV = `BOUTIQUE (ID: #${vId.substring(0,6)})`;
+                
+                if (item.vendeurId && item.vendeurId.nom) {
+                    nomV = `${item.vendeurId.prenom || ''} ${item.vendeurId.nom || ''}`.trim().toUpperCase();
+                } else if (vId.length === 24) {
+                    try {
+                        const MongooseUser = mongoose.model('User');
+                        const demerdaProfil = await MongooseUser.findById(vId);
+                        if (demerdaProfil) {
+                            nomV = `${demerdaProfil.prenom || ''} ${demerdaProfil.nom || ''}`.trim().toUpperCase();
+                        }
+                    } catch (e) {
+                        // Plan de secours silencieux
+                    }
+                }
+                
+                groupeParVendeur[vId] = { nom: nomV, articles: [] };
+            }
+            groupeParVendeur[vId].articles.push(item);
+        }
+
+        // 4. PRÉPARATION DES EN-TÊTES DE TÉLÉCHARGEMENT PDF
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=Facture-${req.params.colisGroupId}.pdf`);
 
-        // 4. Initialiser le document PDF
+        // 5. INITIALISATION DU DOCUMENT PDFKIT
         const doc = new PDFDocument({ size: 'A4', margin: 50 });
-        
-        // 🚨 ATTENTION : On branche le tuyau ICI. 
-        // À partir de cette ligne, INTERDICTION d'utiliser "res.json()" ou "res.send()" !
         doc.pipe(res);
 
-        // --- EN-TÊTE DE LA FACTURE ---
+        // --- DESIGN : EN-TÊTE DE LA FACTURE ---
         doc.fillColor('#1a365d').fontSize(24).text('SHOPYCLOTH', 50, 50, { bold: true });
-        doc.fillColor('#718096').fontSize(10).text('Merci pour votre confiance !', 50, 80);
+        doc.fillColor('#718096').fontSize(10).text('Plateforme de Marketplace sécurisée', 50, 80);
         
         doc.fillColor('#1a365d').fontSize(20).text('FACTURE', 400, 50, { align: 'right' });
         doc.fillColor('#2d3748').fontSize(10)
            .text(`N° Colis : #${req.params.colisGroupId}`, 400, 75, { align: 'right' })
-           .text(`Date : ${new Date(orders[0].createdAt).toLocaleDateString('fr-FR')}`, 400, 90, { align: 'right' });
+           .text(`Date : ${new Date(ordersAFFICHEES[0].createdAt).toLocaleDateString('fr-FR')}`, 400, 90, { align: 'right' });
 
         doc.moveTo(50, 120).lineTo(550, 120).strokeColor('#e2e8f0').lineWidth(1).stroke();
 
-        // 👥 --- BLOC DES COORDONNÉES ---
+        // --- DESIGN : BLOC DESTINATAIRE ---
         let infoY = 140;
-        doc.fillColor('#4a5568').fontSize(10, { bold: true }).text('DE (Vendeur) :', 50, infoY);
+        doc.fillColor('#4a5568').fontSize(10, { bold: true }).text('FACTURÉ À (Acheteur) :', 50, infoY);
         doc.fillColor('#2d3748').fontSize(10, { bold: false })
-           .text(nomVendeur, 50, infoY + 15)
-           .text(`ID : #${orders[0].vendeurId.toString().substring(0, 10)}...`, 50, infoY + 30);
+           .text(nomAcheteur, 50, infoY + 15)
+           .text(`Email : ${client?.email || 'Non renseigné'}`, 50, infoY + 30);
 
-        doc.fillColor('#4a5568').fontSize(10, { bold: true }).text('À (Acheteur) :', 350, infoY);
-        doc.fillColor('#2d3748').fontSize(10, { bold: false })
-           .text(nomAcheteur, 350, infoY + 15)
-           .text(`ID : #${orders[0].acheteurId.toString().substring(0, 10)}...`, 350, infoY + 30);
+        doc.moveTo(50, 195).lineTo(550, 195).strokeColor('#e2e8f0').stroke();
 
-        doc.moveTo(50, 200).lineTo(550, 200).strokeColor('#e2e8f0').stroke();
+        // --- DESIGN : TABLEAU SÉCTORISÉ ---
+        let moveY = 215;
+        let cumulHT = 0, cumulTVA = 0, cumulTTC = 0;
 
-        // --- CRÉATION DU TABLEAU DES ARTICLES ---
-        let moveY = 220;
+        Object.keys(groupeParVendeur).forEach((vendeurId) => {
+            const vendeurEnCours = groupeParVendeur[vendeurId];
 
-        doc.fillColor('#4a5568').fontSize(10, { bold: true });
-        doc.text('Désignation de l\'article', 50, moveY); 
-        doc.text('Qté', 300, moveY, { width: 30, align: 'center' });
-        doc.text('Prix Unit. TTC', 350, moveY, { width: 90, align: 'right' });
-        doc.text('Total TTC', 460, moveY, { width: 90, align: 'right' });
+            doc.rect(50, moveY, 500, 18).fill('#f8fafc');
+            doc.fillColor('#4a5568').fontSize(9, { bold: true }).text(`VENDEUR : ${vendeurEnCours.nom}`, 55, moveY + 4);
+            moveY += 25;
 
-        doc.moveTo(50, moveY + 15).lineTo(550, moveY + 15).strokeColor('#edf2f7').stroke();
-        moveY += 25;
-
-        let cumulHT = 0;
-        let cumulTVA = 0;
-        let cumulTTC = 0;
-
-        // Lignes du tableau
-        doc.fillColor('#2d3748').fontSize(10);
-        orders.forEach((item) => {
-            const detailProduit = item.produitId;
-            const nomDuProduit = detailProduit ? (detailProduit.title || detailProduit.name || detailProduit.nom) : `Article #${item._id.toString().substring(0,6)}`;
-
-            doc.text(nomDuProduit.substring(0, 35), 50, moveY);
-            doc.text(`${item.quantite}`, 300, moveY, { width: 30, align: 'center' });
+            doc.fillColor('#718096').fontSize(8, { bold: true });
+            doc.text('Désignation de l\'article', 50, moveY); 
+            doc.text('Qté', 300, moveY, { width: 30, align: 'center' });
+            doc.text('Prix U. TTC', 350, moveY, { width: 90, align: 'right' });
+            doc.text('Total TTC', 460, moveY, { width: 90, align: 'right' });
             
-            // 🚨 SÉCURITÉ EN PLUS : On s'assure que les chiffres sont bien des nombres avant le .toFixed()
-            const prixU = item.prixUnitaire || 0;
-            const tTTC = item.totalTTC || 0;
+            doc.moveTo(50, moveY + 11).lineTo(550, moveY + 11).strokeColor('#edf2f7').lineWidth(0.5).stroke();
+            moveY += 18;
 
-            doc.text(`${prixU.toFixed(2)} €`, 350, moveY, { width: 90, align: 'right' });
-            doc.text(`${tTTC.toFixed(2)} €`, 460, moveY, { width: 90, align: 'right' });
+            doc.fillColor('#2d3748').fontSize(9, { bold: false });
+            vendeurEnCours.articles.forEach((item) => {
+                const nomDuProduit = item.produitId ? (item.produitId.nom || item.produitId.title) : `Article #${item._id.toString().substring(0,6)}`;
 
-            cumulHT += item.totalHT || 0;
-            cumulTVA += item.montantTVA || 0;
-            cumulTTC += tTTC;
+                doc.text(nomDuProduit.substring(0, 38), 50, moveY);
+                doc.text(`${item.quantite}`, 300, moveY, { width: 30, align: 'center' });
+                
+                const prixU = item.prixUnitaire || 0;
+                const tTTC = item.totalTTC || 0;
 
-            moveY += 20;
+                doc.text(`${prixU.toFixed(2)} €`, 350, moveY, { width: 90, align: 'right' });
+                doc.text(`${tTTC.toFixed(2)} €`, 460, moveY, { width: 90, align: 'right' });
+
+                cumulHT += item.totalHT || 0;
+                cumulTVA += item.montantTVA || 0;
+                cumulTTC += tTTC;
+
+                moveY += 18;
+            });
+
+            moveY += 10; 
         });
 
-        doc.moveTo(50, moveY).lineTo(550, moveY).strokeColor('#e2e8f0').stroke();
+        doc.moveTo(50, moveY).lineTo(550, moveY).strokeColor('#e2e8f0').lineWidth(1).stroke();
         moveY += 15;
 
-        // --- BLOC DES TOTAUX COMPTABLES ---
+        // --- DESIGN : ACCUMULATIONS COMPTABLES ---
+        doc.fillColor('#4a5568').fontSize(10, { bold: false });
         doc.text('Total Hors Taxes (HT) :', 320, moveY, { width: 130, align: 'right' });
         doc.text(`${cumulHT.toFixed(2)} €`, 460, moveY, { width: 90, align: 'right' });
         moveY += 15;
@@ -514,23 +560,20 @@ const downloadInvoice = async (req, res) => {
         doc.text('Total à payer (TTC) :', 320, moveY, { width: 130, align: 'right' });
         doc.text(`${cumulTTC.toFixed(2)} €`, 460, moveY, { width: 90, align: 'right' });
 
-        // --- PIED DE PAGE LÉGAL ---
         doc.fillColor('#a0aec0').fontSize(8)
-           .text('ShopyCloth SAS — Capital de 10 000 € — TVA Intracommunautaire FR999999999', 50, 720, { align: 'center' })
-           .text('Pour toute réclamation, contactez support@shopycloth.com', 50, 735, { align: 'center' });
+           .text('ShopyCloth SA -- TVA Intracommunautaire FR999999999', 50, 720, { align: 'center' })
+           .text('Document généré électroniquement — Pour toute réclamation, contactez support@shopycloth.com', 50, 735, { align: 'center' });
 
-        // 5. 🚨 APARTÉ FINAL : doc.end() doit TOUJOURS être le mot de la fin !
         doc.end();
 
     } catch (error) {
-        console.error("Erreur génération PDF", error);
-        // On envoie le JSON d'erreur uniquement si le PDF n'a pas commencé à piper
+        console.error("Erreur génération PDF multi-vendeurs", error);
         if (!res.headersSent) {
             res.status(500).json({ error: "Erreur lors de la génération de la facture." });
         }
     }
 };
-// =========================================================================
+
 
 
 // EXPORTS DES FONCTIONS POUR LES ROUTES

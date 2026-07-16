@@ -1,183 +1,311 @@
 /* --- Styles modernes et professionnels pour la page Mes Commandes --- */
 
+:root {
+    --bg: #f5f1ea;
+    --surface: #ffffff;
+    --surface-soft: #f8f4ee;
+    --primary: #132238;
+    --primary-strong: #0d1726;
+    --accent: #e9a94a;
+    --accent-strong: #c8851f;
+    --text: #17202b;
+    --muted: #6a7280;
+    --border: rgba(16, 29, 49, 0.08);
+    --shadow: 0 20px 50px rgba(19, 34, 56, 0.12);
+}
+
 body {
-	background: linear-gradient(120deg, #f8fafc 0%, #e2e8f0 100%);
-	font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
-	color: #2d3748;
-	margin: 0;
-	min-height: 100vh;
+    background:
+        radial-gradient(circle at top left, rgba(233, 169, 74, 0.18), transparent 24%),
+        linear-gradient(180deg, #f8f3ec 0%, #f2eee8 100%);
+    font-family: "Poppins", "Segoe UI", Arial, sans-serif;
+    color: var(--text);
+    margin: 0;
+    min-height: 100vh;
 }
 
-/* compteur acheteur */
 .badge-compteur {
-	background: #ef4444;
-	color: white;
-	border-radius: 50%;
-	padding: 4px 8px;
-	font-size: 0.9rem;
-	font-weight: bold;
+    background: var(--accent);
+    color: #ffffff;
+    border-radius: 999px;
+    padding: 4px 8px;
+    font-size: 0.86rem;
+    font-weight: 700;
 }
-
 
 .btn-valider-reception {
-    background-color: #2ed573; /* Un beau vert Vinted / Succès */
+    background: linear-gradient(135deg, #132238, #23416d);
     color: white;
     border: none;
     padding: 10px 15px;
-    border-radius: 6px;
-    font-weight: bold;
+    border-radius: 12px;
+    font-weight: 700;
     cursor: pointer;
     margin-top: 10px;
-    transition: background 0.2s ease;
+    transition: all 0.2s ease;
     width: 100%;
+    box-shadow: 0 8px 18px rgba(19, 34, 56, 0.18);
 }
 
 .btn-valider-reception:hover {
-    background-color: #26af5f;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(19, 34, 56, 0.22);
 }
 
-
 .main-mes-commandes {
-	padding: 2rem;
-	max-width: 900px;
-	margin: 0 auto;
-	background: #fff;
-	border-radius: 18px;
-	box-shadow: 0 4px 24px 0 rgba(44, 62, 80, 0.08);
-	margin-top: 2rem;
+    padding: 2rem;
+    max-width: 980px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: 24px;
+    box-shadow: var(--shadow);
+    margin-top: 2rem;
+    border: 1px solid var(--border);
 }
 
 .onglets-container {
-	display: flex;
-	gap: 10px;
-	margin-bottom: 24px;
-	border-bottom: 2px solid #e2e8f0;
-	padding-bottom: 10px;
-}
-.onglet {
-	padding: 12px 28px;
-	border: none;
-	background: none;
-	font-size: 1.08rem;
-	font-weight: 600;
-	color: #718096;
-	cursor: pointer;
-	border-radius: 7px 7px 0 0;
-	transition: background 0.2s, color 0.2s;
-}
-.onglet.active {
-	color: #2563eb;
-	border-bottom: 3px solid #2563eb;
-	background-color: #e0e7ff;
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+    border-bottom: 2px solid #e8e2d6;
+    padding-bottom: 10px;
+    overflow-x: auto;
 }
 
-/* Cartes commandes */
+.onglet {
+    padding: 12px 24px;
+    border: none;
+    background: transparent;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 10px 10px 0 0;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.onglet.active {
+    color: var(--primary-strong);
+    border-bottom: 3px solid var(--accent);
+    background: #f9f3e7;
+}
+
 .commande-card {
-	background: #f9fafb;
-	border-radius: 12px;
-	box-shadow: 0 2px 8px 0 rgba(44, 62, 80, 0.06);
-	margin-bottom: 22px;
-	padding: 18px 22px;
-	transition: box-shadow 0.2s;
-	border-left: 5px solid #2563eb;
-	display: flex;
-	flex-direction: column;
-	gap: 10px;
+    background: #ffffff;
+    border-radius: 18px;
+    box-shadow: 0 12px 24px rgba(19, 34, 56, 0.08);
+    margin-bottom: 22px;
+    padding: 18px 22px;
+    transition: box-shadow 0.2s;
+    border-left: 5px solid #132238;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
+
 .commande-card[data-statut="Livrée"] {
-	border-left: 5px solid #38a169;
+    border-left: 5px solid #1f8f61;
 }
+
 .commande-header {
-	display: flex;
-	gap: 18px;
-	align-items: center;
+    display: flex;
+    gap: 18px;
+    align-items: center;
 }
+
 .commande-header img {
-	width: 80px;
-	height: 80px;
-	object-fit: cover;
-	border-radius: 8px;
-	border: 2px solid #cbd5e1;
-	background: #fff;
+    width: 82px;
+    height: 82px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 1px solid rgba(19, 34, 56, 0.12);
+    background: #fff;
 }
+
 .commande-header h3 {
-	margin: 0 0 6px 0;
-	font-size: 1.15rem;
-	color: #1a202c;
+    margin: 0 0 6px 0;
+    font-size: 1.08rem;
+    color: var(--primary-strong);
 }
+
 .commande-header p {
-	margin: 0 0 2px 0;
-	font-size: 0.98rem;
-	color: #475569;
+    margin: 0 0 2px 0;
+    font-size: 0.95rem;
+    color: var(--muted);
 }
 
 .suivi-colis {
-	margin-top: 10px;
-	padding: 12px;
-	background: #e0e7ff;
-	border-radius: 8px;
-	font-size: 0.98rem;
-	color: #373a47;
-	border-left: 3px solid #2563eb;
-}
-.commande-card[data-statut="Livrée"] .suivi-colis {
-	background: #e6fffa;
-	border-left: 3px solid #38a169;
+    margin-top: 10px;
+    padding: 12px;
+    background: #f7f5ef;
+    border-radius: 10px;
+    font-size: 0.96rem;
+    color: var(--text);
+    border-left: 3px solid var(--primary);
 }
 
-/* Loader/Spinner */
+.commande-card[data-statut="Livrée"] .suivi-colis {
+    background: #eff8f2;
+    border-left: 3px solid #1f8f61;
+}
+
 .loader-overlay {
-	position: fixed;
-	top: 0; left: 0; right: 0; bottom: 0;
-	background: rgba(255,255,255,0.7);
-	z-index: 1000;
-	display: flex;
-	align-items: center;
-	justify-content: center;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(248, 243, 236, 0.8);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
+
 .spinner {
-	border: 6px solid #e2e8f0;
-	border-top: 6px solid #2563eb;
-	border-radius: 50%;
-	width: 60px;
-	height: 60px;
-	animation: spin 1s linear infinite;
+    border: 6px solid rgba(19, 34, 56, 0.12);
+    border-top: 6px solid var(--accent);
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
 }
+
 @keyframes spin {
-	0% { transform: rotate(0deg); }
-	100% { transform: rotate(360deg); }
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 #liste-achats {
-	min-height: 200px;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: flex-start;
-	color: #2d3748;
-	margin-top: 10px;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    color: var(--text);
+    margin-top: 10px;
 }
 
-/* Bouton d'annulation de commande */
 .btn-annuler {
-	align-self: flex-end;
-	padding: 10px 18px;
-	background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-	color: white;
-	border: none;
-	border-radius: 8px;
-	font-size: 0.95rem;
-	font-weight: 600;
-	cursor: pointer;
-	transition: all 0.3s ease;
-	box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+    align-self: flex-end;
+    padding: 10px 18px;
+    background: linear-gradient(135deg, #d9485f, #b83b53);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 18px rgba(217, 72, 95, 0.22);
 }
+
 .btn-annuler:hover {
-	background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-	box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
-	transform: translateY(-2px);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(217, 72, 95, 0.28);
 }
-.btn-annuler:active {
-	transform: translateY(0);
-	box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+
+.badge {
+    display: inline-block;
+    padding: 6px 12px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.statut-en-attente {
+    background-color: #fef3c7;
+    color: #d97706;
+    border: 1px solid #fde68a;
+}
+
+.statut-en-cours {
+    background-color: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+}
+
+.statut-expediee,
+.statut-expédiée {
+    background-color: #ede9fe;
+    color: #6d28d9;
+    border: 1px solid #ddd6fe;
+}
+
+.statut-livree,
+.statut-livrée {
+    background-color: #dcfce7;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+
+.statut-annulee,
+.statut-annulée,
+.statut-annulee-par-acheteur,
+.statut-annulée-par-acheteur {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+.statut-n-a {
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
+}
+
+@media (max-width: 700px) {
+    .main-mes-commandes {
+        padding: 1rem;
+        border-radius: 18px;
+    }
+
+    .commande-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+#retour-acueil {
+    margin: 20px 0; /* Espace au-dessus et en-dessous */
+    padding: 0;
+}
+
+#retour-acueil a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px; /* Écart entre la flèche et le texte */
+    color: #4a5568; /* Gris ardoise élégant */
+    text-decoration: none; /* Enlève le soulignement moche */
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 8px 16px;
+    border-radius: 8px;
+    background-color: #f7fafc; /* Fond très légèrement grisé */
+    border: 1px solid #e2e8f0;
+    transition: all 0.25s ease-in-out;
+}
+
+/* 🌟 EFFET AU SURVOL (Hover) */
+#retour-acueil a:hover {
+    color: #1a202c; /* Le texte devient plus sombre/noir */
+    background-color: #edf2f7; /* Le fond devient un poil plus foncé */
+    border-color: #cbd5e0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+    transform: translateX(-3px); /* Le bouton glisse subtilement vers la gauche ! Effect magique */
+}
+
+/* 📥 EFFET AU CLIC (Active) */
+#retour-acueil a:active {
+    transform: translateX(0);
+    box-shadow: none;
+}
+
+/* 🔥 BONUS : Ajout automatique d'une icône flèche "←" en CSS pur */
+#retour-acueil a::before {
+    content: "←";
+    font-size: 1.1rem;
+    line-height: 1;
+    transition: transform 0.25s ease;
 }

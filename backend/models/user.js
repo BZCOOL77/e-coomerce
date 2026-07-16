@@ -25,7 +25,7 @@ const userSchema = mongoose.Schema({// Identifiants de connexion
     default: 'client' 
   },
 
-  // Système de licence (Prévu pour ton plan à 20€)
+  // Système de licence (Prévu pour le plan à 20€)
   isLicenseActive: { 
     type: Boolean, 
     default: false 

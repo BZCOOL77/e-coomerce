@@ -2,7 +2,10 @@
 <html>
     <head>
         <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
         <link rel="stylesheet" href="../css/client.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
         <script src="../js/client.js" defer></script> 
         <title>Shopy-Cloths</title>
          
@@ -18,17 +21,35 @@
         <header>
             <h1>shopy-cloths</h1>
             <h2>meilleur experience shopping en ligne</h2>
+            <div class="header-actions">
+                <button id="monprofile" class="btn-profile-hero">
+                    <i class="fa-solid fa-user-circle"></i>
+                    <span>Mon Profil</span>
+                </button>
+                <button id="panier" class="panier header-panier">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    <span>Panier</span>
+                    <span class="cart-count-badge" id="cart-count-badge">0</span>
+                </button>
+            </div>
         </header>
         
 
         <section id="navbarre">
             <nav>
-                <button id="vendeur" class="vendeur">vendeur</button>
-                <button id="mescommandes" class="mescommandes">mes commandes
+                <button id="vendeur" class="vendeur">
+                    <i class="fa-solid fa-store"></i>
+                    <span>Vendeur</span>
+                </button>
+                <button id="mescommandes" class="mescommandes">
+                    <i class="fa-solid fa-box-open"></i>
+                    <span>Mes commandes</span>
                     <span id="compteur-en-cours" class="badge-compteur" style="display: none;">0</span>
                 </button>
-                <button id="panier" class="panier">panier</button>
-                <button id="adminBtn" class="adminBtn">ma boutique</button>
+                <button id="adminBtn" class="adminBtn">
+                    <i class="fa-solid fa-shop"></i><!-- Utilisation de l'icône "shop" pour représenter l'administration -->
+                    <span>Ma boutique</span>
+                </button>
                 
                
 
@@ -55,6 +76,217 @@
                 </div>
             </article>
         </div>
+        <!-- POUR LE MODAL DE PROFIL UTILISATEUR -->
+        <div id="profil-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="profil-titre" tabindex="-1">
+    <div class="modal-content" role="document">
+        <button class="close-modal" aria-label="Fermer la fenêtre de profil" id="btn-close-modal">&times;</button>
+        
+        <div class="profil-header">
+            <div class="profil-avatar" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" width="48" height="48">
+                    <path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" stroke="currentColor" stroke-width="2"/>
+                    <path d="M20 21a8 8 0 0 0-16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <h2 id="profil-titre">Bonjour !</h2>
+        </div>
+
+        <div class="profil-body" id="profil-body">
+            <div class="profil-loading" id="profil-loading">Chargement du profil…</div>
+
+            <div class="profil-content" id="profil-content" hidden>
+                <div class="profil-info-item">
+                    <span class="info-label">Nom Complet :</span>
+                    <span class="info-value" id="profil-nom-complet">—</span>
+                </div>
+                <div class="profil-info-item">
+                    <span class="info-label">Adresse Email :</span>
+                    <span class="info-value" id="profil-email">—</span>
+                </div>
+                <div class="profil-info-item">
+                    <span class="info-label">Rôle :</span>
+                    <span class="info-value" id="profil-role" style="text-transform: capitalize;">—</span>
+                </div>
+                <div class="profil-info-item" id="licence-block" style="display: none;">
+                    <span class="info-label">Statut Licence :</span>
+                    <span class="info-value" id="profil-licence">—</span>
+                </div>
+            </div>
+
+            <div class="profil-error" id="profil-error" role="status" aria-live="polite" hidden></div>
+        </div>
+        
+        <div class="profil-footer">
+            <button class="btn-secondary" id="btn-mock-profile" style="display:none; margin-right:auto;">Tester (mock)</button>
+            <button class="btn-primary" id="btn-se-deconnecter">Se déconnecter</button>
+            <button class="btn-secondary" id="btn-fermer-modal">Fermer</button>
+        </div>
+    </div>
+</div>
+<!-- LE JS POUR LE MODALE DU PROFIL UTILISATEUR -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const boutonProfil = document.getElementById('monprofile');
+    if (boutonProfil) boutonProfil.addEventListener('click', ouvrirProfil);
+
+    // Boutons internes à la modale
+    const btnClose = document.getElementById('btn-close-modal');
+    const btnCloseFooter = document.getElementById('btn-fermer-modal');
+    const btnLogout = document.getElementById('btn-se-deconnecter');
+
+    if (btnClose) btnClose.addEventListener('click', fermerProfil);
+    if (btnCloseFooter) btnCloseFooter.addEventListener('click', fermerProfil);
+    if (btnLogout) btnLogout.addEventListener('click', () => {
+        localStorage.removeItem('token');
+        // UX : on ferme la modale et on recharge pour remettre l'état anonyme
+        fermerProfil();
+        location.reload();
+    });
+});
+
+  
+let focusableElements = [];
+let handleKeydown = null;
+
+async function ouvrirProfil() {
+    const modal = document.getElementById('profil-modal');
+    const spinner = document.getElementById('profil-loading');
+    const content = document.getElementById('profil-content');
+    const errorEl = document.getElementById('profil-error');
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+        alert("Oups ! Vous devez être connecté pour voir votre profil. 🔑");
+        return;
+    }
+
+    lastFocusedElement = document.activeElement;
+
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.removeAttribute('aria-hidden');
+        document.body.style.overflow = 'hidden';
+        // reset states
+        if (spinner) spinner.style.display = 'block';
+        if (content) content.hidden = true;
+        if (errorEl) { errorEl.hidden = true; errorEl.textContent = ''; }
+
+        // setup focusable elements for trap
+        focusableElements = Array.from(modal.querySelectorAll('a, button, input, textarea, select, [tabindex]:not([tabindex="-1"])')).filter(el => !el.hasAttribute('disabled'));
+        if (focusableElements.length) focusableElements[0].focus();
+
+        // click hors modal ferme
+        modal.addEventListener('click', onOutsideClick);
+
+        // gestion touches clavier (ESC + TAB trap)
+        handleKeydown = (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                fermerProfil();
+                return;
+            }
+            if (e.key === 'Tab') {
+                // trap focus
+                const first = focusableElements[0];
+                const last = focusableElements[focusableElements.length - 1];
+                if (!first || !last) return;
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault(); last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault(); first.focus();
+                }
+            }
+        };
+        document.addEventListener('keydown', handleKeydown);
+    }
+
+    try {
+        const res = await fetch('http://localhost:3000/api/auth/me', {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!res.ok) {
+            const text = await res.text().catch(() => 'Erreur serveur');
+            throw new Error(`${res.status} ${text}`);
+        }
+
+        const user = await res.json();
+
+        // Remplir les champs du profil
+        const titreElement = document.getElementById('profil-titre');
+        if (titreElement && (user.prenom || user.firstName)) titreElement.textContent = `Bonjour, ${user.prenom || user.firstName} ! 👋`;
+
+        const nomCompletElement = document.getElementById('profil-nom-complet');
+        if (nomCompletElement) {
+            const prenom = user.prenom || user.firstName || '';
+            const nom = user.nom || user.lastName || '';
+            nomCompletElement.textContent = `${prenom} ${nom}`.trim() || 'Non renseigné';
+            nomCompletElement.style.color = '';
+        }
+
+        const emailElement = document.getElementById('profil-email');
+        const roleElement = document.getElementById('profil-role');
+        if (emailElement) emailElement.textContent = user.email || 'Non défini';
+        if (roleElement) roleElement.textContent = user.role || 'client';
+
+        const licenceBlock = document.getElementById('licence-block');
+        const licenceElement = document.getElementById('profil-licence');
+        if (user.role === 'vendeur') {
+            if (licenceBlock) licenceBlock.style.display = 'flex';
+            if (licenceElement) {
+                if (user.isLicenseActive) {
+                    licenceElement.textContent = 'Active 👑';
+                    licenceElement.className = 'info-value statut-actif';
+                } else {
+                    licenceElement.textContent = 'Inactive (Plan gratuit) ❌';
+                    licenceElement.className = 'info-value statut-inactif';
+                }
+            }
+        } else {
+            if (licenceBlock) licenceBlock.style.display = 'none';
+        }
+
+        // affichage
+        if (spinner) spinner.style.display = 'none';
+        if (content) content.hidden = false;
+
+    } catch (err) {
+        console.error('Erreur lors de la récupération du profil :', err);
+        const errorEl = document.getElementById('profil-error');
+        if (errorEl) {
+            errorEl.hidden = false;
+            errorEl.textContent = `Impossible de charger votre profil : ${err.message}`;
+        }
+        if (document.getElementById('profil-loading')) document.getElementById('profil-loading').style.display = 'none';
+    }
+}
+
+function onOutsideClick(e) {
+    const modal = document.getElementById('profil-modal');
+    if (e.target === modal) fermerProfil();
+}
+
+function fermerProfil() {
+    const modal = document.getElementById('profil-modal');
+    if (!modal) return;
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = 'auto';
+
+    // cleanup listeners
+    modal.removeEventListener('click', onOutsideClick);
+    if (handleKeydown) document.removeEventListener('keydown', handleKeydown);
+    handleKeydown = null;
+
+    // restore focus
+    if (lastFocusedElement) {
+        try { lastFocusedElement.focus(); } catch (e) {}
+        lastFocusedElement = null;
+    }
+}
+
+</script>
     
     </body>
 </html>

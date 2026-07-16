@@ -30,8 +30,8 @@
         </div>
         <div class="commande-actions">
             <div class="search-box">
-                <input type="search" placeholder="Rechercher ID, client, article..." aria-label="Recherche de commande">
-                <button type="button">🔍</button>
+                <input id="recherche-commande" type="search" placeholder="Rechercher ID, client, article..." aria-label="Recherche de commande">
+                <button id="btn-recherche-commande" type="button">🔍</button>
             </div>
             <div class="filter-group">
                 <button class="filter-pill active" type="button">Toutes</button>
@@ -66,6 +66,45 @@
     <script>
         // Variable globale pour stocker le filtre actuel ('en-cours' par défaut)
 let filtreActuel = 'en-cours';
+let termeRecherche = '';
+
+// Normalise le texte saisi dans la barre de recherche pour pouvoir
+// comparer les valeurs de manière fiable, même si l'utilisateur tape
+// des accents, des majuscules ou des tirets.
+function normaliserTexteRecherche(value) {
+    return (value || '')
+        .toString()
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[-_]/g, ' ')
+        .replace(/\s+/g, ' ');
+}
+
+// Initialise la recherche locale de la page.
+// On écoute les frappes dans l'input et le clic sur le bouton,
+// puis on relance le filtrage des commandes affichées.
+function initialiserRecherche() {
+    const input = document.getElementById('recherche-commande');
+    const btn = document.getElementById('btn-recherche-commande');
+
+    if (!input || !btn) return;
+
+    const lancerRecherche = () => {
+        termeRecherche = input.value.trim();
+        appliquerFiltrage();
+    };
+
+    input.addEventListener('input', lancerRecherche);
+    input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            lancerRecherche();
+        }
+    });
+    btn.addEventListener('click', lancerRecherche);
+}
 
 // Charge et affiche les ventes du vendeur, groupées par colisGroupId
 async function chargerMesVentes() {
@@ -126,7 +165,7 @@ async function chargerMesVentes() {
                 const peutAnnuler = !estLivree && !estAnnulee && !estAnnuleeParAcheteur;
 
                 articlesHtml += `
-                    <div class="ligne-commande commande-card ${estLivree ? 'commande-livree' : ''}" data-statut="${statutArticle}">
+                    <div class="ligne-commande commande-card ${estLivree ? 'commande-livree' : ''}" data-statut="${statutArticle}" data-recherche="${normaliserTexteRecherche(`${idColis} ${nomAcheteur} ${nomProduit} ${descriptionProduit}`)}">
                         <div class="col-image commande-header">
                             <img src="${imageSrc}" alt="${nomProduit}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;">
                         </div>
@@ -153,13 +192,23 @@ async function chargerMesVentes() {
                 `;
             });
 
-            //bouton pour télécharger la facture PDF
+            // Bouton pour télécharger la facture PDF du colis concerné.
                 let boutonFacture = `<button onclick="telechargerFacturePDF('${idColis}')" class="btn-pdf">
                                         📥 Télécharger ma facture (PDF)
                                         </button>`;
 
+            // Construit une chaîne de texte de recherche pour chaque colis.
+            // Elle contient l'identifiant, le nom de l'acheteur, son email et
+            // les noms des produits du colis afin que la recherche puisse filtrer
+            // correctement les résultats affichés.
+            const rechercheBloc = normaliserTexteRecherche(`${idColis} ${nomAcheteur} ${emailAcheteur} ${articles.map(article => {
+                const produit = article.produitInfo || article.produitId;
+                const nomProduit = produit ? (produit.nom || produit.title || 'Produit supprimé') : 'Produit supprimé';
+                return nomProduit;
+            }).join(' ')}`);
+
             container.innerHTML += `
-                <section class="colis-block" data-statut="${statutGlobal}">
+                <section class="colis-block" data-statut="${statutGlobal}" data-recherche="${rechercheBloc}">
                     <header class="colis-header">
                          ${boutonFacture}
                         <div>
@@ -233,7 +282,8 @@ function nextStatusFor(statut) {
     }
 }
 
-// Change le statut d'un colis entier (route: PUT /api/orders/colis/:colisGroupId/statut)
+// Met à jour le statut global d'un colis complet via l'API.
+// Cette fonction sert à faire avancer le colis dans son parcours de livraison.
 async function changerStatutColis(colisGroupId, nouveauStatut) {
     if (!confirm(`Confirmer passage du colis ${colisGroupId} au statut "${nouveauStatut}" ?`)) return;
     document.getElementById('overlay').classList.add('active');
@@ -263,12 +313,16 @@ async function changerStatutColis(colisGroupId, nouveauStatut) {
     }
 }
 
-// applique le filtrage selon l'onglet (compatible avec .commande-card et .colis-block)
+// Applique les filtres visibles sur la page :
+// - le statut actif (onglet "en-cours" / "historique")
+// - la recherche saisie par l'utilisateur dans la barre de recherche
+// Cette fonction masque ou affiche les cartes et les blocs selon les critères.
 function appliquerFiltrage() {
-    // Statuts considérés comme historiques
+    // Liste des statuts considérés comme historiques.
     const historiqueStatuses = ['livrée', 'livree', 'annulée', 'annulee', 'annulée par acheteur', 'annulee par acheteur'];
 
-    // Normalisation utile : enlève accents, met en minuscule, remplace tirets/underscores par espaces
+    // Normalise un statut pour pouvoir le comparer correctement.
+    // On supprime les accents, on met en minuscule et on uniformise les espaces.
     function normalizeStatus(s) {
         return (s || '')
             .toString()
@@ -280,10 +334,12 @@ function appliquerFiltrage() {
             .replace(/\s+/g, ' ');
     }
 
-    const filtreNorm = normalizeStatus(filtreActuel || 'toutes');// Normalisation du filtre actif pour comparaison robuste
+    // Convertit le filtre actif en valeur uniforme pour comparaison.
+    const filtreNorm = normalizeStatus(filtreActuel || 'toutes');
+    const termeRechercheNorm = normaliserTexteRecherche(termeRecherche);
 
-    // Détermine si un statut donné doit être affiché selon le filtre actif.
-   const filtreAffiche = statutRaw => {
+    // Vérifie si le statut d'un élément correspond au filtre sélectionné.
+    const filtreAffiche = statutRaw => {
         const statutNorm = normalizeStatus(statutRaw || '');
         if (filtreActuel !== 'historique' && historiqueStatuses.map(normalizeStatus).includes(statutNorm)) return false;
         if (filtreNorm === 'toutes') return true;
@@ -292,19 +348,41 @@ function appliquerFiltrage() {
         return statutNorm === filtreNorm;
     };
 
-    // Applique le filtrage aux cartes individuelles
-    document.querySelectorAll('.commande-card').forEach(carte => {
-        const statutRaw = carte.getAttribute('data-statut') || '';
-        carte.style.display = filtreAffiche(statutRaw) ? 'block' : 'none';
+    // Vérifie si le texte d'un élément contient la requête de recherche.
+    const rechercheAffiche = bloc => {
+        if (!termeRechercheNorm) return true;
+        const contenuRecherche = (bloc.getAttribute('data-recherche') || '').trim();
+        return contenuRecherche.includes(termeRechercheNorm);
+    };
+
+    // Sécurité supplémentaire : si un bloc n'a pas encore de donnée de recherche,
+    // on la calcule à partir du contenu visible du bloc.
+    document.querySelectorAll('.colis-block').forEach(bloc => {
+        const contenu = (bloc.getAttribute('data-recherche') || '').trim();
+        if (!contenu) {
+            bloc.setAttribute('data-recherche', normaliserTexteRecherche(bloc.textContent || ''));
+        }
     });
 
-    // Applique également le filtrage aux blocs de colis (groupe)
+    // Applique la combinaison des deux filtres aux lignes internes (articles).
+    document.querySelectorAll('.commande-card').forEach(carte => {
+        const statutRaw = carte.getAttribute('data-statut') || '';
+        const visibleParStatut = filtreAffiche(statutRaw);
+        const visibleParRecherche = rechercheAffiche(carte);
+        carte.style.display = visibleParStatut && visibleParRecherche ? 'block' : 'none';
+    });
+
+    // Applique aussi le même filtrage au bloc principal du colis.
     document.querySelectorAll('.colis-block').forEach(bloc => {
         const statutRaw = bloc.getAttribute('data-statut') || '';
-        bloc.style.display = filtreAffiche(statutRaw) ? 'block' : 'none';
+        const visibleParStatut = filtreAffiche(statutRaw);
+        const visibleParRecherche = rechercheAffiche(bloc);
+        bloc.style.display = visibleParStatut && visibleParRecherche ? 'block' : 'none';
     });
 }
 
+// Bascule entre l'onglet "Commandes à traiter" et l'onglet historique.
+// Cela permet de faire varier l'affichage des commandes selon l'état souhaité.
 function basculerOnglet(mode) {
     filtreActuel = mode === 'historique' ? 'historique' : 'en-cours';
 
@@ -319,6 +397,8 @@ function basculerOnglet(mode) {
     appliquerFiltrage();
 }
 
+// Initialise les boutons de filtre par statut affichés en haut de la page.
+// Chaque bouton devient cliquable et met à jour le filtre actif.
 function initialiserFiltres() {
     // Initialise les boutons "filter-pill".
     // Comportements couverts :
@@ -406,7 +486,9 @@ function initialiserFiltres() {
 
 
 
-// Annulation par le vendeur (PUT /api/orders/:id/annuler)
+// Annule une commande côté vendeur via l'API.
+// Cette action est réservée aux commandes qui ne sont pas déjà livrées
+// ou déjà annulées.
 async function annulerCommande(commandeId) {
     if (!confirm('Êtes-vous sûr de vouloir annuler cette commande ? Cette action est irréversible.')) return;
 
@@ -437,7 +519,8 @@ async function annulerCommande(commandeId) {
     }
 }
 
-// Changement de statut d'une commande individuelle (PUT /api/orders/:id/statut)
+// Met à jour le statut d'une seule commande individuelle.
+// Cette fonction est utilisée pour faire évoluer une commande dans l'interface.
 async function changerStatut(commandeId, nouveauStatut) {
     if (!confirm(`Confirmer passage de la commande ${commandeId} au statut "${nouveauStatut}" ?`)) return;
 
@@ -469,7 +552,8 @@ async function changerStatut(commandeId, nouveauStatut) {
 }
 
 
-// FONCTION POUR IMPRIMER FACTURE COMMANDES
+// Télécharge la facture PDF d'un colis via l'API backend.
+// Le fichier est récupéré en tant que blob puis proposé en téléchargement.
 async function telechargerFacturePDF(colisGroupId) {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -479,7 +563,7 @@ async function telechargerFacturePDF(colisGroupId) {
 
     try {
         // Appeler la route API du backend
-        const response = await fetch(`http://localhost:3000/api/orders/${colisGroupId}/invoice`, {
+        const response = await fetch(`http://localhost:3000/api/orders/${colisGroupId}/invoice?role=vendeur`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -514,6 +598,7 @@ async function telechargerFacturePDF(colisGroupId) {
 
 // Lancement initial
 document.addEventListener('DOMContentLoaded', () => {
+    initialiserRecherche();
     initialiserFiltres();
     chargerMesVentes();
 });

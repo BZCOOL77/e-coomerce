@@ -7,7 +7,7 @@
    
 </head>
 <body>
-
+    <p id="retour-acueil"><a class="client-return-link" href="../html/client.html">Retour à l'accueil</a></p>
     <header>
         <h1>Shopy-Cloths</h1>
         <h2>Découvrez nos boutiques partenaires</h2>
@@ -22,7 +22,7 @@
     <script>
         async function chargerLesVendeurs() {
     try {
-        const response = await fetch('http://localhost:3000/api/auth/vendeurs'); // Ajuste l'URL selon tes routes backend
+        const response = await fetch('http://localhost:3000/api/auth/vendeurs'); 
         
         if (!response.ok) {
             throw new Error("Impossible de charger les vendeurs");

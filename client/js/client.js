@@ -1,26 +1,34 @@
-// On récupère le bouton panier de la barre de navigation
+// On récupère le bouton panier de la barre de navigation ou du header
 const navbarre = document.getElementById('navbarre');
-if (navbarre) {
-    navbarre.addEventListener('click', (event) => {
-        const vendeurBtn = event.target.closest('.vendeur');
-        const mescommandesBtn = event.target.closest('.mescommandes');
-        const adminBtn = event.target.closest('.adminBtn');
-        const panierBtn = event.target.closest('.panier');
+const header = document.querySelector('header');
 
-        if (panierBtn) {
-            // Redirection vers la page panier.html
-            window.location.href = '../html/panier.html';
-        }
-        if (adminBtn) {// Redirection vers la page nav.html
-            window.location.href = '../../frontend/nav.html';
-        }
-        if (vendeurBtn) {// Redirection vers la page vendeur.html
-            window.location.href = '../html/parvendeur.html';
-        }
-        if (mescommandesBtn) {// Redirection vers la page historique.html
-            window.location.href = '../html/mes-commandes.html';
-        }
-    });
+function gererNavigationPrincipale(event) {
+    const vendeurBtn = event.target.closest('.vendeur');
+    const mescommandesBtn = event.target.closest('.mescommandes');
+    const adminBtn = event.target.closest('.adminBtn');
+    const panierBtn = event.target.closest('.panier');
+
+    if (panierBtn) {
+        // Redirection vers la page panier.html
+        window.location.href = '../html/panier.html';
+    }
+    if (adminBtn) {// Redirection vers la page nav.html
+        window.location.href = '../../frontend/nav.html';
+    }
+    if (vendeurBtn) {// Redirection vers la page vendeur.html
+        window.location.href = '../html/parvendeur.html';
+    }
+    if (mescommandesBtn) {// Redirection vers la page historique.html
+        window.location.href = '../html/mes-commandes.html';
+    }
+}
+
+if (navbarre) {
+    navbarre.addEventListener('click', gererNavigationPrincipale);
+}
+
+if (header) {
+    header.addEventListener('click', gererNavigationPrincipale);
 }
 
 
@@ -61,8 +69,10 @@ if (catalogue) {
             // On lance la fonction d'ajout avec toutes les données
             ajouterAuPanier(id, nom, prix, image, vendeurId);
             // Optionnel : Petit effet visuel pour confirmer l'ajout
-            btnPanier.innerText = "Ajouté ! ✅";
-            setTimeout(() => btnPanier.innerText = "Ajouter au panier", 2000);
+            btnPanier.innerHTML = '<i class="fa-solid fa-check"></i><span>Ajouté !</span>';
+            setTimeout(() => {
+                btnPanier.innerHTML = '<i class="fa-solid fa-cart-plus"></i><span>Ajouter au panier</span>';
+            }, 2000);
         }
     });
 }
@@ -147,18 +157,23 @@ function afficherProduits(produits) {
                     <h3 class="nom">${produit.nom}</h3>
                     <p class="prix">${produit.prix} €</p>
                     <p class="description">${produit.description}</p>
-                    <button class="btn-detail" data-id="${produit._id}">Détails</button>
+                    <button class="btn-detail" data-id="${produit._id}">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span>Détails</span>
+                    </button>
                     <p class="stock-info" style="color: ${estEpuise ? 'red' : 'green'}; font-size: 0.85rem;">
                         ${estEpuise ? '❌ Rupture de stock' : ` disponibles`}
                     </p>
 
             ${estEpuise ? `
                 <button class="ajouter-panier btn-disabled" disabled style="background-color: #cbd5e0; cursor: not-allowed;" data-id="${produit._id}" data-vendeur="${produit.vendeurId}">
-                    Indisponible
+                    <i class="fa-solid fa-ban"></i>
+                    <span>Indisponible</span>
                 </button>
             ` : `
                 <button class="ajouter-panier" data-id="${produit._id}" data-vendeur="${produit.vendeurId}">
-                    Ajouter au panier
+                    <i class="fa-solid fa-cart-plus"></i>
+                    <span>Ajouter au panier</span>
                 </button>
             `}
 
@@ -228,10 +243,10 @@ function mettreAJourCompteurPanier() {
     // On calcule la somme totale des quantités présentes dans le panier
     const totalArticles = panier.reduce((acc, item) => acc + item.quantite, 0);
     
-    const btnPanier = document.getElementById('panier');
-    if (btnPanier) {
-        // On change le texte du bouton dynamiquement
-        btnPanier.innerText = `Panier (${totalArticles})`;
+    const badge = document.getElementById('cart-count-badge');
+    if (badge) {
+        badge.textContent = totalArticles;
+        badge.style.display = totalArticles > 0 ? 'inline-flex' : 'none';
     }
 }
 
