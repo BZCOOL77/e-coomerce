@@ -117,9 +117,9 @@
         </div>
         
         <div class="profil-footer">
-            <button class="btn-secondary" id="btn-mock-profile" style="display:none; margin-right:auto;">Tester (mock)</button>
+            <button class="changer-password" id="changer-password">Changer le mot de passe</button>
             <button class="btn-primary" id="btn-se-deconnecter">Se déconnecter</button>
-            <button class="btn-secondary" id="btn-fermer-modal">Fermer</button>
+            <button class="btn-secondary" id="modifierInfo">Modifier les informations</button>
         </div>
     </div>
 </div>
@@ -133,6 +133,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnClose = document.getElementById('btn-close-modal');
     const btnCloseFooter = document.getElementById('btn-fermer-modal');
     const btnLogout = document.getElementById('btn-se-deconnecter');
+    const btnModifierInfo = document.getElementById('modifierInfo');
+    const btnChangerPassword = document.getElementById('changer-password');
 
     if (btnClose) btnClose.addEventListener('click', fermerProfil);
     if (btnCloseFooter) btnCloseFooter.addEventListener('click', fermerProfil);
@@ -142,11 +144,20 @@ document.addEventListener('DOMContentLoaded', () => {
         fermerProfil();
         location.reload();
     });
+    if (btnModifierInfo) btnModifierInfo.addEventListener('click', () => {
+        // Redirection vers la page de modification des informations
+       alert("voulez vous modifier vos informations? vous serez redirigé vers la page de modification");
+        window.location.href = 'modifier_info.html';
+    });
+    if (btnChangerPassword) btnChangerPassword.addEventListener('click', () => {
+        // Redirection vers la page de changement de mot de passe
+        window.location.href = 'changer-password.html';
+    });
 });
 
   
-let focusableElements = [];
-let handleKeydown = null;
+let focusableElements = [];//on garde la liste des éléments focusables dans la modale pour le trap
+let handleKeydown = null;//on garde la référence de la fonction de gestion du keydown pour pouvoir la retirer
 
 async function ouvrirProfil() {
     const modal = document.getElementById('profil-modal');

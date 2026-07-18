@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modifier mes informations | Shopy-Cloths</title>
+    <link rel="stylesheet" href="../css/client.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <style>
+        :root {
+            --card: rgba(255, 255, 255, 0.94);
+            --shadow-card: 0 18px 45px rgba(19, 34, 56, 0.16);
+        }
+
+        body {
+            padding-bottom: 3rem;
+        }
+
+        .page-wrap {
+            width: min(980px, calc(100% - 2rem));
+            margin: 1.5rem auto 0;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #132238;
+            font-weight: 700;
+            text-decoration: none;
+            margin: 0 0 1rem;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .form-card {
+            background: var(--card);
+            border: 1px solid rgba(19, 34, 56, 0.08);
+            box-shadow: var(--shadow-card);
+            border-radius: 26px;
+            padding: 1.5rem;
+            backdrop-filter: blur(8px);
+        }
+
+        .form-card h2 {
+            margin: 0;
+            font-size: clamp(1.5rem, 3vw, 2.1rem);
+            color: #132238;
+        }
+
+        .subtext {
+            margin: 0.55rem 0 1.4rem;
+            color: #6a7280;
+            font-size: 0.97rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .field label {
+            font-size: 0.95rem;
+            color: #132238;
+            font-weight: 700;
+        }
+
+        .field input {
+            width: 100%;
+            padding: 0.95rem 1rem;
+            border-radius: 14px;
+            border: 1px solid rgba(19, 34, 56, 0.16);
+            background: #fbfaf8;
+            font-size: 0.98rem;
+            color: #17202b;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .field input:focus {
+            border-color: rgba(233, 169, 74, 0.9);
+            box-shadow: 0 0 0 4px rgba(233, 169, 74, 0.18);
+        }
+
+        .message {
+            min-height: 1.4rem;
+            margin-top: 1rem;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .message.success {
+            color: var(--success);
+        }
+
+        .message.error {
+            color: var(--danger);
+        }
+
+        .actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.8rem;
+            margin-top: 1.2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary,
+        .btn-secondary {
+            border: none;
+            border-radius: 999px;
+            padding: 0.9rem 1.25rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: transform 0.18s ease, filter 0.18s ease;
+        }
+
+        .btn-primary:hover,
+        .btn-secondary:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.03);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #e9a94a, #c8851f);
+            color: #fff;
+            box-shadow: 0 12px 24px rgba(233, 169, 74, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #132238, #20385d);
+            color: #fff;
+            box-shadow: 0 12px 24px rgba(19, 34, 56, 0.2);
+        }
+
+        @media (max-width: 680px) {
+            .form-card {
+                padding: 1rem;
+            }
+
+            .actions {
+                justify-content: stretch;
+            }
+
+            .actions button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="overlay"></div>
+    <div id="loader"><div class="spinner"></div></div>
+
+    <header>
+        <h1>shopy-cloths</h1>
+        <h2>modifiez vos informations personnelles</h2>
+        
+    </header>
+
+    <main class="page-wrap">
+        <a class="back-link" href="client.html"><i class="fa-solid fa-arrow-left"></i> Retour à l'accueil</a>
+
+        <section class="form-card">
+            <h2>Modifier mes informations</h2>
+            <p class="subtext">Mettez à jour votre nom, votre postnom et votre adresse email.</p>
+
+            <form id="modifierForm">
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="nom">Nom</label>
+                        <input id="nom" name="nom" type="text" placeholder="Entrez votre nom" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="prenom">Prenom</label>
+                        <input id="prenom" name="prenom" type="text" placeholder="Entrez votre prenom" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="email">Email</label>
+                        <input id="email" name="email" type="email" placeholder="Entrez votre email" required>
+                    </div>
+                </div>
+
+                <div id="message" class="message" aria-live="polite"></div>
+
+                <div class="actions">
+                    <button type="button" class="btn-secondary" id="cancelBtn">Annuler</button>
+                    <button type="submit" class="btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    <script>
+        const overlay = document.getElementById('overlay');
+        const loader = document.getElementById('loader');
+        const form = document.getElementById('modifierForm');
+        const message = document.getElementById('message');
+        const token = localStorage.getItem('token');
+
+        function showMessage(text, type = 'success') {
+            message.textContent = text;
+            message.className = `message ${type}`;
+        }
+
+        function setLoading(isLoading) {
+            if (overlay) overlay.style.display = isLoading ? 'block' : 'none';
+            if (loader) loader.style.display = isLoading ? 'block' : 'none';
+        }
+
+        document.getElementById('cancelBtn').addEventListener('click', () => {
+            window.location.href = 'client.html';
+        });
+
+        if (!token) {
+            alert('Vous devez être connecté pour modifier vos informations.');
+            window.location.href = 'connexion.html';
+        }
+        //ON CHARGE LES INFORMATIONS DE L'UTILISATEUR POUR LES AFFICHER DANS LE FORMULAIRE
+        async function chargerProfil() {
+            setLoading(true);
+            try {
+                const response = await fetch('http://localhost:3000/api/auth/me', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Impossible de charger votre profil.');
+                }
+
+                const user = await response.json();
+                document.getElementById('nom').value = user.nom || '';
+                document.getElementById('prenom').value = user.prenom || '';
+                document.getElementById('email').value = user.email || '';
+            } catch (error) {
+                showMessage(error.message || 'Erreur lors du chargement du profil.', 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            setLoading(true);
+
+            const payload = {
+                nom: document.getElementById('nom').value.trim(),
+                prenom: document.getElementById('prenom').value.trim(),
+                email: document.getElementById('email').value.trim()
+            };
+
+            //ON ENVOIE LA REQUETE PUT POUR METTRE A JOUR LES INFORMATIONS DE L'UTILISATEUR
+            try {
+                let response = await fetch('http://localhost:3000/api/auth/me', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    const text = await response.text().catch(() => '');
+                    throw new Error(text || 'La mise à jour a échoué.');
+                }
+
+                showMessage('Vos informations ont été mises à jour avec succès. Retour automatique...', 'success');
+
+                setTimeout(() => {
+                    window.location.href = 'client.html';
+                }, 1400);
+            } catch (error) {
+                showMessage(error.message || 'Une erreur inattendue est survenue.', 'error');
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        chargerProfil();
+    </script>
+</body>
+</html>

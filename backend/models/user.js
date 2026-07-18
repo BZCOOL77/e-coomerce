@@ -2,6 +2,13 @@ const mongoose = require('mongoose');
 const uniqueValidator = require('mongoose-unique-validator');
 
 const userSchema = mongoose.Schema({// Identifiants de connexion
+  //ON VERIFIE LE FOURNISSEUR DE L'AUTH 
+  authProvider: {
+    type: String,
+    enum: ['local', 'google', 'apple'], // Limite les valeurs possibles
+    default: 'local'
+  },
+  // On utilise l'email comme identifiant unique pour la connexion
   email: { 
     type: String, 
     required: true, 
