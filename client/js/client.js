@@ -13,7 +13,7 @@ function gererNavigationPrincipale(event) {
         window.location.href = '../html/panier.html';
     }
     if (adminBtn) {// Redirection vers la page nav.html
-        window.location.href = '../../frontend/nav.html';
+        window.location.href = '../../frontend/html/nav.html';
     }
     if (vendeurBtn) {// Redirection vers la page vendeur.html
         window.location.href = '../html/parvendeur.html';
@@ -105,7 +105,7 @@ async function chargerProduits() {
 
     // 2. On prépare l'URL de notre API backend
     // Si vendeurId existe, on l'ajoute à l'URL du fetch, sinon on garde l'URL normale
-    let urlAPI = 'http://localhost:3000/api/products';
+    let urlAPI = `${CONFIG.API_BASE_URL}/api/products`;
     if (vendeurId) {
         urlAPI += `?vendeurId=${vendeurId}`;
     }
@@ -268,7 +268,7 @@ async function rechercherProduits() {
 
     try {
         // On utilise encodeURIComponent pour protéger les caractères spéciaux dans l'URL
-        const response = await fetch(`http://localhost:3000/api/products/search?q=${encodeURIComponent(input)}`);
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/products/search?q=${encodeURIComponent(input)}`);
         
         if (!response.ok) throw new Error("Erreur lors de la recherche");
 

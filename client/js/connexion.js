@@ -5,7 +5,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     const password = document.getElementById('password').value;
 
     try {
-        const response = await fetch('http://localhost:3000/api/auth/seconnecter', {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/auth/seconnecter`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

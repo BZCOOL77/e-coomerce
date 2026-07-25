@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Nos Vendeurs | Shopy-Cloths</title>
+    <script src="../js/url.js"></script>
     <link rel="stylesheet" href="../css/parvendeur.css">
    
 </head>
@@ -22,7 +23,7 @@
     <script>
         async function chargerLesVendeurs() {
     try {
-        const response = await fetch('http://localhost:3000/api/auth/vendeurs'); 
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/auth/vendeurs`); 
         
         if (!response.ok) {
             throw new Error("Impossible de charger les vendeurs");

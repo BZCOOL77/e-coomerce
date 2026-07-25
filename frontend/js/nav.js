@@ -10,13 +10,7 @@ function initDOM() {
     overlay = document.getElementById('overlay');
     
     // On récupère le bouton commande et on ajoute un écouteur pour redirection
-    const commandepage = document.getElementById('commande');
-    if (commandepage) {
-        commandepage.addEventListener('click', () => {
-            // Quand on clique sur commande, redirection vers commande.html
-            window.location.href = 'commande.html';
-        });
-    }
+  
     
     // Récupération des éléments de navigation
     // ⚠️ CORRECTION : Ces déclarations sont déjà DANS initDOM() et non en global
@@ -26,15 +20,15 @@ function initDOM() {
     const menu = document.getElementById('menu');
     const hist = document.getElementById('hist');
     const compte = document.getElementById('compte');
-    const panier = document.getElementById('panier');
+    const commandepage = document.getElementById('commande');
     
     // Ajout de l'écouteur au bouton panier pour afficher un message
     // ⚠️ CORRECTION : Vérification 'if (panier)' pour éviter une erreur si l'élément n'existe pas
     // Avant, on essayait d'ajouter un écouteur sur panier sans vérifier s'il existait
     // Cela causait un crash du script : "Cannot read property 'addEventListener' of null"
-    if (panier) {
-        panier.addEventListener('click', () => {
-            alert('vous devez d abord creer un panier');
+    if (commandepage) {
+        commandepage.addEventListener('click', () => {
+           window.location.href = 'commande.html';
         });
     }
     
@@ -44,7 +38,7 @@ function initDOM() {
     // Maintenant on le centralise ici avec une vérification de sécurité
     if (menu) {
         menu.addEventListener('click', () => {
-            window.location.href = '../client/html/client.html';
+            window.location.href = '../../client/html/client.html';
         });
     }
 }
@@ -71,7 +65,7 @@ function hideLoading() {
 async function chargerproduit() {
     showLoading(); // On lance le spinner dès le début
     try {
-    const response = await fetch('http://localhost:3000/api/products/me', {
+    const response = await fetch(`${CONFIG.API_BASE_URL}/api/products/me`, {
         method: 'GET',
         headers: getHeaders() // le token est ajouté automatiquement !
     });
@@ -212,7 +206,7 @@ function deleteProduct(id) {
 
         showLoading(); // On affiche l'icône dès qu'on clique
 
-        fetch(`http://localhost:3000/api/products/${id}`, {
+        fetch(`${CONFIG.API_BASE_URL}/api/products/${id}`, {
             method: 'DELETE',
             headers: getHeaders() // le token est ajouté automatiquement !
         })

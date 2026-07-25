@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Détails du Produit | Shopy-Cloths</title>
+    <script src="../js/url.js"></script>
     <link rel="stylesheet" href="client.css">
     <style>
         /* ============================================
@@ -522,7 +523,7 @@
             }
 
             try {
-                const response = await fetch(`http://localhost:3000/api/products/${productId}`);
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/products/${productId}`);
                 
                 if (!response.ok) {
                     throw new Error("Produit introuvable");

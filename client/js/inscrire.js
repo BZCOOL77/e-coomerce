@@ -18,7 +18,7 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
 
     try {
         // 2. On envoie les données au serveur
-        const response = await fetch('http://localhost:3000/api/auth/inscrire', {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/auth/inscrire`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

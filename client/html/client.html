@@ -4,6 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         
+        <script src="../js/url.js"></script>
         <link rel="stylesheet" href="../css/client.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
         <script src="../js/client.js" defer></script> 
@@ -24,11 +25,11 @@
             <div class="header-actions">
                 <button id="monprofile" class="btn-profile-hero">
                     <i class="fa-solid fa-user-circle"></i>
-                    <span>Mon Profil</span>
+                    <span></span><!--PROFILE-->
                 </button>
                 <button id="panier" class="panier header-panier">
                     <i class="fa-solid fa-cart-shopping"></i>
-                    <span>Panier</span>
+                    <span></span><!--PANIER-->
                     <span class="cart-count-badge" id="cart-count-badge">0</span>
                 </button>
             </div>
@@ -83,32 +84,35 @@
         
         <div class="profil-header">
             <div class="profil-avatar" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" width="48" height="48">
-                    <path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" stroke="currentColor" stroke-width="2"/>
-                    <path d="M20 21a8 8 0 0 0-16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                </svg>
+                <i class="fa-solid fa-user-circle"></i>
             </div>
-            <h2 id="profil-titre">Bonjour !</h2>
+            <div>
+                <h2 id="profil-titre">Bonjour !</h2>
+                <p class="profil-subtitle">Votre espace personnel</p>
+            </div>
         </div>
 
         <div class="profil-body" id="profil-body">
-            <div class="profil-loading" id="profil-loading">Chargement du profil…</div>
+            <div class="profil-loading" id="profil-loading">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                <span>Chargement du profil…</span>
+            </div>
 
             <div class="profil-content" id="profil-content" hidden>
                 <div class="profil-info-item">
-                    <span class="info-label">Nom Complet :</span>
+                    <span class="info-label"><i class="fa-solid fa-user"></i> Nom complet</span>
                     <span class="info-value" id="profil-nom-complet">—</span>
                 </div>
                 <div class="profil-info-item">
-                    <span class="info-label">Adresse Email :</span>
+                    <span class="info-label"><i class="fa-solid fa-envelope"></i> Adresse email</span>
                     <span class="info-value" id="profil-email">—</span>
                 </div>
                 <div class="profil-info-item">
-                    <span class="info-label">Rôle :</span>
+                    <span class="info-label"><i class="fa-solid fa-shield-halved"></i> Rôle</span>
                     <span class="info-value" id="profil-role" style="text-transform: capitalize;">—</span>
                 </div>
                 <div class="profil-info-item" id="licence-block" style="display: none;">
-                    <span class="info-label">Statut Licence :</span>
+                    <span class="info-label"><i class="fa-solid fa-certificate"></i> Statut licence</span>
                     <span class="info-value" id="profil-licence">—</span>
                 </div>
             </div>
@@ -117,12 +121,22 @@
         </div>
         
         <div class="profil-footer">
-            <button class="changer-password" id="changer-password">Changer le mot de passe</button>
-            <button class="btn-primary" id="btn-se-deconnecter">Se déconnecter</button>
-            <button class="btn-secondary" id="modifierInfo">Modifier les informations</button>
+            <button class="changer-password" id="changer-password">
+                <i class="fa-solid fa-key"></i>
+                <span>Changer le mot de passe</span>
+            </button>
+            <button class="btn-primary" id="btn-se-deconnecter">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Se déconnecter</span>
+            </button>
+            <button class="btn-secondary" id="modifierInfo">
+                <i class="fa-solid fa-pen-to-square"></i>
+                <span>Modifier les informations</span>
+            </button>
         </div>
     </div>
 </div>
+
 <!-- LE JS POUR LE MODALE DU PROFIL UTILISATEUR -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -211,8 +225,8 @@ async function ouvrirProfil() {
         document.addEventListener('keydown', handleKeydown);
     }
 
-    try {
-        const res = await fetch('http://localhost:3000/api/auth/me', {
+    try {//appel pour recuperer les données du profil
+        const res = await fetch(`${CONFIG.API_BASE_URL}/api/auth/me`, {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${token}` }
         });

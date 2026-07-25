@@ -2,9 +2,9 @@
 <html>
     <head>
         <meta charset="utf-8">
-        
-        <script src="header-auth.js" ></script>
-        <link rel="stylesheet" href="commande.css">
+        <script src="../../client/js/url.js"></script><!--url api-->
+        <script src="../js/header-auth.js" ></script>
+        <link rel="stylesheet" href="../css/commande.css">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
     <body>
@@ -112,7 +112,7 @@ async function chargerMesVentes() {
     document.getElementById('loader').classList.add('active');
 
     try {
-        const response = await fetch('http://localhost:3000/api/orders/vendeur', {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/orders/vendeur`, { 
             method: 'GET',
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         });
@@ -289,7 +289,7 @@ async function changerStatutColis(colisGroupId, nouveauStatut) {
     document.getElementById('overlay').classList.add('active');
     document.getElementById('loader').classList.add('active');
     try {
-        const response = await fetch(`http://localhost:3000/api/orders/colis/${colisGroupId}/statut`, {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/orders/colis/${colisGroupId}/statut`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -495,7 +495,7 @@ async function annulerCommande(commandeId) {
     document.getElementById('overlay').classList.add('active');
     document.getElementById('loader').classList.add('active');
     try {
-        const response = await fetch(`http://localhost:3000/api/orders/${commandeId}/annuler`, {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/orders/${commandeId}/annuler`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -527,7 +527,7 @@ async function changerStatut(commandeId, nouveauStatut) {
     document.getElementById('overlay').classList.add('active');
     document.getElementById('loader').classList.add('active');
     try {
-        const response = await fetch(`http://localhost:3000/api/orders/${commandeId}/statut`, {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/orders/${commandeId}/statut`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -563,7 +563,7 @@ async function telechargerFacturePDF(colisGroupId) {
 
     try {
         // Appeler la route API du backend
-        const response = await fetch(`http://localhost:3000/api/orders/${colisGroupId}/invoice?role=vendeur`, {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/orders/${colisGroupId}/invoice?role=vendeur`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`

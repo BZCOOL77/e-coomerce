@@ -14,7 +14,7 @@ async function chargerMesAchats() {
     if (loader) loader.style.display = 'flex';
     
     try {
-        const response = await fetch('http://localhost:3000/api/orders/acheteur', {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/orders/acheteur`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -215,7 +215,7 @@ async function annulerCommande(commandeId) {
     }
 
     try {
-        const response = await fetch(`http://localhost:3000/api/orders/${commandeId}/annuler-acheteur`, {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/orders/${commandeId}/annuler-acheteur`, {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -253,7 +253,7 @@ async function validerReception(commandeId) {
     }
 
     try {
-        const response = await fetch(`http://localhost:3000/api/orders/${commandeId}/statut`, {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/orders/${commandeId}/statut`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -286,7 +286,7 @@ async function telechargerFacturePDF(colisGroupId) {
     }
 
     try {
-        const response = await fetch(`http://localhost:3000/api/orders/${colisGroupId}/invoice?role=client`, {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/orders/${colisGroupId}/invoice?role=client`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`

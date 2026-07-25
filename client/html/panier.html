@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mon Panier | Shopy-Cloths</title>
-    
+
+    <script src="../js/url.js"></script>
     <link rel="stylesheet" href="../css/panier.css">
 </head>
 <body>
@@ -147,7 +148,7 @@ async function validerPanierEtCommander() {
 
     try {
         // 📡 UNE SEULE REQUÊTE HTTP pour tout le panier
-        const response = await fetch('http://localhost:3000/api/orders', {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/orders`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
