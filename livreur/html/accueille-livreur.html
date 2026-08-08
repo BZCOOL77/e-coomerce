@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Espace Livreur - ShopyCloth</title>
+
+  <!-- Chargement des icônes Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <!-- Chargement du fichier contenant l’URL de l’API -->
+  <script src="../../client/js/url.js"></script>
+
+ <style>
+  /* =========================
+     VARIABLES ET BASE
+     ========================= */
+  :root {
+    --bg: #f4f6f9;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --card: #ffffff;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --success: #16a34a;
+    --danger: #dc2626;
+    --danger-dark: #b91c1c;
+    --header-start: #1f2937;
+    --header-end: #111827;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 14px 12px 24px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1 {
+    color: var(--text);
+    text-align: center;
+    margin: 0 0 16px;
+    font-size: clamp(1.1rem, 3.2vw, 1.6rem);
+  }
+
+  button {
+    touch-action: manipulation;
+  }
+
+  /* =========================
+     HEADER MOBILE-FIRST
+     ========================= */
+  .app-header {
+    margin-bottom: 16px;
+    position: sticky;
+    top: 8px;
+    z-index: 1000;
+  }
+
+  .top-nav {
+    background: linear-gradient(135deg, var(--header-start) 0%, var(--header-end) 100%);
+    color: white;
+    padding: 14px;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .brand-badge {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.14);
+    font-size: 1.05rem;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
+  }
+
+  .brand-text {
+    text-align: center;
+  }
+
+  .brand-text h2 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  .brand-text p {
+    margin: 2px 0 0;
+    font-size: 0.82rem;
+    opacity: 0.86;
+  }
+
+  .header-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .profil-card {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 12px;
+    padding: 10px 12px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(6px);
+    min-width: unset;
+  }
+
+  .profil-loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #fff;
+    font-size: 0.9rem;
+  }
+
+  .profil-info {
+    display: grid;
+    gap: 4px;
+    font-size: 0.9rem;
+    color: #fff;
+    width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .profil-info strong {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .btn-logout {
+    background: var(--danger);
+    color: white;
+    border: none;
+    padding: 11px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background 0.2s ease, transform 0.2s ease;
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .btn-logout:hover {
+    background: var(--danger-dark);
+    transform: translateY(-1px);
+  }
+
+  /* =========================
+     CONTENU PRINCIPAL
+     ========================= */
+  .livraisons-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+    border-left: 5px solid var(--success);
+  }
+
+  .card-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px;
+  }
+
+  .badge {
+    background-color: #dcfce7;
+    color: #166534;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-weight: bold;
+    font-size: 0.82em;
+    white-space: nowrap;
+  }
+
+  .card-body {
+    margin-top: 12px;
+    line-height: 1.55;
+  }
+
+  .group-summary {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .info-group {
+    margin-bottom: 6px;
+    font-size: 0.95rem;
+  }
+
+  .info-group strong {
+    color: #374151;
+  }
+
+  .adresse-box {
+    background-color: #f8fafc;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px dashed #cbd5e1;
+    margin-top: 8px;
+    font-size: 0.95rem;
+  }
+
+  .articles-list {
+    background: #f8fafc;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .articles-list ul {
+    margin: 8px 0 0 16px;
+    padding: 0;
+  }
+
+  .article-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 4px 0;
+    color: #444;
+  }
+
+  .article-item strong {
+    color: var(--text);
+  }
+
+  .btn-livrer,
+  .btn-appeler {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    width: 100%;
+    margin-top: 10px;
+    min-height: 44px;
+    transition: background 0.2s ease;
+    font-size: 0.95rem;
+  }
+
+  .btn-livrer:hover {
+    background-color: var(--primary-dark);
+  }
+
+  .btn-appeler {
+    background-color: var(--success);
+    margin-top: 8px;
+  }
+
+  .btn-appeler:hover {
+    background-color: #15803d;
+  }
+
+  .empty-msg {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin-top: 20px;
+  }
+
+  /* =========================
+     MODALE POUR L'ÉCHEC DE LIVRAISON
+     ========================= */
+  .defaut-livraison-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 24, 39, 0.65);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 2000;
+  }
+
+  .modal-content {
+    width: min(100%, 440px);
+    background: #fff;
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .modal-header h3 {
+    margin: 0;
+    font-size: 1.05rem;
+  }
+
+  .modal-close-btn {
+    border: none;
+    background: transparent;
+    font-size: 1.25rem;
+    cursor: pointer;
+    color: var(--muted);
+  }
+
+  .modal-content label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .modal-content select {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+  }
+
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .meta-row {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-top: 4px;
+  }
+
+  /* =========================
+     RESPONSIVE DESIGN
+     ========================= */
+  @media (min-width: 768px) {
+    body {
+      padding: 20px 18px 30px;
+    }
+
+    .app-header {
+      margin-bottom: 20px;
+      top: 0;
+    }
+
+    .top-nav {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+    }
+
+    .brand {
+      justify-content: flex-start;
+      min-width: 220px;
+    }
+
+    .brand-text {
+      text-align: left;
+    }
+
+    .header-actions {
+      flex-direction: row;
+      align-items: center;
+      width: auto;
+    }
+
+    .profil-card {
+      width: auto;
+      min-width: 240px;
+      border-radius: 999px;
+    }
+
+    .btn-logout {
+      width: auto;
+      border-radius: 999px;
+    }
+
+    .card-header {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .article-item {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .top-nav {
+      padding: 18px 24px;
+    }
+
+    .card {
+      padding: 18px;
+    }
+
+    .livraisons-container {
+      gap: 16px;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <!-- =========================
+       HEADER DE L'APPLICATION
+       ========================= -->
+  <header class="app-header">
+    <nav class="top-nav">
+      <div class="brand">
+        <div class="brand-badge">
+          <i class="fas fa-truck"></i>
+        </div>
+        <div class="brand-text">
+          <h2>Espace Livreur</h2>
+          <p>Gestion des livraisons</p>
+          <button id="historique">historique de livraisons</button>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Zone où le profil utilisateur sera affiché dynamiquement -->
+        <div class="profil-card" id="profil-body">
+          <div class="profil-loading" id="profil-loading">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            <span>Chargement du profil…</span>
+          </div>
+        </div>
+
+        <!-- Bouton de déconnexion -->
+        <button id="logoutBtn" class="btn-logout" type="button">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Déconnexion</span>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- =========================
+       CONTENU PRINCIPAL
+       ========================= -->
+  <h1><i class="fas fa-truck"></i> Commandes en attente de livraison</h1>
+
+  <div id="livraisonsContainer" class="livraisons-container">
+    <p class="empty-msg">Chargement des commandes...</p>
+  </div>
+
+  <!-- Modale pour choisir le motif d'échec de livraison -->
+  <div class="defaut-livraison-modal" id="defautLivraisonModal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Échec de livraison</h3>
+        <button id="closeEchecModal" type="button" class="modal-close-btn" aria-label="Fermer">×</button>
+      </div>
+
+      <label for="raisonDefaut">Raison du défaut de livraison :</label>
+      <select id="raisonDefaut" name="raisonDefaut" required>
+        <option value="" disabled selected>-- Sélectionnez une raison --</option>
+        <option value="CLIENT_ABSENT">Client absent / Ne répond pas</option>
+        <option value="ADRESSE_INCORRECTE">Adresse incorrecte ou incomplète</option>
+        <option value="ACCES_IMPOSSIBLE">Code d'accès / Interphone manquant</option>
+        <option value="REFUS_CLIENT">Colis refusé par le client</option>
+        <option value="LIVREUR_A_ABIME_Mse">J'ai détérioré la marchandise</option>
+        <option value="PROBLEME_PANNE">Problème de transport / panne</option>
+        <option value="AUTRE">Autre raison</option>
+      </select>
+
+      <div class="modal-actions">
+        <button id="confirmEchecLivraisonBtn" class="btn-livrer" type="button">
+          <i class="fas fa-check-circle"></i> Confirmer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+
+    //direction vers historique de livraison
+    document.getElementById('historique').addEventListener('click', () => {
+      window.location.href = 'historique.html';
+    });
+  
+
+
+    // Clé utilisée pour sauvegarder le token dans le stockage local
+    const AUTH_STORAGE_KEY = 'token';
+    let groupeEchecActif = null;
+
+    // =========================
+    // INITIALISATION
+    // =========================
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchCommandesExpediees();
+      fetchProfile();
+      initLogout();
+      initEchecLivraisonModal();
+    });
+
+    // =========================
+    // GESTION DE L'AUTHENTIFICATION
+    // =========================
+    function getAuthToken() {
+      const token = localStorage.getItem(AUTH_STORAGE_KEY) || '';
+      return token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+    }
+
+    // =========================
+    // DÉCONNEXION
+    // =========================
+    function initLogout() {
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+          localStorage.removeItem(AUTH_STORAGE_KEY);
+          window.location.href = 'login.html';
+        });
+      }
+    }
+
+    // =========================
+    // RÉCUPÉRATION DES COMMANDES EXPÉDIÉES
+    // =========================
+    async function fetchCommandesExpediees() {
+      const container = document.getElementById('livraisonsContainer');
+      const token = getAuthToken();
+
+      // Si l'utilisateur n'est pas connecté, on affiche un message clair
+      if (!token || token === 'Bearer ') {
+        container.innerHTML = `<p class="empty-msg" style="color:#dc2626;"><i class="fas fa-times-circle"></i> Vous n'êtes pas connecté.</p>`;
+        return;
+      }
+
+      try {
+        // Requête vers l’API pour récupérer les commandes expédiées
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/livreur/expediees`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: token
+          }
+        });
+
+        // Lecture du corps de réponse en texte pour gérer les réponses JSON ou non
+        let data = null;
+        const responseText = await response.text();
+
+        try {
+          data = responseText ? JSON.parse(responseText) : null;
+        } catch (parseError) {
+          console.error('Réponse non JSON reçue du serveur :', responseText);
+          throw new Error('Le serveur a renvoyé une réponse inattendue. Vérifiez que l’API backend est bien lancée et que la route /api/livreur/expediees est disponible.');
+        }
+
+        // Si la réponse HTTP n’est pas correcte, on lève une erreur
+        if (!response.ok) {
+          throw new Error(data?.error || data?.message || 'Erreur de chargement');
+        }
+
+        // On récupère la liste des commandes et l’état renvoyé par l’API.
+        const commandesList = Array.isArray(data.commandes) ? data.commandes : [];
+        const hasOrders = data?.hasOrders !== false && commandesList.length > 0;
+
+        // Si aucune commande n’est disponible pour la zone du livreur,
+        // on affiche un message explicatif envoyé par l’API.
+        if (!hasOrders) {
+          const messageExplicatif = data?.message || 'Aucune livraison n’est actuellement disponible pour votre zone.';
+          container.innerHTML = `
+            <div class="empty-msg" role="status" style="text-align:center; padding:1rem;">
+              <i class="fas fa-info-circle"></i>
+              <p>${messageExplicatif}</p>
+              <small>Les colis de votre zone apparaîtront ici dès qu’ils seront disponibles.</small>
+            </div>`;
+          return;
+        }
+
+        // Groupement des commandes par colis
+        const groupesDeColis = grouperCommandesParColis(commandesList);
+
+        // Nettoyage du conteneur avant insertion
+        container.innerHTML = '';
+
+        // Création et insertion de chaque carte de colis
+        groupesDeColis.forEach(groupe => {
+          container.insertAdjacentHTML('beforeend', createColisCardHtml(groupe));
+        });
+      } catch (error) {
+        console.error('Erreur lors du chargement des commandes :', error);
+        container.innerHTML = `<p class="empty-msg" style="color:#dc2626;"><i class="fas fa-exclamation-triangle"></i> ${error.message}</p>`;
+      }
+    }
+
+    // =========================
+    // GESTION DE LA MODALE D'ÉCHEC DE LIVRAISON
+    // =========================
+    function initEchecLivraisonModal() {
+      const modal = document.getElementById('defautLivraisonModal');
+      const closeBtn = document.getElementById('closeEchecModal');
+      const confirmBtn = document.getElementById('confirmEchecLivraisonBtn');
+      const select = document.getElementById('raisonDefaut');
+
+      if (!modal || !closeBtn || !confirmBtn || !select) {
+        return;
+      }
+
+      const fermerModal = () => {
+        modal.style.display = 'none';
+        select.value = '';
+        groupeEchecActif = null;
+      };
+
+      closeBtn.addEventListener('click', fermerModal);
+
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
+          fermerModal();
+        }
+      });
+
+      confirmBtn.addEventListener('click', async () => {
+        if (!groupeEchecActif) {
+          return;
+        }
+
+        const motifSelectionne = (select.value || '').trim();
+        if (!motifSelectionne) {
+          alert('Veuillez sélectionner un motif avant de confirmer l’échec de livraison.');
+          return;
+        }
+
+        modal.style.display = 'none';
+        await marquerEchecLivraison(groupeEchecActif, motifSelectionne);
+        select.value = '';
+        groupeEchecActif = null;
+      });
+    }
+
+    function ouvrirModalEchecLivraison(groupId) {
+      groupeEchecActif = groupId;
+      const modal = document.getElementById('defautLivraisonModal');
+      const select = document.getElementById('raisonDefaut');
+
+      if (modal) {
+        modal.style.display = 'flex';
+      }
+
+      if (select) {
+        select.value = '';
+      }
+    }
+
+    // =========================
+    // GROUPEMENT DES COMMANDES PAR COLIS
+    // =========================
+    function grouperCommandesParColis(commandes) {
+      const groupes = new Map();
+
+      commandes.forEach(cmd => {
+        // On tente de trouver un identifiant de groupe
+        const groupeKey = cmd?.colisGroupId || cmd?.id || cmd?._id || 'sans-groupe';
+
+        if (!groupes.has(groupeKey)) {
+          groupes.set(groupeKey, []);
+        }
+
+        groupes.get(groupeKey).push(cmd);
+      });
+
+      return Array.from(groupes.entries()).map(([groupeKey, items]) => ({
+        groupeKey,
+        commandes: items,
+        quantiteTotale: items.reduce((total, item) => total + (item.quantite || 1), 0),
+        adresseLivraison: items[0]?.adresseLivraison || null,
+        acheteur: items[0]?.acheteurId || {},
+        vendeur: items[0]?.vendeurId || {},
+        statut: items[0]?.statut || 'expédiée'
+      }));
+    }
+
+    // =========================
+    // FONCTIONS UTILITAIRES
+    // =========================
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function formatAdresseLivraison(adresse) {
+      if (!adresse || typeof adresse !== 'object') return 'Adresse non communiquée';
+
+      const parts = [];
+
+      if (adresse.commune) parts.push(`COMMUNE : ${adresse.commune}`);
+      if (adresse.quartier) parts.push(`QUARTIER : ${adresse.quartier}`);
+      if (adresse.avenue) parts.push(`AVENUE : ${adresse.avenue}`);
+      if (adresse.numeroParcelle) parts.push(`NUMERO : ${adresse.numeroParcelle}`);
+      if (adresse.reference) parts.push(`REFERENCE : ${adresse.reference}`);
+      if (adresse.telephone) parts.push(`TÉLÉPHONE : ${adresse.telephone}`);
+
+      return parts.join(' • ') || 'Adresse non communiquée';
+    }
+
+    // =========================
+    // GÉNÉRATION DU HTML D'UNE CARTE DE COLIS
+    // =========================
+    function createColisCardHtml(groupe) {
+      const acheteur = groupe.acheteur || {};
+      const acheteurNom = escapeHtml(`${acheteur.prenom || ''} ${acheteur.nom || ''}`.trim() || 'Client anonyme');
+      const acheteurEmail = escapeHtml(acheteur.email || 'Email non fourni');
+
+      const vendeur = groupe.vendeur || {};
+      const vendeurNom = escapeHtml(`${vendeur.prenom || ''} ${vendeur.nom || ''}`.trim() || 'Vendeur inconnu');
+
+      const adresseText = escapeHtml(formatAdresseLivraison(groupe.adresseLivraison));
+      const telephoneClient = groupe.adresseLivraison?.telephone || groupe.commandes?.[0]?.adresseLivraison?.telephone || '';
+
+      // Calcul du montant total TTC du groupe
+      const totalAmount = groupe.commandes.reduce((total, cmd) => {
+        const value = typeof cmd.totalTTC === 'number' ? cmd.totalTTC : 0;
+        return total + value;
+      }, 0);
+
+      const montantAffiche = totalAmount > 0 ? `${totalAmount.toFixed(2)} €` : 'Non défini';
+      const statutBrut = String(groupe.statut || 'expédiée');
+      const statut = escapeHtml(statutBrut);
+      const statutNorm = statutBrut.toLowerCase().trim();
+      const estPrisEnCharge = statutNorm === 'prise en charge' || statutNorm === 'prise-en-charge' || statutNorm === 'priseencharge';
+      const displayId = escapeHtml(groupe.groupeKey || '---');
+      const actionLabel = estPrisEnCharge ? 'Marquer comme Livrée' : 'Prendre en charge';
+
+      // Sécurisation de l’ID pour l’utiliser dans une chaîne JavaScript
+      const safeActionId = String(groupe.groupeKey || '').replace(/'/g, "\\'");
+
+      // Construction du HTML des articles du colis
+      const articlesHtml = groupe.commandes.map(cmd => {
+        const produit = cmd.produitId || {};
+        const produitTitre = escapeHtml(produit.nom || produit.title || 'Produit sans nom');
+        const quantite = cmd.quantite || 1;
+
+        return `<li class="article-item"><span>${produitTitre}</span><strong>${quantite}x</strong></li>`;
+      }).join('');
+
+      return `
+        <div class="card" id="card-${safeActionId}">
+          <div class="card-header">
+            <div>
+              <strong>Colis #${String(displayId)}</strong>
+              <div class="meta-row">${groupe.commandes.length} ligne(s) • ${groupe.quantiteTotale} article(s)</div>
+            </div>
+            <span class="badge">${statut}</span>
+          </div>
+
+          <div class="card-body">
+            <div class="group-summary">
+              <div class="info-group"><strong><i class="fas fa-store"></i> Vendeur :</strong> ${vendeurNom}</div>
+              <div class="info-group"><strong><i class="fas fa-user"></i> Acheteur :</strong> ${acheteurNom}</div>
+              <div class="info-group"><strong><i class="fas fa-envelope"></i> Email de l'acheteur :</strong> ${acheteurEmail}</div>
+              <div class="info-group"><strong><i class="fas fa-money-bill-wave"></i> Total TTC :</strong> ${montantAffiche}</div>
+            </div>
+
+            <div class="articles-list">
+              <div class="info-group"><strong><i class="fas fa-receipt"></i> Contenu du colis :</strong></div>
+              <ul>${articlesHtml}</ul>
+            </div>
+
+            <div class="adresse-box">
+              <strong><i class="fas fa-map-marker-alt"></i> Adresse de livraison :</strong><br>${adresseText}
+            </div>
+
+            ${telephoneClient ? `<button class="btn-appeler" type="button" onclick="window.location.href='tel:${encodeURIComponent(telephoneClient)}'"><i class="fas fa-phone-alt"></i> Appeler client</button>` : ''}
+
+            ${estPrisEnCharge ? `
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <button class="btn-livrer" type="button" onclick="marquerCommeLivree('${safeActionId}')">
+                  <i class="fas fa-check-circle"></i> Marquer comme Livrée
+                </button>
+                <button class="btn-livrer" type="button" onclick="ouvrirModalEchecLivraison('${safeActionId}')" style="background-color: var(--danger);">
+                  <i class="fas fa-times-circle"></i> Échec de livraison
+                </button>
+              </div>
+            ` : `<button class="btn-livrer" type="button" onclick="prendreEnCharge('${safeActionId}')">
+              <i class="fas fa-box-open"></i> Prendre en charge
+            </button>`}
+          </div>
+        </div>
+      `;
+    }
+
+    // =========================
+    // MISE À JOUR DU STATUT DU COLIS
+    // =========================
+    async function prendreEnCharge(groupId) {
+      const token = getAuthToken();
+
+      if (!token || token === 'Bearer ') {
+        alert('Vous devez être connecté.');
+        return;
+      }
+
+      if (!confirm('Confirmez que vous prenez en charge ce colis ?')) return;
+
+      try {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/orders/colis/${encodeURIComponent(groupId)}/statut`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: token
+          },
+          body: JSON.stringify({ statut: 'prise en charge' })
+        });
+
+        let result = null;
+        const responseText = await response.text();
+
+        try {
+          result = responseText ? JSON.parse(responseText) : null;
+        } catch (parseError) {
+          console.error('Réponse non JSON au changement de statut :', responseText);
+          throw new Error('Le serveur a renvoyé une réponse inattendue lors de la mise à jour du statut.');
+        }
+
+        if (!response.ok) {
+          throw new Error(result?.error || result?.message || 'Impossible de prendre en charge le colis');
+        }
+
+        alert('Statut mis à jour en prise en charge');
+        fetchCommandesExpediees();
+      } catch (error) {
+        console.error('Erreur prise en charge :', error);
+        alert(`Erreur : ${error.message}`);
+      }
+    }
+
+    async function marquerCommeLivree(groupId) {
+      const token = getAuthToken();
+
+      if (!token || token === 'Bearer ') {
+        alert('Vous devez être connecté.');
+        return;
+      }
+
+      if (!confirm('Confirmez la livraison de ce colis ?')) return;
+
+      try {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/orders/colis/${encodeURIComponent(groupId)}/statut`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: token
+          },
+          body: JSON.stringify({ statut: 'livrée' })
+        });
+
+        let result = null;
+        const responseText = await response.text();
+
+        try {
+          result = responseText ? JSON.parse(responseText) : null;
+        } catch (parseError) {
+          console.error('Réponse non JSON au changement de statut :', responseText);
+          throw new Error('Le serveur a renvoyé une réponse inattendue lors de la mise à jour du statut.');
+        }
+
+        if (!response.ok) {
+          throw new Error(result?.error || result?.message || 'Impossible de mettre à jour le statut');
+        }
+
+        alert('Statut mis à jour en livré');
+        fetchCommandesExpediees();
+      } catch (error) {
+        console.error('Erreur mise à jour statut :', error);
+        alert(`Erreur : ${error.message}`);
+      }
+    }
+
+    // =========================
+    // MARQUER UN COLIS COMME ÉCHEC DE LIVRAISON
+    async function marquerEchecLivraison(groupId, motifSelectionne = '') {
+      const token = getAuthToken();
+
+      if (!token || token === 'Bearer ') {
+        alert('Vous devez être connecté.');
+        return;
+      }
+
+      const motif = (motifSelectionne || '').trim();
+      if (!motif) {
+        alert('Veuillez sélectionner un motif avant de confirmer l’échec de livraison.');
+        return;
+      }
+
+      try {
+        // On envoie le statut et le motif choisi pour qu'il soit enregistré dans l'expédition.
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/orders/colis/${encodeURIComponent(groupId)}/statut`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: token
+          },
+          body: JSON.stringify({
+            statut: 'echec de livraison',
+            notesLivreur: motif
+          })
+        });
+
+        let result = null;//on récupère la réponse du serveur pour vérifier si la mise à jour a été effectuée avec succès
+        const responseText = await response.text();//
+
+        try {
+          result = responseText ? JSON.parse(responseText) : null;
+        } catch (parseError) {
+          console.error('Réponse non JSON au changement de statut :', responseText);
+          throw new Error('Le serveur a renvoyé une réponse inattendue lors de la mise à jour du statut.');
+        }
+
+        if (!response.ok) {
+          throw new Error(result?.error || result?.message || 'Impossible de marquer l’échec de livraison');
+        }
+
+        alert('Statut mis à jour en échec de livraison');
+        fetchCommandesExpediees();
+      } catch (error) {
+        console.error('Erreur échec de livraison :', error);
+        alert(`Erreur : ${error.message}`);
+      }
+    }
+
+    // =========================
+    // CHARGEMENT DU PROFIL UTILISATEUR
+    // =========================
+    async function fetchProfile() {
+      const token = getAuthToken();
+
+      if (!token || token === 'Bearer ') {
+        document.getElementById('profil-body').innerHTML = `
+          <div class="profil-info" style="color:#ffe0e0;">
+            <div>Vous n'êtes pas connecté.</div>
+          </div>
+        `;
+        return;
+      }
+
+      try {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/auth/me`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: token
+          }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data?.error || data?.message || 'Erreur de chargement du profil');
+        }
+
+        const profilBody = document.getElementById('profil-body');
+
+        profilBody.innerHTML = `
+          <div class="profil-info">
+            <div><strong>Nom :</strong> ${escapeHtml(data.nom || '')}</div>
+            <div><strong>Prénom :</strong> ${escapeHtml(data.prenom || '')}</div>
+            <div><strong>Email :</strong> ${escapeHtml(data.email || '')}</div>
+            <div><strong>Téléphone :</strong> ${escapeHtml(data.telephone || '')}</div>
+          </div>
+        `;
+      } catch (error) {
+        console.error('Erreur chargement profil :', error);
+        document.getElementById('profil-body').innerHTML = `
+          <div class="profil-info" style="color:#ffe0e0;">
+            <div>Erreur : ${escapeHtml(error.message)}</div>
+          </div>
+        `;
+      }
+    }
+  </script>
+</body>
+</html>

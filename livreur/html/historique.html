@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Historique des livraisons</title>
+   <!-- Chargement du fichier contenant l’URL de l’API -->
+  <script src="../../client/js/url.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --primary: #2563eb;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --warning: #d97706;
+      --border: #e5e7eb;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .app-header {
+      background: linear-gradient(135deg, #1d4ed8, #2563eb);
+      color: white;
+      padding: 16px 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .top-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+    }
+
+    .brand-text h2 { margin: 0; font-size: 18px; }
+    .brand-text p { margin: 2px 0 0; opacity: 0.9; font-size: 13px; }
+
+    .header-actions button {
+      border: none;
+      background: white;
+      color: var(--primary);
+      padding: 10px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .page {
+      max-width: 1100px;
+      margin: 24px auto;
+      padding: 0 16px 32px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      gap: 12px;
+    }
+
+    .section-title h3 { margin: 0; font-size: 20px; }
+    .section-title p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+
+    .history-list { display: grid; gap: 12px; }
+
+    .history-item {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      background: #fcfdff;
+      display: grid;
+      gap: 10px;
+    }
+
+    .history-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .history-top h4 { margin: 0; font-size: 16px; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge.success { background: #dcfce7; color: var(--success); }
+    .badge.danger { background: #fee2e2; color: var(--danger); }
+    .badge.warning { background: #fef3c7; color: var(--warning); }
+    .badge.neutral { background: #e0e7ff; color: #4338ca; }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .empty-state {
+      padding: 28px;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      background: #fcfdff;
+    }
+
+    .loading {
+      text-align: center;
+      color: var(--muted);
+      padding: 24px;
+    }
+
+    .search-bar {
+      margin-bottom: 18px;
+      display: flex;
+      justify-content: stretch;
+      gap: 10px;
+    }
+
+    .search-bar input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 1rem;
+      color: var(--text);
+      background: white;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .search-bar input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+
+    .search-label {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    @media (max-width: 700px) {
+      .top-nav { flex-direction: column; align-items: flex-start; }
+      .section-title { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <nav class="top-nav">
+      <div class="brand">
+        <div class="brand-badge">
+          <i class="fas fa-truck"></i>
+        </div>
+        <div class="brand-text">
+          <h2>Espace Livreur</h2>
+          <p>Historique des livraisons</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="backBtn" type="button"><i class="fas fa-arrow-left"></i> Retour</button>
+      </div>
+    </nav>
+  </header>
+
+  <main class="page">
+    <section class="card">
+      <div class="search-bar">
+        <label for="historySearchInput" class="search-label">Rechercher dans l’historique :</label>
+        <input id="historySearchInput" type="search" autocomplete="off" placeholder="Produit, client, statut, commune, adresse..." aria-label="Recherche dans l’historique" />
+      </div>
+
+      <div class="section-title">
+        <div>
+          <h3>Historique de votre activité</h3>
+          <p>Les livraisons terminées ou échouées qui vous ont été attribuées.</p>
+        </div>
+      </div>
+
+      <!-- Conteneur qui reçoit les données renvoyées par l’API getLivreurHistory -->
+      <div id="historyContainer" class="history-list">
+        <div class="loading"><i class="fas fa-spinner fa-spin"></i> Chargement de l’historique...</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // =========================
+    // CONFIGURATION ET AUTHENTIFICATION
+    // =========================
+    const AUTH_STORAGE_KEY = 'token';
+    let allCommandes = [];
+
+    function getAuthToken() {
+      const token = localStorage.getItem(AUTH_STORAGE_KEY) || '';
+      return token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+    }
+
+    // =========================
+    // INITIALISATION
+    // =========================
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('backBtn').addEventListener('click', () => {
+        window.location.href = 'accueille-livreur.html';
+      });
+
+      const searchInput = document.getElementById('historySearchInput');
+      if (searchInput) {
+        searchInput.addEventListener('input', () => {
+          renderHistoryList(filterHistory(searchInput.value));
+        });
+      }
+
+      loadHistory();
+    });
+
+    // =========================
+    // CHARGEMENT DE L’HISTORIQUE
+    // =========================
+    async function loadHistory() {
+      const container = document.getElementById('historyContainer');
+      const token = getAuthToken();
+
+      if (!token || token === 'Bearer ') {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-lock"></i>
+            <p>Vous devez être connecté pour voir votre historique.</p>
+          </div>`;
+        return;
+      }
+
+      try {
+        // Appel au backend vers la route qui expose l’historique du livreur.
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/livreur/historique`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: token
+          }
+        });
+
+        const responseText = await response.text();
+        let data = null;
+
+        try {
+          data = responseText ? JSON.parse(responseText) : null;
+        } catch (parseError) {
+          console.error('Réponse inattendue du backend :', responseText);
+          throw new Error('Le serveur a renvoyé une réponse invalide.');
+        }
+
+        if (!response.ok) {
+          throw new Error(data?.error || data?.message || 'Impossible de charger l’historique.');
+        }
+
+        // Le backend renvoie un tableau de commandes dans `commandes`.
+        const commandes = Array.isArray(data?.commandes) ? data.commandes : [];
+        allCommandes = commandes;
+
+        if (!commandes.length) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <i class="fas fa-info-circle"></i>
+              <p>Aucun historique disponible pour le moment.</p>
+            </div>`;
+          return;
+        }
+
+        renderHistoryList(commandes);
+      } catch (error) {
+        console.error('Erreur de chargement de l’historique :', error);
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>${error.message || 'Une erreur est survenue.'}</p>
+          </div>`;
+      }
+    }
+
+    // =========================
+    // RENDU DE LA LISTE D’HISTORIQUE
+    // =========================
+    function renderHistoryList(commandes) {
+      const container = document.getElementById('historyContainer');
+      if (!Array.isArray(commandes) || !commandes.length) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-info-circle"></i>
+            <p>Aucun historique ne correspond à votre recherche.</p>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = commandes.map(renderHistoryItem).join('');
+    }
+
+    function filterHistory(query) {
+      const search = String(query || '').trim().toLowerCase();
+      if (!search) {
+        return allCommandes;
+      }
+
+      return allCommandes.filter(commande => {
+        const produitNom = String(commande?.produitId?.nom || '').toLowerCase();
+        const clientNom = String(commande?.acheteurId?.nom || '').toLowerCase();
+        const statut = String(commande?.statut || '').toLowerCase();
+        const commune = String(commande?.adresseLivraison?.commune || '').toLowerCase();
+        const quartier = String(commande?.adresseLivraison?.quartier || '').toLowerCase();
+        const avenue = String(commande?.adresseLivraison?.avenue || '').toLowerCase();
+        const numeroParcelle = String(commande?.adresseLivraison?.numeroParcelle || '').toLowerCase();
+        const reference = String(commande?.adresseLivraison?.reference || '').toLowerCase();
+        const adresseBrute = String(commande?.adresseLivraison?.adresse || '').toLowerCase();
+
+        return [
+          produitNom,
+          clientNom,
+          statut,
+          commune,
+          quartier,
+          avenue,
+          numeroParcelle,
+          reference,
+          adresseBrute
+        ].some(value => value.includes(search));
+      });
+    }
+
+    // =========================
+    // RENDU D’UN ÉLÉMENT D’HISTORIQUE
+    // =========================
+    function renderHistoryItem(commande) {
+      const statut = (commande?.statut || 'Inconnu').toString();
+      const badgeClass = getBadgeClass(statut);
+      const dateText = formatDate(commande?.updatedAt || commande?.createdAt);
+      const produitNom = commande?.produitId?.nom || 'Produit non disponible';
+      const clientNom = commande?.acheteurId?.nom || 'Client non disponible';
+      const adresse = formatAdresseLivraison(commande?.adresseLivraison);
+
+      return `
+        <article class="history-item">
+          <div class="history-top">
+            <div>
+              <h4>${escapeHtml(produitNom)}</h4>
+              <div class="meta">
+                <span><i class="fas fa-user"></i> ${escapeHtml(clientNom)}</span>
+                <span><i class="fas fa-map-marker-alt"></i> ${escapeHtml(adresse)}</span>
+              </div>
+            </div>
+            <span class="badge ${badgeClass}">
+              <i class="${getStatusIcon(statut)}"></i> ${escapeHtml(statut)}
+            </span>
+          </div>
+
+          <div class="meta">
+            <span><i class="fas fa-calendar-alt"></i> ${escapeHtml(dateText)}</span>
+            <span><i class="fas fa-box"></i> ${escapeHtml(commande?.quantite || '1')} unité(s)</span>
+            <span><i class="fas fa-money-bill-wave"></i> ${formatPrice(commande?.totalTTC || commande?.prixUnitaire || 0)} FC</span>
+          </div>
+        </article>
+      `;
+    }
+
+    // =========================
+    // STYLES DE BADGES SELON LE STATUT
+    // =========================
+    function getBadgeClass(statut) {
+      const value = (statut || '').toLowerCase();
+      const normalized = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+      if (normalized.includes('echec') || normalized.includes('echoue')) return 'danger';
+      if (normalized.includes('annul')) return 'warning';
+      if ((normalized.includes('livre') || normalized.includes('livré')) && !normalized.includes('livraison')) return 'success';
+      return 'neutral';
+    }
+
+    function getStatusIcon(statut) {
+      const value = (statut || '').toLowerCase();
+      const normalized = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+      if (normalized.includes('echec') || normalized.includes('echoue')) return 'fas fa-times-circle';
+      if (normalized.includes('annul')) return 'fas fa-ban';
+      if ((normalized.includes('livre') || normalized.includes('livré')) && !normalized.includes('livraison')) return 'fas fa-check-circle';
+      return 'fas fa-info-circle';
+    }
+
+    // =========================
+    // UTILITAIRES
+    // =========================
+    function formatDate(value) {
+      if (!value) return 'Date non disponible';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return 'Date non disponible';
+      return date.toLocaleString('fr-FR', {
+        day: '2-digit',//digit veut dire que le jour sera affiché avec deux chiffres (ex: 01, 02, ..., 31)
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    function formatPrice(value) {
+      const number = Number(value || 0);
+      return new Intl.NumberFormat('fr-FR', {
+        maximumFractionDigits: 0
+      }).format(number);
+    }
+
+    function formatAdresseLivraison(adresse) {
+      if (!adresse || typeof adresse !== 'object') return 'Adresse non communiquée';
+
+      const parts = [];
+      if (adresse.commune) parts.push(`COMMUNE : ${adresse.commune}`);
+      if (adresse.quartier) parts.push(`QUARTIER : ${adresse.quartier}`);
+      if (adresse.avenue) parts.push(`AVENUE : ${adresse.avenue}`);
+      if (adresse.numeroParcelle) parts.push(`NUMERO : ${adresse.numeroParcelle}`);
+      if (adresse.reference) parts.push(`REFERENCE : ${adresse.reference}`);
+      if (adresse.telephone) parts.push(`TÉLÉPHONE : ${adresse.telephone}`);
+
+      return parts.join(' • ') || 'Adresse non communiquée';
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+  </script>
+</body>
+</html>

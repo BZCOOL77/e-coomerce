@@ -1,4 +1,4 @@
-const User = require("../models/User");//on importe le modèle User pour interagir avec la base de données
+const User = require("../models/user");//on importe le modèle User pour interagir avec la base de données
 const UserHistory = require("../models/userhistorique");//on importe le modèle UserHistory pour interagir avec la base de données
 const bcrypt = require("bcryptjs");//on importe bcrypt pour le hachage des mots de passe
 const jwt = require("jsonwebtoken");//on importe jsonwebtoken pour la création de tokens d'authentification

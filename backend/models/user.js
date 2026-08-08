@@ -28,8 +28,17 @@ const userSchema = mongoose.Schema({// Identifiants de connexion
   // Gestion des Rôles
   role: { 
     type: String, 
-    enum: ['client', 'vendeur', 'admin'], 
+    enum: ['client', 'vendeur', 'admin', 'livreur'], 
     default: 'client' 
+  },
+
+  //zone géographique de livraison (pour les livreurs)
+  // 📍 Ce champ est optionnel : il ne concerne QUE les livreurs
+  zoneAssignee: {
+    communes: [{ type: String,
+      enum:['LUBUMBAHI', 'KENYA', 'KAMALONDO', 'RUASHI','KAMPEMBA', 'ANNEXE', 'KATUBA' ]
+     }], 
+    capaciteMaxColis: { type: Number, default: 30 }
   },
 
   // Système de licence (Prévu pour le plan à 20€)
@@ -51,4 +60,5 @@ const userSchema = mongoose.Schema({// Identifiants de connexion
 // On applique le plugin de validation d'unicité
 userSchema.plugin(uniqueValidator.default);
 
-module.exports = mongoose.model('User', userSchema);
+// Empêche l'erreur OverwriteModelError quand le modèle est défini plusieurs fois
+module.exports = mongoose.models.User || mongoose.model('User', userSchema);

@@ -40,6 +40,35 @@
                     <span>Total TTC</span>
                     <span id="total-global">0.00 €</span>
                 </div>
+
+                <div class="adresse-livraison">
+                    <h4>Adresse de livraison</h4>
+                    
+                    <label>Quartier <input id="adresse-quartier" type="text" placeholder="Quartier" required></label>
+                    <label>Avenue <input id="adresse-avenue" type="text" placeholder="Avenue" required></label>
+                    <label>Référence <input id="adresse-reference" type="text" placeholder="(ex:hotel lubumbashi)"></label>
+                    <label>Numéro <input id="adresse-parcelle" type="number" placeholder="Numéro "></label>
+                    <label>Téléphone <input id="adresse-telephone" type="text" placeholder="Téléphone" required></label>
+                    <!-- selection commune-->
+                    <label for="commune"> indiquez votre commune :</label>
+                    <select id="adresse-commune" name="commune" required>
+                    <option value="" disabled selected>-- Sélectionnez une commune --</option>
+                    <option value="LUBUMBASHI">Lubumbashi</option>
+                    <option value="KATUBA">katuba</option>
+                    <option value="KENYA">kenya</option>
+                    <option value="KAMPEMBA">kampemba</option>
+                    <option value="ANNEXE">annexe</option>
+                    <option value="RUASHI">ruashi</option>
+                    <option value="KAMALONDO">kamalondo</option>
+                    <!-- Ajoutez d'autres communes selon vos besoins -->
+                    </select>
+                    <!-- Bouton pour utiliser la géolocalisation -->
+                    <button type="button" id="btnGeoloc" class="btn-secondary" style="margin-top: 0.5rem;">
+                    📍 Utiliser ma position GPS exacte
+                    </button>
+                <span id="geoStatus" style="font-size: 0.85rem; color: #6a7280; display: block; margin-top: 0.3rem;"></span>
+                </div>
+
                 <button class="btn-commander" onclick="validerPanierEtCommander()">Passer à la caisse</button>
             </div>
         </div>
@@ -140,6 +169,59 @@ async function validerPanierEtCommander() {
         return;
     }
 
+    // recuperation des info de geolocalisation
+    let clientLat = null;
+    let clientLng = null;
+
+    document.getElementById('btnGeoloc').addEventListener('click', () => {
+    const status = document.getElementById('geoStatus');
+
+    if (!navigator.geolocation) {
+        status.textContent = "La géolocalisation n'est pas supportée par votre navigateur.";
+        return;
+    }
+
+    status.textContent = "Recherche de votre position...";
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            clientLat = position.coords.latitude;
+            clientLng = position.coords.longitude;
+            status.textContent = `✅ Position capturée ! (${clientLat.toFixed(4)}, ${clientLng.toFixed(4)})`;
+            status.style.color = "#28a745";
+        },
+        (error) => {
+            status.textContent = "Impossible de récupérer votre position. Saisissez votre adresse manuellement.";
+            status.style.color = "#dc3545";
+        },
+        { enableHighAccuracy: true } // Active le GPS haute précision du smartphone
+    );
+});
+
+
+
+    const commune = document.getElementById('adresse-commune').value;
+    const quartier = document.getElementById('adresse-quartier').value.trim();
+    const avenue = document.getElementById('adresse-avenue').value.trim();
+    const reference = document.getElementById('adresse-reference').value.trim();
+    const numeroParcelle = document.getElementById('adresse-parcelle').value.trim();
+    const telephone = document.getElementById('adresse-telephone').value.trim();
+    const latitude = clientLat;
+    const longitude = clientLng;
+
+    
+
+    const adresseLivraison = {
+        commune,
+        quartier,
+        avenue,
+        reference: reference || undefined,
+        numeroParcelle: numeroParcelle || undefined,
+        telephone,
+        latitude,
+        longitude
+    };
+
     const token = localStorage.getItem('token');
     if (!token) {
         alert("Veuillez vous connecter pour passer la commande.");
@@ -154,7 +236,7 @@ async function validerPanierEtCommander() {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ articles: articlesToProcess }) // On envoie TOUT
+            body: JSON.stringify({ articles: articlesToProcess, adresseLivraison })
         });
 
         const data = await response.json().catch(() => ({}));

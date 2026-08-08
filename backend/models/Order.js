@@ -1,3 +1,5 @@
+//MODELE POUR LES COMMANDES
+
 const mongoose = require('mongoose');
 
 const orderSchema = mongoose.Schema({
@@ -18,9 +20,35 @@ const orderSchema = mongoose.Schema({
     quantite: { type: Number, default: 1 },
     statut: { 
         type: String, 
-        enum: ['en attente', 'En cours', 'expédiée', 'livrée', 'annulée', 'annulée par acheteur'], 
+        enum: ['en attente', 'En cours', 'expédiée','attribuéeAlivreur','prise en charge', 'livrée','reçue','echec de livraison', 'annulée', 'annulée par acheteur'], 
         default: 'en attente' 
     },
+
+    // 🔒 Réservation de l’attribution du colis à un livreur précis.
+    // Ce champ sert de verrou métier simple pour éviter qu’un même colis
+    // ne soit pris en charge par deux livreurs différents.
+    livreurAssignationId: {
+        type: mongoose.Schema.Types.ObjectId,// On lie le livreur à la commande
+        ref: 'User',
+        default: null
+    },
+
+    adresseLivraison: {
+        commune: { type: String, required: true,
+            enum:['LUBUMBASHI','KATUBA','KENYA','RUASHI','ANNEXE','KAMALONDO', 'KAMPEMBA']//POUR EVITER LES MALIN QUI MODIFIE LE FRONT-END
+         },
+        quartier: { type: String, required: true },
+        avenue: { type: String, required: true },
+        reference: { type: String,  },
+        numeroParcelle: { type: String, },
+        telephone: { type: String, required: true },
+        latitude: { type: Number, default: null },       // Ex: -4.3275
+        longitude: { type: Number, default: null }
+    },
+
+
+
+
     prixUnitaire: { type: Number, required: true },
     prixUnitaireHT: { type: Number, required: true },
     totalHT: { type: Number, required: true },

@@ -1,3 +1,6 @@
+//MODELE POUR L'HISTORIQUE DES MODIFICATIONS D'UN UTILISATEUR
+
+
 const mongoose = require('mongoose');
 
 const userHistorySchema = mongoose.Schema({

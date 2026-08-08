@@ -66,7 +66,7 @@
     <script>
         // Variable globale pour stocker le filtre actuel ('en-cours' par défaut)
 let filtreActuel = 'en-cours';
-let termeRecherche = '';
+let termeRecherche = '';//le terme de recherche saisi par l'utilisateur dans la barre de recherche
 
 // Normalise le texte saisi dans la barre de recherche pour pouvoir
 // comparer les valeurs de manière fiable, même si l'utilisateur tape
@@ -231,7 +231,11 @@ async function chargerMesVentes() {
 
         //COMPTEUR DES COMMANDES A TRAITER
             let totalCommandesEnCours = 0;
-        const statutsHistoriques = ['livrée', 'livree', 'annulée', 'annulee', 'annulée par acheteur', 'annulee par acheteur'];
+        const statutsHistoriques = [
+            'livrée', 'livree',
+            'annulée', 'annulee', 'annulée par acheteur', 'annulee par acheteur',
+            'échec de livraison', 'echec de livraison', 'echec livraison', 'echec_de_livraison'
+        ];
 
         commandes.forEach(colis => {
             const statutGlobal = (colis.statutGlobal || colis.statut || 'N/A').toLowerCase();
@@ -263,24 +267,28 @@ async function chargerMesVentes() {
 
 function nextStatusFor(statut) {
     if (!statut) return '';
-    switch (statut.toLowerCase()) {
-        case 'en attente': return 'En cours';
-        case 'en cours': return 'expédiée';
-        case 'expédiée': return 'livrée';
-        default: return '';
-    }
+    // Normalisation légère pour couvrir variantes (accents, tirets, underscores)
+    const norm = statut
+        .toString()
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[-_]/g, ' ')
+        .replace(/\s+/g, ' ');
+
+    // Cas particuliers détectés par mots-clés (gère camelCase ou variantes sans espace)
+    if (norm.includes('echec') && norm.includes('livraison')) return ''; // considéré comme historique
+    if (norm.includes('attribu') && norm.includes('livreur')) return 'prise en charge';
+    if (norm.includes('prise') && norm.includes('charge')) return 'En cours';
+    if (norm === 'en attente' || norm === 'enattente') return 'En cours';
+    if (norm === 'en cours' || norm === 'encours') return 'expédiée';
+    if (norm.includes('exped') || norm.includes('expedi')) return 'livrée';
+
+    return '';
 }
 
-// Détermine le prochain statut logique pour le colis (valeurs compatibles schéma)
-function nextStatusFor(statut) {
-    if (!statut) return '';
-    switch (statut.toLowerCase()) {
-        case 'en attente': return 'En cours';
-        case 'en cours': return 'expédiée';
-        case 'expédiée': return 'livrée';
-        default: return '';
-    }
-}
+// nextStatusFor consolidée plus haut — doublon supprimé
 
 // Met à jour le statut global d'un colis complet via l'API.
 // Cette fonction sert à faire avancer le colis dans son parcours de livraison.
@@ -319,7 +327,11 @@ async function changerStatutColis(colisGroupId, nouveauStatut) {
 // Cette fonction masque ou affiche les cartes et les blocs selon les critères.
 function appliquerFiltrage() {
     // Liste des statuts considérés comme historiques.
-    const historiqueStatuses = ['livrée', 'livree', 'annulée', 'annulee', 'annulée par acheteur', 'annulee par acheteur'];
+    const historiqueStatuses = [
+        'livrée', 'livree',
+        'annulée', 'annulee', 'annulée par acheteur', 'annulee par acheteur',
+        'échec de livraison', 'echec de livraison', 'echec livraison', 'echec_de_livraison'
+    ];
 
     // Normalise un statut pour pouvoir le comparer correctement.
     // On supprime les accents, on met en minuscule et on uniformise les espaces.

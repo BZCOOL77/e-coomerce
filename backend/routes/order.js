@@ -15,7 +15,7 @@ router.get('/vendeur', auth, vendeurOnly, orderCtrl.getVendeurOrders);
 router.get('/acheteur', auth, orderCtrl.getAcheteurOrders);
 
 // Route pour mettre à jour le statut d'un colis complet (groupé par colisGroupId)
-router.put('/colis/:colisGroupId/statut', auth, vendeurOnly, orderCtrl.updateColisStatut);
+router.put('/colis/:colisGroupId/statut', auth, orderCtrl.updateColisStatut);
 
 // ⚠️ ROUTES PARAMÉTRÉES APRÈS
 // GESTION DES STATUTS DES COMMANDES

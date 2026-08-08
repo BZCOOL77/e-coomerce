@@ -7,7 +7,18 @@ let filtreActuel = 'en-cours';
 document.addEventListener('DOMContentLoaded', chargerMesAchats);
 
 // =========================================================================
-// 🔄 FONCTION PRINCIPALE : CHARGEMENT DES ACHATS
+// � FONCTIONS UTILITAIRES
+// =========================================================================
+function normaliserStatut(statut = '') {
+    return (statut || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+}
+
+// =========================================================================
+// �🔄 FONCTION PRINCIPALE : CHARGEMENT DES ACHATS
 // =========================================================================
 async function chargerMesAchats() {
     const loader = document.getElementById('loader-mes-commandes');
@@ -76,8 +87,8 @@ async function chargerMesAchats() {
                     ? `<button class="btn-annuler" onclick="annulerCommande('${article._id}')">❌ Annuler</button>` 
                     : '';
 
-                // Bouton individuel de confirmation de réception (si l'article est expédié)
-                const boutonValider = (statutNormalise === 'expédiée' || statutNormalise === 'expediee')
+                // Bouton individuel de confirmation de réception (si l'article est livré)
+                const boutonValider = (statutNormalise === 'livrée' || statutNormalise === 'livree')
                     ? `<button class="btn-valider-reception" onclick="validerReception('${article._id}')">🛬 Confirmer la réception</button>`
                     : '';
 
@@ -132,10 +143,10 @@ async function chargerMesAchats() {
         // 🟢 COMPTEUR DE NOTIFICATIONS DES ACHATS EN COURS
         // =========================================================================
         let totalAchatsEnCours = 0;
-        const statutsHistoriquesAcheteur = ['livrée', 'livree', 'annulée', 'annulee', 'annulée par acheteur', 'annulee par acheteur'];
+        const statutsHistoriquesAcheteur = ['annulee', 'annulee par acheteur', 'recue', 'livree'];
 
         commandes.forEach(commande => {
-            const statutNormalise = (commande.statut || '').toLowerCase();
+            const statutNormalise = normaliserStatut(commande.statut);
             if (!statutsHistoriquesAcheteur.includes(statutNormalise)) {
                 totalAchatsEnCours++;
             }
@@ -180,15 +191,11 @@ function basculerOnglet(typeOnglet) {
 
 function appliquerFiltrageAcheteur() {
     const lignesArticles = document.querySelectorAll('.article-ligne-achat');
-    const statutsHistoriques = ['livree', 'annulee', 'annulee par acheteur'];
+    const statutsHistoriques = ['annulee', 'annulee par acheteur', 'recue', ];
 
     lignesArticles.forEach(ligne => {
         const statutRaw = ligne.getAttribute('data-statut') || '';
-        const statutNorm = statutRaw
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .trim();
+        const statutNorm = normaliserStatut(statutRaw);
 
         const estDansLhistorique = statutsHistoriques.includes(statutNorm);
 
@@ -259,7 +266,7 @@ async function validerReception(commandeId) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             },
-            body: JSON.stringify({ statut: 'livrée' })
+            body: JSON.stringify({ statut: 'reçue' })
         });
 
         if (response.ok) {

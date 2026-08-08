@@ -1,11 +1,130 @@
 const Order = require('../models/Order');
 const Thing = require('../models/Thing');
 const mongoose = require('mongoose');
-const User = require('../models/User'); // Import du modèle User pour récupérer les noms
+const User = require('../models/user'); // Import du modèle User pour récupérer les noms
+const Expedition = require('../models/expedition'); // Import du modèle d'expédition pour suivre le workflow livraison
 const { genererCodeColisPro } = require('../utilitaire/generercodecolis'); // Importation de la fonction de génération d'ID de colis
 const PDFDocument = require('pdfkit');// Importation de PDFKit pour la génération de factures PDF
 
+// =========================================================================
+// FONCTIONS UTILES POUR LA SYNCHRONISATION AVEC LE MODÈLE EXPEDITION
+// =========================================================================
 
+// Normalise les statuts métier vers les valeurs du modèle Expedition.
+// Cela évite les variantes comme "prise-en-charge" ou "échec de livraison".
+const normaliserStatutExpedition = (statut) => {
+    const statutNettoye = (statut || '').toString().toLowerCase().trim();
+
+    if (['prise en charge', 'prise-en-charge', 'priseencharge'].includes(statutNettoye)) {
+        return 'prise en charge';
+    }
+
+    if (['livrée', 'livree', 'livré', 'livre'].includes(statutNettoye)) {
+        return 'livrée';
+    }
+
+    if (['echec de livraison', 'échec de livraison', 'echecdelivraison', 'échecdelivraison'].includes(statutNettoye)) {
+        return 'échec de livraison';
+    }
+
+    return null;
+};
+
+// Synchronise un groupe de commandes vers le document Expedition correspondant.
+// Si l'expédition n'existe pas, elle est créée. Sinon, elle est mise à jour avec
+// le contenu du colis, l'adresse, le statut et les horodatages.
+const synchroniserExpeditionDepuisColis = async ({ colisGroupId, statutCommande, livreurId = null, notesLivreur = null, session = null }) => {
+    try {
+        if (!colisGroupId) {
+            return null;
+        }
+
+        const queryOptions = session ? { session } : {};
+
+        // 1. Récupérer toutes les commandes du groupe de colis pour reconstruire l'expédition.
+        const commandes = await Order.find({ colisGroupId }).sort({ createdAt: 1 }).lean(queryOptions);// On trie par date de création pour avoir un ordre cohérent des articles dans le colis.
+
+        if (!commandes.length) {
+            return null;
+        }
+
+        const commandeReference = commandes[0];// On prend la première commande comme référence pour les informations globales du colis (vendeur, client, adresse, etc.).
+        const statutExpedition = normaliserStatutExpedition(statutCommande) || 'prise en charge';
+
+        // 2. Construire les produits à enregistrer dans le modèle Expedition.
+        const produitsExpedition = commandes.map(commande => ({
+            produit: commande.produitId,
+            quantite: commande.quantite || 1
+        }));
+
+        // 3. Préparer les champs dynamiques à mettre à jour ($set).
+        // On écrit d'abord le statut, puis la note livreur dans le même payload
+        // pour rendre l'ordre de création plus stable dans MongoDB Compass.
+        const updatePayload = {
+            statut: statutExpedition
+        };
+
+        // On n'ajoute la note livreur que si elle existe vraiment.
+        if (notesLivreur && notesLivreur.toString().trim() !== '') {
+            updatePayload.notesLivreur = notesLivreur;
+        }
+
+        // On ne met à jour le livreur que s'il est renseigné.
+        if (livreurId) {
+            updatePayload.livreur = livreurId;
+        }
+
+        // 4. Créer ou mettre à jour le document Expedition.
+        const expedition = await Expedition.findOneAndUpdate(
+            { colisGroupId },
+            {
+                // Ces champs ne sont appliqués QUE lors de la CRÉATION du document
+                $setOnInsert: {
+                    colisGroupId,
+                    commandeId: commandeReference._id,
+                    vendeur: commandeReference.vendeurId,
+                    client: commandeReference.acheteurId,
+                    adresseLivraison: commandeReference.adresseLivraison || null,
+                    produits: produitsExpedition,
+                    horodatage: {
+                        datePreparation: commandeReference.createdAt || new Date(),
+                        datePriseEnCharge: null,
+                        dateLivraison: null
+                    }
+                },
+                // Seuls les champs évolutifs sont dans le $set.
+                // L'ordre des clés ici est conservé autant que possible par l'opération MongoDB.
+                $set: updatePayload
+            },
+            {
+                upsert: true,
+                returnDocument: 'after', // Remplacement moderne de new: true
+                setDefaultsOnInsert: true,
+                ...queryOptions
+            }
+        );
+
+        // 5. Mettre à jour les horodatages spécifiques au workflow.
+        const updateHorodatage = {};
+
+        if (statutExpedition === 'prise en charge' && !expedition?.horodatage?.datePriseEnCharge) {
+            updateHorodatage['horodatage.datePriseEnCharge'] = new Date();
+        }
+
+        if (statutExpedition === 'livrée' && !expedition?.horodatage?.dateLivraison) {
+            updateHorodatage['horodatage.dateLivraison'] = new Date();
+        }
+
+        if (Object.keys(updateHorodatage).length > 0) {
+            await Expedition.updateOne({ _id: expedition._id }, { $set: updateHorodatage }, queryOptions);
+        }
+
+        return expedition;
+    } catch (error) {
+        console.error('Erreur lors de la synchronisation de l\'expédition :', error);
+        throw error;
+    }
+};
 
 // =========================================================================
 // 1. CRÉER UNE COMMANDE (Gère 1 seul produit OU un panier groupé sans casser l'ancien code)
@@ -21,10 +140,42 @@ const createOrder = async (req, res, next) => {
             return res.status(400).json({ error: 'Aucun article à traiter.' });
         }
 
-       
+        const adresseLivraison = req.body.adresseLivraison;
+        const champsObligatoires = ['commune', 'quartier', 'avenue', 'telephone'];
+        const champsManquants = champsObligatoires
+            .filter(champ => !adresseLivraison || !adresseLivraison[champ]);
 
-        
-        const colisGroupId = genererCodeColisPro();// Génération d'un ID unique pour ce groupe de commandes
+        if (champsManquants.length > 0) {
+            return res.status(400).json({
+                error: `Champ(s) obligatoire(s) manquant(s) : ${champsManquants.join(', ')}`,
+                champsManquants
+            });
+        }
+
+        // On génère un identifiant de colis unique par vendeur.
+        // Si le client achète plusieurs produits chez le même vendeur,
+        // tous ces articles seront regroupés sous un seul colisGroupId.
+        // Si le panier contient aussi des produits d'un autre vendeur,
+        // ces produits recevront un autre colisGroupId distinct.
+        const colisGroupIdsParVendeur = new Map();
+
+        // On normalise l'identifiant du vendeur pour éviter que deux valeurs
+        // équivalentes, mais représentées différemment (par exemple ObjectId vs chaîne),
+        // soient traitées comme des vendeurs distincts.
+        const normaliserIdVendeur = (vendeurId) => {
+            if (vendeurId === undefined || vendeurId === null || vendeurId === '') {
+                return 'sans-vendeur';
+            }
+            return typeof vendeurId === 'string' ? vendeurId : vendeurId.toString();
+        };
+
+        const getOrCreateColisGroupId = (vendeurId) => {
+            const clefVendeur = normaliserIdVendeur(vendeurId);
+            if (!colisGroupIdsParVendeur.has(clefVendeur)) {
+                colisGroupIdsParVendeur.set(clefVendeur, genererCodeColisPro());
+            }
+            return colisGroupIdsParVendeur.get(clefVendeur);
+        };
 
         const createdOrders = [];
 
@@ -51,6 +202,8 @@ const createOrder = async (req, res, next) => {
             // 🛠️ LOGIQUE DE CALCUL DES PRIX CÔTÉ BACKEND (Sécurisé avec TVA 16%)
             const prixUnitaireTTC = produit.price || produit.prix || 0;
             const tauxTVA = 0.16; // 16%
+            const vendeurIdPourColis = normaliserIdVendeur(produit.vendeurId || produit.userId);
+            const colisGroupId = getOrCreateColisGroupId(vendeurIdPourColis);
 
             // 🧮 1. Les calculs de base basés sur la quantité
             const totalTTC = prixUnitaireTTC * quantite;
@@ -78,7 +231,17 @@ const createOrder = async (req, res, next) => {
                 acheteurId: req.auth.userId,
                 vendeurId: produit.vendeurId || produit.userId,
                 colisGroupId: colisGroupId,
-                statut: 'en attente'
+                statut: 'en attente',
+                adresseLivraison: {
+                    commune: adresseLivraison.commune,
+                    quartier: adresseLivraison.quartier,
+                    avenue: adresseLivraison.avenue,
+                    reference: adresseLivraison.reference || '',
+                    numeroParcelle: adresseLivraison.numeroParcelle || '',
+                    telephone: adresseLivraison.telephone,
+                    latitude: adresseLivraison.latitude || null,
+                    longitude: adresseLivraison.longitude || null
+                }
             };
            
 
@@ -99,7 +262,24 @@ const createOrder = async (req, res, next) => {
             }
         }
 
-        return res.status(201).json({ message: 'Commande(s) enregistrée(s) avec succès.', colisGroupId, commandes: createdOrders });
+        const groupesColis = Array.from(colisGroupIdsParVendeur.values());
+
+        // Synchroniser chaque groupe de colis vers le modèle Expedition.
+        // Cela crée immédiatement un document d'expédition à partir des commandes
+        // nouvellement créées, puis il sera enrichi au fil du workflow livreur.
+        for (const groupeColis of groupesColis) {
+            await synchroniserExpeditionDepuisColis({
+                colisGroupId: groupeColis,
+                statutCommande: 'prise en charge'
+            });
+        }
+
+        return res.status(201).json({
+            message: 'Commande(s) enregistrée(s) avec succès.',
+            colisGroupId: groupesColis.length === 1 ? groupesColis[0] : groupesColis,
+            colisGroupIds: groupesColis,
+            commandes: createdOrders
+        });
 
     } catch (error) {
         console.error(error);
@@ -186,79 +366,263 @@ const getVendeurOrders = async (req, res) => {
 // 3. ENTIER COLIS EN PRÉPARATION (Mise à jour en lot par le vendeur)
 // =========================================================================
 const updateColisStatut = async (req, res, next) => {
+    const session = await mongoose.startSession();
+
     try {
         const { colisGroupId } = req.params;
-        const nouveauStatut = req.body.statut; // Ex: 'En cours', 'Expédiée', 'Livrée'
-        const idUtilisateurConnecte = req.auth.userId; // La personne qui fait la requête
+        const nouveauStatut = req.body.statut;
+        const idUtilisateurConnecte = req.auth.userId;
+        const roleUtilisateur = req.auth?.role;
 
-        
-        const statutNorm = (nouveauStatut || '').toLowerCase();
+        const statutNorm = (nouveauStatut || '').toLowerCase().trim();
+        const estLivreur = roleUtilisateur === 'livreur' || roleUtilisateur === 'admin';
+        const idUtilisateurConnecteString = idUtilisateurConnecte?.toString();
 
-        // 🛑 LE VERROU DE SÉCURITÉ ANTI-TRICHE
-        if (statutNorm === 'livrée' || statutNorm === 'livree' || statutNorm === 'livré' || statutNorm === 'livre') {
-            
-            // On va chercher une commande de ce carton pour voir qui est l'acheteur
+        // Si on veut marquer le colis comme "en cours", seul le vendeur propriétaire peut le faire.
+        if (statutNorm === 'en cours' || statutNorm === 'encours' || statutNorm === 'en-cours') {
+            if (roleUtilisateur !== 'vendeur') {
+                return res.status(403).json({
+                    error: "🛑 Sécurité : Seul le vendeur du colis peut le passer au statut 'en cours'."
+                });
+            }
+
             const commandeTemoin = await Order.findOne({ colisGroupId: colisGroupId });
-            
+
             if (!commandeTemoin) {
                 return res.status(404).json({ error: "Aucun colis correspondant trouvé." });
             }
 
-            console.log("📦 Commande témoin trouvée :", commandeTemoin);
-
-            // On vérifie si l'ID de la personne connectée correspond à l'acheteur du carton
-            if (commandeTemoin.acheteurId.toString() !== idUtilisateurConnecte.toString()) {
-                return res.status(403).json({ 
-                    error: "🛑 Sécurité : Seul le client qui a acheté ce colis peut confirmer sa réception !" 
+            const vendeurIdColis = commandeTemoin.vendeurId;
+            if (!vendeurIdColis || vendeurIdColis.toString() !== idUtilisateurConnecte.toString()) {
+                return res.status(403).json({
+                    error: "🛑 Sécurité : Vous ne pouvez modifier que les colis dont vous êtes le vendeur."
                 });
             }
         }
 
-        // 🟢 FIN DE LA SÉCURITÉ : Si on arrive ici, soit ce n'est pas un statut "Livré" (c'est le vendeur qui expédie),
-        // soit c'est bien l'acheteur qui a validé la réception. On peut mettre à jour !
-        
-        
-        const result = await Order.updateMany(
-            { colisGroupId: colisGroupId },
-            { $set: { statut: nouveauStatut } }
-        );
+        // Si on veut marquer le colis comme "prise en charge", seul le livreur peut le faire.
+        if (statutNorm === 'prise en charge' || statutNorm === 'prise-en-charge' || statutNorm === 'priseencharge') {
+            if (!estLivreur) {
+                return res.status(403).json({
+                    error: "🛑 Sécurité : Seul un livreur peut passer un colis au statut 'prise en charge'."
+                });
+            }
+        }
 
-        if (result.matchedCount === 0) {
+        // Si on veut marquer le colis comme "échec de livraison", seul le livreur peut le faire.
+        if (statutNorm === 'echec de livraison' || statutNorm === 'échec de livraison' || statutNorm === 'echecdelivraison' || statutNorm === 'échecdelivraison') {
+            if (!estLivreur) {
+                return res.status(403).json({
+                    error: "🛑 Sécurité : Seul un livreur peut passer un colis au statut 'échec de livraison'."
+                });
+            }
+        }
+
+        // Si on veut marquer le colis comme livré, seul le livreur peut le faire.
+        if (statutNorm === 'livrée' || statutNorm === 'livree' || statutNorm === 'livré' || statutNorm === 'livre') {
+            if (!estLivreur) {
+                return res.status(403).json({
+                    error: "🛑 Sécurité : Seul un livreur peut passer un colis au statut 'livrée'."
+                });
+            }
+        }
+
+        // Si on veut marquer le colis comme reçu, seul l'acheteur peut le faire.
+        if (statutNorm === 'reçue' || statutNorm === 'recue') {
+            const commandeTemoin = await Order.findOne({ colisGroupId: colisGroupId });
+
+            if (!commandeTemoin) {
+                return res.status(404).json({ error: "Aucun colis correspondant trouvé." });
+            }
+
+            if (commandeTemoin.acheteurId.toString() !== idUtilisateurConnecte.toString()) {
+                return res.status(403).json({
+                    error: "🛑 Sécurité : Seul le client qui a acheté ce colis peut confirmer sa réception !"
+                });
+            }
+        }
+
+        // Si le livreur a saisi un motif depuis la modale, on le transmet
+        // vers le document Expedition pour l'enregistrer dans le champ notesLivreur.
+        const notesLivreur = (req.body?.notesLivreur || '').toString().trim();
+
+        // On démarre une transaction pour rendre toute la séquence de prise en charge
+        // complètement atomique : ni deux livreurs ne peuvent finir avec le même colis,
+        // ni une mise à jour partielle ne peut laisser le groupe dans un état incohérent.
+        session.startTransaction();
+
+        // 1. On récupère le groupe complet de commandes concernées dans la même transaction.
+        const commandesDuColis = await Order.find({ colisGroupId: colisGroupId }).session(session).lean();
+
+        if (!commandesDuColis.length) {
+            await session.abortTransaction();
+            session.endSession();
             return res.status(404).json({ error: "Aucun colis correspondant trouvé." });
         }
 
+        const expedition = await Expedition.findOne({ colisGroupId: colisGroupId }).session(session);
+        const statutPriseEnCharge = statutNorm === 'prise en charge' || statutNorm === 'prise-en-charge' || statutNorm === 'priseencharge';
+        const statutLivree = statutNorm === 'livrée' || statutNorm === 'livree' || statutNorm === 'livré' || statutNorm === 'livre';
+        const statutEchec = statutNorm === 'echec de livraison' || statutNorm === 'échec de livraison' || statutNorm === 'echecdelivraison' || statutNorm === 'échecdelivraison';
+
+        // 2. Si on veut prendre en charge le colis, on vérifie que personne d'autre ne l'a déjà réservé.
+        // Le test porte sur les commandes elles-mêmes et sur le document Expedition pour éviter toute divergence.
+        if (statutPriseEnCharge) {
+            const livreurDejaAffectue = expedition?.livreur?.toString();// On récupère l'ID du livreur déjà affecté à l'expédition, s'il existe.
+            const autreLivreurADejaAssigné = Boolean(livreurDejaAffectue && livreurDejaAffectue !== idUtilisateurConnecteString);// On vérifie si un autre livreur a déjà été assigné à l'expédition.
+            const ordreDejaReserveParUnAutreLivreur = commandesDuColis.some(commande =>// On vérifie si une commande du colis a déjà été assignée à un autre livreur.
+                commande.livreurAssignationId && commande.livreurAssignationId.toString() !== idUtilisateurConnecteString// On compare l'ID du livreur assigné à la commande avec l'ID du livreur actuellement connecté.
+            );
+
+            if (autreLivreurADejaAssigné || ordreDejaReserveParUnAutreLivreur) {//si un autre livreur a déjà été assigné à l'expédition ou si une commande du colis a déjà été assignée à un autre livreur, on bloque la prise en charge.
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(409).json({ error: "Ce colis a déjà été attribué à un autre livreur." });
+            }
+        }
+
+        // 3. Si le livreur veut finir la livraison ou marquer un échec, on s'assure qu'il est bien
+        // l'unique propriétaire de la réservation du colis. Sinon, on bloque l'action.
+        if (statutLivree || statutEchec) {
+            const livreurDejaAffectue = expedition?.livreur?.toString();// On récupère l'ID du livreur déjà affecté à l'expédition, s'il existe.
+            const estAssigneAuBonLivreur = Boolean(livreurDejaAffectue && livreurDejaAffectue === idUtilisateurConnecteString);
+            const ordreEstAssigneAuBonLivreur = commandesDuColis.every(commande =>
+                !commande.livreurAssignationId || commande.livreurAssignationId.toString() === idUtilisateurConnecteString
+            );
+
+            if (!estAssigneAuBonLivreur || !ordreEstAssigneAuBonLivreur) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(409).json({ error: "Ce colis n’est plus attribué à votre compte." });
+            }
+        }
+
+        // 4. On prépare la mise à jour. Le statut change toujours, et la réservation n'est ajoutée
+        // que lors de la prise en charge pour empêcher toute double attribution.
+        const payloadMiseAJourCommande = {
+            statut: nouveauStatut
+        };
+
+        if (statutPriseEnCharge) {
+            payloadMiseAJourCommande.livreurAssignationId = idUtilisateurConnecte;
+        }
+
+        // 5. On applique la mise à jour de manière atomique sur toutes les lignes du groupe de colis.
+        // Le filtre empêche une seconde requête d'écraser la réservation d'une autre.
+        const result = await Order.updateMany(
+            {
+                colisGroupId: colisGroupId,
+                $or: [
+                    { livreurAssignationId: null },
+                    { livreurAssignationId: idUtilisateurConnecte }
+                ]
+            },
+            { $set: payloadMiseAJourCommande },
+            { session }
+        );
+
+        // 6. Si aucune ligne n'a été réellement modifiée, c'est qu'un autre livreur a déjà pris le groupe.
+        if (statutPriseEnCharge && (result.matchedCount === 0 || result.modifiedCount === 0)) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(409).json({ error: "Ce colis a déjà été attribué à un autre livreur." });
+        }
+
+        // 7. Après la mise à jour du statut sur les commandes, on synchronise aussi l'expédition.
+        // Cela garantit que le modèle Expedition reflète exactement l'état du workflow livraison.
+        await synchroniserExpeditionDepuisColis({
+            colisGroupId,
+            statutCommande: nouveauStatut,
+            livreurId: estLivreur ? idUtilisateurConnecte : null,
+            notesLivreur: notesLivreur || null,
+            session
+        });
+
+        await session.commitTransaction();
+        session.endSession();
+
         res.status(200).json({ message: `Le colis complet est passé au statut : ${nouveauStatut} !` });
     } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
         res.status(400).json({ error: error.message });
     }
 };
 
 
 // =========================================================================
-// 4. ANCIENNE FONCTION DE STATUT UNIQUE (Gardée intacte pour tes boutons au cas par cas)
+// 4. ANCIENNE FONCTION DE STATUT UNIQUE (Gardée intacte pour mes boutons au cas par cas)
 // =========================================================================
 const updateStatut = async (req, res, next) => {
     try {
         const nouveauStatut = req.body.statut;
         const idUtilisateurConnecte = req.auth.userId; // La personne qui clique actuellement
+        const roleUtilisateur = req.auth?.role; // Le rôle de la personne qui clique actuellement
 
-        const statutNorm = (nouveauStatut || '').toLowerCase();
+        const statutNorm = (nouveauStatut || '').toLowerCase().trim();
+        const estLivreur = roleUtilisateur === 'livreur' || roleUtilisateur === 'admin';
+
+        // 🛑 LE VERROU DE SÉCURITÉ ANTI-TRICHE POUR "EN COURS"
+        if (statutNorm === 'en cours' || statutNorm === 'encours' || statutNorm === 'en-cours') {
+            if (roleUtilisateur !== 'vendeur') {
+                return res.status(403).json({
+                    error: "🛑 Sécurité : Seul le vendeur de cette commande peut la passer au statut 'en cours'."
+                });
+            }
+
+            const commande = await Order.findOne({ _id: req.params.id });
+            if (!commande) {
+                return res.status(404).json({ error: "Commande introuvable." });
+            }
+
+            const vendeurIdCommande = commande.vendeurId;
+            if (!vendeurIdCommande || vendeurIdCommande.toString() !== idUtilisateurConnecte.toString()) {
+                return res.status(403).json({
+                    error: "🛑 Sécurité : Vous ne pouvez modifier que les commandes dont vous êtes le vendeur."
+                });
+            }
+        }
+
+        // 🛑 LE VERROU DE SÉCURITÉ ANTI-TRICHE POUR LA PRISE EN CHARGE
+        if (statutNorm === 'prise en charge' || statutNorm === 'prise-en-charge' || statutNorm === 'priseencharge') {
+            if (!estLivreur) {
+                return res.status(403).json({
+                    error: "🛑 Sécurité : Seul un livreur peut passer une commande au statut 'prise en charge'."
+                });
+            }
+        }
+
+        // 🛑 LE VERROU DE SÉCURITÉ ANTI-TRICHE POUR L'ÉCHEC DE LIVRAISON
+        if (statutNorm === 'echec de livraison' || statutNorm === 'échec de livraison' || statutNorm === 'echecdelivraison' || statutNorm === 'échecdelivraison') {
+            if (!estLivreur) {
+                return res.status(403).json({
+                    error: "🛑 Sécurité : Seul un livreur peut passer une commande au statut 'échec de livraison'."
+                });
+            }
+        }
 
         // 🛑 LE VERROU DE SÉCURITÉ ANTI-TRICHE
         if (statutNorm === 'livrée' || statutNorm === 'livree' || statutNorm === 'livré' || statutNorm === 'livre') {
-            
+            if (!estLivreur) {
+                return res.status(403).json({
+                    error: "🛑 Sécurité : Seul un livreur peut passer une commande au statut 'livrée'."
+                });
+            }
+        }
+
+        // 🛑 LE VERROU DE SÉCURITÉ ANTI-TRICHE POUR LA RÉCEPTION
+        if (statutNorm === 'reçue' || statutNorm === 'recue') {
             // On va chercher LA commande en question pour vérifier l'identité de l'acheteur
             const commande = await Order.findOne({ _id: req.params.id });
-            
+
             if (!commande) {
                 return res.status(404).json({ error: "Commande introuvable." });
             }
 
             // On vérifie si l'ID de la personne connectée correspond à l'acheteur
-            // ⚠️ Remplace 'userId' par le nom exact de ton champ acheteur dans ton modèle si besoin
             if (commande.acheteurId.toString() !== idUtilisateurConnecte.toString()) {
-                return res.status(403).json({ 
-                    error: "🛑 Sécurité : Seul le client qui a acheté cet article peut confirmer sa réception !" 
+                return res.status(403).json({
+                    error: "🛑 Sécurité : Seul le client qui a acheté cet article peut confirmer sa réception !"
                 });
             }
         }
@@ -271,6 +635,19 @@ const updateStatut = async (req, res, next) => {
 
         if (result.matchedCount === 0) {
             return res.status(404).json({ error: "Commande introuvable." });
+        }
+
+        // Même logique sur la route de statut par commande unique : on synchronise l'expédition
+        // pour conserver une vue cohérente du workflow de livraison.
+        const commandePourExpedition = await Order.findOne({ _id: req.params.id });
+        const notesLivreur = (req.body?.notesLivreur || '').toString().trim();
+        if (commandePourExpedition?.colisGroupId) {
+            await synchroniserExpeditionDepuisColis({
+                colisGroupId: commandePourExpedition.colisGroupId,
+                statutCommande: nouveauStatut,
+                livreurId: estLivreur ? idUtilisateurConnecte : null,
+                notesLivreur: notesLivreur || null
+            });
         }
 
         res.status(200).json({ message: `Statut mis à jour : ${nouveauStatut} !` });

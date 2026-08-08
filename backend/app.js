@@ -6,6 +6,9 @@ const Thing = require('./models/Thing');
 const productsroutes = require('./routes/products');// Importer les routes des produits
 const userroutes = require('./routes/user');// Importer les routes client d'authentification
 const orderroutes = require('./routes/order');// Importer les routes des commandes
+const livreurroutes = require('./routes/livreurroute'); // Routes pour les livreurs
+
+
 
 const cors = require('cors');
 app.use(cors());
@@ -30,6 +33,11 @@ app.use('/api/auth', userroutes);
 
 // Middleware pour gérer les routes des commandes
 app.use('/api/orders', orderroutes);
+
+// Middleware pour gérer les routes spécifiques aux livreurs
+app.use('/api/livreur', livreurroutes);
+
+
 
 console.log("Routes d'authentification chargées !");
 
