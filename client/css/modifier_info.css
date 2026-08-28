@@ -54,6 +54,30 @@
             gap: 1rem;
         }
 
+        /* Le titre et la description occupent toute la largeur du bloc vendeur. */
+        .boutique-fields {
+            margin-top: 1.5rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid rgba(19, 34, 56, 0.1);
+        }
+
+        .boutique-title,
+        .field-full {
+            grid-column: 1 / -1;
+        }
+
+        .boutique-title h3 {
+            margin: 0;
+            color: #132238;
+            font-size: 1.2rem;
+        }
+
+        .boutique-title p {
+            margin: 0.35rem 0 0;
+            color: #6a7280;
+            font-size: 0.92rem;
+        }
+
         .field {
             display: flex;
             flex-direction: column;
@@ -66,7 +90,9 @@
             font-weight: 700;
         }
 
-        .field input {
+        .field input,
+        .field textarea,
+        .field select {
             width: 100%;
             padding: 0.95rem 1rem;
             border-radius: 14px;
@@ -78,7 +104,31 @@
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .field input:focus {
+        .field textarea {
+            min-height: 120px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        /* La zone GPS utilise le même style que les autres contrôles du formulaire. */
+        .localisation-field {
+            align-items: flex-start;
+        }
+
+        .localisation-field .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        #geoStatus {
+            color: #6a7280;
+            font-size: 0.9rem;
+        }
+
+        .field input:focus,
+        .field textarea:focus,
+        .field select:focus {
             border-color: rgba(233, 169, 74, 0.9);
             box-shadow: 0 0 0 4px rgba(233, 169, 74, 0.18);
         }

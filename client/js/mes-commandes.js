@@ -2,6 +2,12 @@
 // 🎛️ VARIABLES GLOBALES & NAVIGATION
 // =========================================================================
 let filtreActuel = 'en-cours';
+// Clé utilisée pour conserver les commandes historiques déjà consultées dans le navigateur.
+const CLE_HISTORIQUE_LU = 'mes-commandes-historique-lu';
+// Liste locale des commandes chargées afin de pouvoir marquer l'historique comme lu au clic.
+let commandesAcheteur = [];
+// Statuts qui doivent apparaître dans l'onglet historique.
+const STATUTS_HISTORIQUES = ['annulee', 'annulee par acheteur', 'recue', 'livree'];
 
 // Lancement automatique dès que la page HTML est prête
 document.addEventListener('DOMContentLoaded', chargerMesAchats);
@@ -15,6 +21,60 @@ function normaliserStatut(statut = '') {
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .trim();
+}
+
+// Récupère les identifiants historiques déjà consultés sans interrompre la page si le stockage est invalide.
+function obtenirHistoriqueLu() {
+    // Protège la lecture du stockage contre une valeur JSON corrompue.
+    try {
+        // Convertit la liste persistée en tableau exploitable.
+        const historiqueLu = JSON.parse(localStorage.getItem(CLE_HISTORIQUE_LU) || '[]');
+        // Retourne uniquement un tableau pour garantir un traitement fiable.
+        return Array.isArray(historiqueLu) ? historiqueLu : [];
+    // Utilise une liste vide si le navigateur refuse l'accès au stockage.
+    } catch (err) {
+        // Signale le problème sans bloquer l'affichage des commandes.
+        console.warn('Impossible de lire les commandes historiques déjà consultées.', err);
+        // Retourne une liste vide en cas d'erreur de lecture.
+        return [];
+    }
+}
+
+// Indique si une commande appartient à l'historique affiché par l'onglet.
+function estCommandeHistorique(commande) {
+    // Normalise le statut afin de gérer notamment « livrée » et « livree ».
+    return STATUTS_HISTORIQUES.includes(normaliserStatut(commande.statut));
+}
+
+// Actualise le badge historique avec le nombre de commandes historiques non consultées.
+function mettreAJourCompteurHistorique(commandes) {
+    // Récupère les identifiants déjà marqués comme lus.
+    const historiqueLu = obtenirHistoriqueLu();
+    // Conserve uniquement les commandes historiques qui ne sont pas encore lues.
+    const commandesNonLues = commandes.filter(commande => estCommandeHistorique(commande) && !historiqueLu.includes(commande._id));
+    // Recherche le badge de l'onglet historique.
+    const badgeHistorique = document.getElementById('compteur-historique');
+    // Met à jour le badge uniquement s'il existe dans la page.
+    if (badgeHistorique) {
+        // Affiche le nombre non lu lorsqu'il est supérieur à zéro.
+        badgeHistorique.textContent = commandesNonLues.length;
+        // Masque le badge lorsqu'il n'y a aucun élément historique non lu.
+        badgeHistorique.style.display = commandesNonLues.length > 0 ? 'inline-block' : 'none';
+    }
+}
+
+// Marque toutes les commandes historiques actuellement chargées comme consultées.
+function marquerHistoriqueCommeLu() {
+    // Récupère les identifiants déjà enregistrés comme lus.
+    const historiqueLu = obtenirHistoriqueLu();
+    // Ajoute les identifiants des commandes historiques visibles dans les données chargées.
+    const nouveauxIdsLus = commandesAcheteur.filter(estCommandeHistorique).map(commande => commande._id);
+    // Supprime les doublons pour garder un stockage compact.
+    const historiqueMisAJour = [...new Set([...historiqueLu, ...nouveauxIdsLus])];
+    // Enregistre la nouvelle liste pour conserver l'état de lecture après rechargement.
+    localStorage.setItem(CLE_HISTORIQUE_LU, JSON.stringify(historiqueMisAJour));
+    // Remet immédiatement le badge à zéro après l'ouverture de l'onglet.
+    mettreAJourCompteurHistorique(commandesAcheteur);
 }
 
 // =========================================================================
@@ -35,6 +95,8 @@ async function chargerMesAchats() {
         if (!response.ok) throw new Error("Impossible de charger vos commandes");
 
         const commandes = await response.json();
+        // Conserve les commandes chargées pour le compteur et la lecture de l'historique.
+        commandesAcheteur = commandes;
         const container = document.getElementById('liste-achats');
         container.innerHTML = '';
 
@@ -68,6 +130,12 @@ async function chargerMesAchats() {
         Object.values(colisRegroupes).forEach(colis => {
             let articlesHtml = '';
 
+            // Recherche le code OTP associé à un article de ce colis pris en charge.
+            const codeOtpColis = colis.articles.find(article => normaliserStatut(article.statut) === 'prise en charge' && article.codeOtp)?.codeOtp || '';
+
+            // Prépare l'affichage unique du code OTP sous le bouton de facture.
+            const affichageOtpColis = codeOtpColis ? `<span style="display: block; margin-top: 8px; font-weight: 700; color: #2b6cb0;">Code OTP : ${codeOtpColis}</span>` : '';
+
             colis.articles.forEach(article => {
                 const produit = article.produitId || {};
                 const statutNormalise = (article.statut || '').toLowerCase();
@@ -80,16 +148,15 @@ async function chargerMesAchats() {
                 else if (statutNormalise === 'livrée' || statutNormalise === 'livree') messageSuivi = '✅ Article reçu. Merci !';
                 else if (statutNormalise === 'annulée par acheteur' || statutNormalise === 'annulee par acheteur') messageSuivi = '❌ Vous avez annulé cet article.';
                 else if (statutNormalise === 'annulée' || statutNormalise === 'annulee') messageSuivi = '❌ Le vendeur a annulé cet article.';
+                else if (statutNormalise === 'attribuéealivreur' || statutNormalise === 'ATTRIBUÉEALIVREUR') messageSuivi = '🚚 Article attribué à un livreur.';
+                else if (statutNormalise === 'prise en charge' || statutNormalise === 'PRISE EN CHARGE') messageSuivi = '📦 Le transporteur a pris en charge votre colis.';
+                else if (statutNormalise === 'reçue' || statutNormalise === 'recue') messageSuivi = 'vous avez confimer la reception du colis.';
+               else if (statutNormalise === 'echec de livraison' || statutNormalise === 'echec de livraison') messageSuivi = 'la livraison a echouer.';
                 else messageSuivi = 'ℹ️ Statut inconnu.';
 
                 // Bouton individuel d'annulation (si l'article est toujours en attente)
                 const boutonAnnuler = statutNormalise === 'en attente' 
                     ? `<button class="btn-annuler" onclick="annulerCommande('${article._id}')">❌ Annuler</button>` 
-                    : '';
-
-                // Bouton individuel de confirmation de réception (si l'article est livré)
-                const boutonValider = (statutNormalise === 'livrée' || statutNormalise === 'livree')
-                    ? `<button class="btn-valider-reception" onclick="validerReception('${article._id}')">🛬 Confirmer la réception</button>`
                     : '';
 
                 // Génération de la rangée de l'article avec son propre Badge de Statut autonome
@@ -108,7 +175,6 @@ async function chargerMesAchats() {
                         </div>
                         <div class="article-actions" style="display: flex; flex-direction: column; gap: 5px;">
                             ${boutonAnnuler}
-                            ${boutonValider}
                         </div>
                     </div>
                 `;
@@ -130,6 +196,8 @@ async function chargerMesAchats() {
                         </div>
                         <div>
                             ${boutonFacture}
+                            <!-- Affiche une seule fois le code OTP du colis sous le bouton de facture. -->
+                            ${affichageOtpColis}
                         </div>
                     </div>
                     <div class="colis-articles-list" style="padding: 20px 20px 5px 20px;">
@@ -162,6 +230,11 @@ async function chargerMesAchats() {
             }
         }
 
+        // Met à jour le badge historique avec les commandes historiques encore non lues.
+        mettreAJourCompteurHistorique(commandes);
+        // Marque automatiquement l'historique comme lu si la page a été ouverte sur cet onglet.
+        if (filtreActuel === 'historique') marquerHistoriqueCommeLu();
+
         // Application immédiate des filtres d'onglets ("En cours" / "Historique")
         appliquerFiltrageAcheteur();
 
@@ -185,13 +258,16 @@ function basculerOnglet(typeOnglet) {
         document.getElementById('onglet-en-cours').classList.add('active');
     } else {
         document.getElementById('onglet-historique').classList.add('active');
+        // Considère les commandes historiques comme lues dès que l'onglet est ouvert.
+        marquerHistoriqueCommeLu();
     }
     appliquerFiltrageAcheteur();
 }
 
 function appliquerFiltrageAcheteur() {
     const lignesArticles = document.querySelectorAll('.article-ligne-achat');
-    const statutsHistoriques = ['annulee', 'annulee par acheteur', 'recue', ];
+    // Réutilise la liste commune afin que les commandes « livrée » soient bien historiques.
+    const statutsHistoriques = STATUTS_HISTORIQUES;
 
     lignesArticles.forEach(ligne => {
         const statutRaw = ligne.getAttribute('data-statut') || '';
@@ -214,7 +290,7 @@ function appliquerFiltrageAcheteur() {
 }
 
 // =========================================================================
-// 🛫 INTERACTIONS BACKEND (Annulation / Validation Réception)
+// 🛫 INTERACTION BACKEND (Annulation)
 // =========================================================================
 async function annulerCommande(commandeId) {
     if (!confirm('⚠️ Êtes-vous sûr de vouloir annuler cette commande ? Cette action est irréversible.')) {
@@ -251,34 +327,6 @@ async function annulerCommande(commandeId) {
     } catch (err) {
         console.error(err);
         alert('❌ ' + err.message);
-    }
-}
-
-async function validerReception(commandeId) {
-    if (!confirm('📬 Confirmez-vous avoir reçu votre colis en bon état ? Cette action va clôturer la commande.')) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}/api/orders/${commandeId}/statut`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({ statut: 'reçue' })
-        });
-
-        if (response.ok) {
-            alert("🎉 Commande validée ! Merci d'avoir partagé la réception.");
-            chargerMesAchats();
-        } else {
-            const errorData = await response.json().catch(() => ({}));
-            alert("Erreur du serveur : " + (errorData.error || "Impossible de valider la réception."));
-        }
-    } catch (err) {
-        console.error(err);
-        alert("Erreur lors de la validation de la commande.");
     }
 }
 

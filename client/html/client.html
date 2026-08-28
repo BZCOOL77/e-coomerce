@@ -34,11 +34,25 @@
                     <span class="cart-count-badge" id="cart-count-badge">0</span>
                 </button>
             </div>
+
+            <!-- Élément caché par défaut -->
+            <div id="bloc-devenir-vendeur" style="display: none;">
+                <button type="button" id="beseller-btn" class="beseller-butn">
+                    🏪 Devenir Vendeur
+                </button>
+            </div>
+
         </header>
+
+
         
 
         <section id="navbarre">
             <nav>
+                <button id="tous-les-produits" class="tous-les-produits">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Accueil</span>
+                </button>
                 <button id="vendeur" class="vendeur">
                     <i class="fa-solid fa-store"></i>
                     <span>Vendeur</span>
@@ -59,6 +73,14 @@
         <div class="search">
             <input type="text" id="search-input" onkeyup="filtrerAvecDebounce()" placeholder="Rechercher des produits...">
             
+        </div>
+        <div class="bouton-categorie">
+            <button onclick="chargerProduits('', event)" class="active">Tous</button>
+            <button onclick="chargerProduits('Électronique', event)">📱 Électronique</button>
+            <button onclick="chargerProduits('Vêtements', event)">👕 Vêtements</button>
+            <button onclick="chargerProduits('Maison', event)">🏠 Maison</button>
+            <button onclick="chargerProduits('Alimentation', event)">💄 Alimentations</button>
+            <button onclick="chargerProduits('Autres', event)">📦 Autres</button>
         </div>
 
         </section>
@@ -116,6 +138,46 @@
                     <span class="info-label"><i class="fa-solid fa-certificate"></i> Statut licence</span>
                     <span class="info-value" id="profil-licence">—</span>
                 </div>
+
+                <!-- Bloc réservé aux vendeurs : ces informations sont affichées en lecture seule. -->
+                <div id="boutique-block" style="display: none;">
+                    <div class="profil-info-item">
+                        <span class="info-label"><i class="fa-solid fa-store"></i> Nom de la boutique</span>
+                        <span class="info-value" id="profil-nom-boutique">—</span>
+                    </div>
+                    <div class="profil-info-item">
+                        <span class="info-label"><i class="fa-solid fa-align-left"></i> Description</span>
+                        <span class="info-value" id="profil-description-boutique">—</span>
+                    </div>
+                    <div class="profil-info-item">
+                        <span class="info-label"><i class="fa-solid fa-tag"></i> Catégorie</span>
+                        <span class="info-value" id="profil-categorie-boutique">—</span>
+                    </div>
+                    <div class="profil-info-item">
+                        <span class="info-label"><i class="fa-solid fa-credit-card"></i> Moyen de paiement</span>
+                        <span class="info-value" id="profil-moyen-paiement">—</span>
+                    </div>
+                    <div class="profil-info-item">
+                        <span class="info-label"><i class="fa-solid fa-city"></i> Commune</span>
+                        <span class="info-value" id="profil-commune-boutique">—</span>
+                    </div>
+                    <div class="profil-info-item">
+                        <span class="info-label"><i class="fa-solid fa-location-dot"></i> Quartier</span>
+                        <span class="info-value" id="profil-quartier-boutique">—</span>
+                    </div>
+                    <div class="profil-info-item">
+                        <span class="info-label"><i class="fa-solid fa-road"></i> Avenue</span>
+                        <span class="info-value" id="profil-avenue-boutique">—</span>
+                    </div>
+                    <div class="profil-info-item">
+                        <span class="info-label"><i class="fa-solid fa-hashtag"></i> Numéro d'adresse</span>
+                        <span class="info-value" id="profil-numero-adresse-boutique">—</span>
+                    </div>
+                    <div class="profil-info-item">
+                        <span class="info-label"><i class="fa-solid fa-phone"></i> Téléphone</span>
+                        <span class="info-value" id="profil-telephone-boutique">—</span>
+                    </div>
+                </div>
             </div>
 
             <div class="profil-error" id="profil-error" role="status" aria-live="polite" hidden></div>
@@ -137,6 +199,9 @@
         </div>
     </div>
 </div>
+
+
+
 
 <!-- LE JS POUR LE MODALE DU PROFIL UTILISATEUR -->
 <script>
@@ -183,6 +248,7 @@ async function ouvrirProfil() {
 
     if (!token) {
         alert("Oups ! Vous devez être connecté pour voir votre profil. 🔑");
+        window.location.href = 'connexion.html'; // Redirection vers la page de connexion
         return;
     }
 
@@ -258,6 +324,7 @@ async function ouvrirProfil() {
 
         const licenceBlock = document.getElementById('licence-block');
         const licenceElement = document.getElementById('profil-licence');
+        const boutiqueBlock = document.getElementById('boutique-block');
         if (user.role === 'vendeur') {
             if (licenceBlock) licenceBlock.style.display = 'flex';
             if (licenceElement) {
@@ -269,8 +336,32 @@ async function ouvrirProfil() {
                     licenceElement.className = 'info-value statut-inactif';
                 }
             }
+
+            // Remplissage des informations de boutique, sans champ de saisie pour garantir la lecture seule.
+            const boutiqueData = user.boutique || {};
+
+            const informationsBoutique = {
+                'profil-nom-boutique': boutiqueData.nomBoutique,
+                'profil-description-boutique': boutiqueData.descriptionBoutique,
+                'profil-categorie-boutique': boutiqueData.categorieBoutique,
+                'profil-moyen-paiement': boutiqueData.moyenPaiement,
+                'profil-commune-boutique': boutiqueData.communeBoutique,
+                'profil-quartier-boutique': boutiqueData.quartierBoutique,
+                'profil-avenue-boutique': boutiqueData.avenueBoutique,
+                'profil-numero-adresse-boutique': boutiqueData.numeroadresseBoutique,
+                'profil-telephone-boutique': boutiqueData.telephoneBoutique
+            };
+
+            Object.entries(informationsBoutique).forEach(([identifiant, valeur]) => {
+                const element = document.getElementById(identifiant);
+                if (element) element.textContent = valeur || 'Non renseigné';
+            });
+
+            // Le bloc devient transparent pour que ses lignes utilisent la grille et l'espacement de la modale.
+            if (boutiqueBlock) boutiqueBlock.style.display = 'contents';
         } else {
             if (licenceBlock) licenceBlock.style.display = 'none';
+            if (boutiqueBlock) boutiqueBlock.style.display = 'none';
         }
 
         // affichage
@@ -312,7 +403,13 @@ function fermerProfil() {
     }
 }
 
+
+
+
+
 </script>
+
+
     
     </body>
 </html>

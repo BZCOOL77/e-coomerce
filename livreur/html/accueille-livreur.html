@@ -369,6 +369,48 @@
     margin-bottom: 12px;
   }
 
+  .otp-livraison-form {
+    display: none;
+    margin-top: 10px;
+    padding: 12px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+  }
+
+  .otp-livraison-form label {
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+  }
+
+  .otp-livraison-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #93c5fd;
+    border-radius: 8px;
+    font-size: 1rem;
+    letter-spacing: 0.12em;
+  }
+
+  .otp-livraison-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .otp-livraison-actions button {
+    flex: 1;
+    margin-top: 0;
+  }
+
+  .btn-annuler-otp {
+    background-color: #6b7280;
+  }
+
+  .btn-annuler-otp:hover {
+    background-color: #4b5563;
+  }
+
   .modal-actions {
     display: flex;
     justify-content: flex-end;
@@ -586,29 +628,13 @@
 
       try {
         // Requête vers l’API pour récupérer les commandes expédiées
-        const response = await fetch(`${CONFIG.API_BASE_URL}/api/livreur/expediees`, {
+        const data = await requestJson(`${CONFIG.API_BASE_URL}/api/livreur/expediees`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
             Authorization: token
           }
-        });
-
-        // Lecture du corps de réponse en texte pour gérer les réponses JSON ou non
-        let data = null;
-        const responseText = await response.text();
-
-        try {
-          data = responseText ? JSON.parse(responseText) : null;
-        } catch (parseError) {
-          console.error('Réponse non JSON reçue du serveur :', responseText);
-          throw new Error('Le serveur a renvoyé une réponse inattendue. Vérifiez que l’API backend est bien lancée et que la route /api/livreur/expediees est disponible.');
-        }
-
-        // Si la réponse HTTP n’est pas correcte, on lève une erreur
-        if (!response.ok) {
-          throw new Error(data?.error || data?.message || 'Erreur de chargement');
-        }
+        }, 'Erreur de chargement des commandes.');
 
         // On récupère la liste des commandes et l’état renvoyé par l’API.
         const commandesList = Array.isArray(data.commandes) ? data.commandes : [];
@@ -724,6 +750,21 @@
         commandes: items,
         quantiteTotale: items.reduce((total, item) => total + (item.quantite || 1), 0),
         adresseLivraison: items[0]?.adresseLivraison || null,
+        // On récupère l'adresse de la boutique envoyée par le backend pour le retrait du colis.
+        adresseRecuperation: items[0]?.adresseRecuperation || null,
+        // On conserve les coordonnées de la boutique pour la navigation vers le retrait.
+        longitudeRecuperation: items[0]?.longitudeRecuperation
+          ?? items[0]?.adresseRecuperation?.longitude
+          ?? items[0]?.vendeurId?.boutique?.longitudeBoutique
+          ?? null,
+        latitudeRecuperation: items[0]?.latitudeRecuperation
+          ?? items[0]?.adresseRecuperation?.latitude
+          ?? items[0]?.vendeurId?.boutique?.latitudeBoutique
+          ?? null,
+        // On conserve la latitude de l'adresse de livraison pour la navigation du livreur.
+        latitude: items[0]?.latitude ?? items[0]?.adresseLivraison?.latitude ?? null,
+        // On conserve la longitude de l'adresse de livraison pour la navigation du livreur.
+        longitude: items[0]?.longitude ?? items[0]?.adresseLivraison?.longitude ?? null,
         acheteur: items[0]?.acheteurId || {},
         vendeur: items[0]?.vendeurId || {},
         statut: items[0]?.statut || 'expédiée'
@@ -740,6 +781,55 @@
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+    }
+
+    // Convertit deux valeurs en coordonnées utilisables par Google Maps.
+    function createCoordinates(latitudeValue, longitudeValue) {
+      const latitudeProvided = latitudeValue !== null
+        && latitudeValue !== undefined
+        && String(latitudeValue).trim() !== '';
+      const longitudeProvided = longitudeValue !== null
+        && longitudeValue !== undefined
+        && String(longitudeValue).trim() !== '';
+      const latitude = Number(latitudeValue);
+      const longitude = Number(longitudeValue);
+
+      if (!latitudeProvided || !longitudeProvided
+        || !Number.isFinite(latitude) || !Number.isFinite(longitude)
+        || latitude < -90 || latitude > 90
+        || longitude < -180 || longitude > 180) {
+        return null;
+      }
+
+      return { latitude, longitude };
+    }
+
+    // Construit un itinéraire Google Maps à partir de coordonnées valides.
+    function createMapsDirectionsUrl(coordinates) {
+      if (!coordinates) {
+        return '';
+      }
+
+      return `https://www.google.com/maps/dir/?api=1&destination=${coordinates.latitude},${coordinates.longitude}`;
+    }
+
+    // Centralise les requêtes JSON et transforme les erreurs API en messages lisibles.
+    async function requestJson(url, options, fallbackMessage = 'La requête a échoué.') {
+      const response = await fetch(url, options);
+      const responseText = await response.text();
+      let data = null;
+
+      try {
+        data = responseText ? JSON.parse(responseText) : null;
+      } catch (error) {
+        throw new Error(fallbackMessage);
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.error || data?.message || fallbackMessage);
+      }
+
+      return data;
     }
 
     function formatAdresseLivraison(adresse) {
@@ -769,6 +859,22 @@
       const vendeurNom = escapeHtml(`${vendeur.prenom || ''} ${vendeur.nom || ''}`.trim() || 'Vendeur inconnu');
 
       const adresseText = escapeHtml(formatAdresseLivraison(groupe.adresseLivraison));
+      // On normalise le statut pour afficher l'adresse de retrait uniquement au moment de l'attribution.
+      const statutNorm = String(groupe.statut || '').toLowerCase().trim();
+      // On vérifie que le colis est attribué avant de préparer l'adresse de la boutique.
+      const estAttribueAuLivreur = statutNorm === 'attribuéealivreur' || statutNorm === 'attribuealivreur';
+      // On formate l'adresse boutique reçue sans modifier l'adresse de livraison du client.
+      const adresseRecuperationText = estAttribueAuLivreur && groupe.adresseRecuperation
+        ? escapeHtml(formatAdresseLivraison(groupe.adresseRecuperation))
+        : '';
+      // Les deux adresses utilisent la même validation avant d'afficher un itinéraire.
+      const coordonneesLivraison = createCoordinates(groupe.latitude, groupe.longitude);
+      const coordonneesRecuperation = createCoordinates(
+        groupe.latitudeRecuperation,
+        groupe.longitudeRecuperation
+      );
+      const lienGoogleMaps = createMapsDirectionsUrl(coordonneesLivraison);
+      const lienGoogleMapsRecuperation = createMapsDirectionsUrl(coordonneesRecuperation);
       const telephoneClient = groupe.adresseLivraison?.telephone || groupe.commandes?.[0]?.adresseLivraison?.telephone || '';
 
       // Calcul du montant total TTC du groupe
@@ -780,7 +886,6 @@
       const montantAffiche = totalAmount > 0 ? `${totalAmount.toFixed(2)} €` : 'Non défini';
       const statutBrut = String(groupe.statut || 'expédiée');
       const statut = escapeHtml(statutBrut);
-      const statutNorm = statutBrut.toLowerCase().trim();
       const estPrisEnCharge = statutNorm === 'prise en charge' || statutNorm === 'prise-en-charge' || statutNorm === 'priseencharge';
       const displayId = escapeHtml(groupe.groupeKey || '---');
       const actionLabel = estPrisEnCharge ? 'Marquer comme Livrée' : 'Prendre en charge';
@@ -824,13 +929,42 @@
               <strong><i class="fas fa-map-marker-alt"></i> Adresse de livraison :</strong><br>${adresseText}
             </div>
 
+            ${adresseRecuperationText ? `
+              <div class="adresse-box">
+                <strong><i class="fas fa-store"></i> Adresse de récupération chez le vendeur :</strong><br>${adresseRecuperationText}
+                ${coordonneesRecuperation ? `
+                  <button class="btn-appeler" type="button" onclick="window.open('${lienGoogleMapsRecuperation}', '_blank', 'noopener,noreferrer')">
+                    <i class="fas fa-map-marked-alt"></i> Itinéraire vers le vendeur
+                  </button>
+                ` : ''}
+              </div>
+            ` : ''}
+
+            ${coordonneesLivraison ? `
+              <button class="btn-appeler" type="button" onclick="window.open('${lienGoogleMaps}', '_blank', 'noopener,noreferrer')">
+                <i class="fas fa-map-marked-alt"></i> Ouvrir l'itinéraire
+              </button>
+            ` : ''}
+
             ${telephoneClient ? `<button class="btn-appeler" type="button" onclick="window.location.href='tel:${encodeURIComponent(telephoneClient)}'"><i class="fas fa-phone-alt"></i> Appeler client</button>` : ''}
 
             ${estPrisEnCharge ? `
               <div style="display:flex; flex-direction:column; gap:8px;">
-                <button class="btn-livrer" type="button" onclick="marquerCommeLivree('${safeActionId}')">
+                <button class="btn-livrer" type="button" onclick="afficherFormulaireOtp('${safeActionId}')">
                   <i class="fas fa-check-circle"></i> Marquer comme Livrée
                 </button>
+                <div class="otp-livraison-form" id="otp-form-${safeActionId}">
+                  <label for="otp-input-${safeActionId}">Code OTP de livraison :</label>
+                  <input class="otp-livraison-input" id="otp-input-${safeActionId}" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="Saisissez le code OTP" maxlength="12">
+                  <div class="otp-livraison-actions">
+                    <button class="btn-livrer" type="button" onclick="confirmerLivraisonAvecOtp('${safeActionId}')">
+                      <i class="fas fa-check-circle"></i> Confirmer
+                    </button>
+                    <button class="btn-livrer btn-annuler-otp" type="button" onclick="masquerFormulaireOtp('${safeActionId}')">
+                      Annuler
+                    </button>
+                  </div>
+                </div>
                 <button class="btn-livrer" type="button" onclick="ouvrirModalEchecLivraison('${safeActionId}')" style="background-color: var(--danger);">
                   <i class="fas fa-times-circle"></i> Échec de livraison
                 </button>
@@ -846,6 +980,18 @@
     // =========================
     // MISE À JOUR DU STATUT DU COLIS
     // =========================
+    // Envoie un nouveau statut au backend et retourne sa réponse.
+    async function updateColisStatus(groupId, payload) {
+      return requestJson(`${CONFIG.API_BASE_URL}/api/orders/colis/${encodeURIComponent(groupId)}/statut`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: getAuthToken()
+        },
+        body: JSON.stringify(payload)
+      }, 'Impossible de mettre à jour le statut du colis.');
+    }
+
     async function prendreEnCharge(groupId) {
       const token = getAuthToken();
 
@@ -857,28 +1003,7 @@
       if (!confirm('Confirmez que vous prenez en charge ce colis ?')) return;
 
       try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}/api/orders/colis/${encodeURIComponent(groupId)}/statut`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: token
-          },
-          body: JSON.stringify({ statut: 'prise en charge' })
-        });
-
-        let result = null;
-        const responseText = await response.text();
-
-        try {
-          result = responseText ? JSON.parse(responseText) : null;
-        } catch (parseError) {
-          console.error('Réponse non JSON au changement de statut :', responseText);
-          throw new Error('Le serveur a renvoyé une réponse inattendue lors de la mise à jour du statut.');
-        }
-
-        if (!response.ok) {
-          throw new Error(result?.error || result?.message || 'Impossible de prendre en charge le colis');
-        }
+        await updateColisStatus(groupId, { statut: 'prise en charge' });
 
         alert('Statut mis à jour en prise en charge');
         fetchCommandesExpediees();
@@ -888,7 +1013,49 @@
       }
     }
 
-    async function marquerCommeLivree(groupId) {
+    function afficherFormulaireOtp(groupId) {
+      const form = document.getElementById(`otp-form-${groupId}`);
+      const input = document.getElementById(`otp-input-${groupId}`);
+
+      if (!form || !input) {
+        return;
+      }
+
+      form.style.display = 'block';
+      input.focus();
+    }
+
+    function masquerFormulaireOtp(groupId) {
+      const form = document.getElementById(`otp-form-${groupId}`);
+      const input = document.getElementById(`otp-input-${groupId}`);
+
+      if (form) {
+        form.style.display = 'none';
+      }
+
+      if (input) {
+        input.value = '';
+      }
+    }
+
+    async function confirmerLivraisonAvecOtp(groupId) {
+      const input = document.getElementById(`otp-input-${groupId}`);
+      const otpCode = (input?.value || '').trim();
+
+      if (!otpCode) {
+        alert('Veuillez saisir le code OTP de livraison.');
+        input?.focus();
+        return;
+      }
+
+      if (!confirm('Confirmez la livraison de ce colis ?')) {
+        return;
+      }
+
+      await marquerCommeLivree(groupId, otpCode);
+    }
+
+    async function marquerCommeLivree(groupId, otpCode) {
       const token = getAuthToken();
 
       if (!token || token === 'Bearer ') {
@@ -896,33 +1063,20 @@
         return;
       }
 
-      if (!confirm('Confirmez la livraison de ce colis ?')) return;
+      const codeOtp = (otpCode || '').trim();
+      if (!codeOtp) {
+        alert('Veuillez saisir le code OTP de livraison.');
+        return;
+      }
 
       try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}/api/orders/colis/${encodeURIComponent(groupId)}/statut`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: token
-          },
-          body: JSON.stringify({ statut: 'livrée' })
+        await updateColisStatus(groupId, {
+          statut: 'livrée',
+          otpLivraison: codeOtp
         });
 
-        let result = null;
-        const responseText = await response.text();
-
-        try {
-          result = responseText ? JSON.parse(responseText) : null;
-        } catch (parseError) {
-          console.error('Réponse non JSON au changement de statut :', responseText);
-          throw new Error('Le serveur a renvoyé une réponse inattendue lors de la mise à jour du statut.');
-        }
-
-        if (!response.ok) {
-          throw new Error(result?.error || result?.message || 'Impossible de mettre à jour le statut');
-        }
-
         alert('Statut mis à jour en livré');
+        masquerFormulaireOtp(groupId);
         fetchCommandesExpediees();
       } catch (error) {
         console.error('Erreur mise à jour statut :', error);
@@ -948,31 +1102,10 @@
 
       try {
         // On envoie le statut et le motif choisi pour qu'il soit enregistré dans l'expédition.
-        const response = await fetch(`${CONFIG.API_BASE_URL}/api/orders/colis/${encodeURIComponent(groupId)}/statut`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: token
-          },
-          body: JSON.stringify({
-            statut: 'echec de livraison',
-            notesLivreur: motif
-          })
+        await updateColisStatus(groupId, {
+          statut: 'echec de livraison',
+          notesLivreur: motif
         });
-
-        let result = null;//on récupère la réponse du serveur pour vérifier si la mise à jour a été effectuée avec succès
-        const responseText = await response.text();//
-
-        try {
-          result = responseText ? JSON.parse(responseText) : null;
-        } catch (parseError) {
-          console.error('Réponse non JSON au changement de statut :', responseText);
-          throw new Error('Le serveur a renvoyé une réponse inattendue lors de la mise à jour du statut.');
-        }
-
-        if (!response.ok) {
-          throw new Error(result?.error || result?.message || 'Impossible de marquer l’échec de livraison');
-        }
 
         alert('Statut mis à jour en échec de livraison');
         fetchCommandesExpediees();
@@ -998,19 +1131,13 @@
       }
 
       try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}/api/auth/me`, {
+        const data = await requestJson(`${CONFIG.API_BASE_URL}/api/auth/me`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
             Authorization: token
           }
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data?.error || data?.message || 'Erreur de chargement du profil');
-        }
+        }, 'Erreur de chargement du profil.');
 
         const profilBody = document.getElementById('profil-body');
 

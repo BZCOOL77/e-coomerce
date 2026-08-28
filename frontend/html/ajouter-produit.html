@@ -19,6 +19,16 @@
         <input type="textarea" id="description" placeholder="Description" required></input><br>
         <input type="text" id="image" placeholder="Lien de l'image" required><br>
         <input type="number" id="stock" name="stock" min="1" value="10" placeholder="quantité en stock" required class="form-input"><br>
+        <div class="categorie">
+            <input type="radio" id="categorie1" name="categorie" value="Électronique" required>
+            <label for="categorie1">Électronique</label>
+            <input type="radio" id="categorie2" name="categorie" value="Vêtements">
+            <label for="categorie2">Vêtements</label>
+            <input type="radio" id="categorie3" name="categorie" value="Maison">
+            <label for="categorie3">Maison</label>
+            <input type="radio" id="categorie4" name="categorie" value="Autres">
+            <label for="categorie4">Autres</label>
+        </div>
         
         
         <button type="submit" id="envoyer">Terminer</button>
@@ -53,7 +63,8 @@
                 prix: Number(document.getElementById('prix').value),
                 description: document.getElementById('description').value,
                 image: document.getElementById('image').value,
-                stock: Number(document.getElementById('stock').value)
+                stock: Number(document.getElementById('stock').value),
+                categorie: document.querySelector('input[name="categorie"]:checked').value
             };
 
             try {

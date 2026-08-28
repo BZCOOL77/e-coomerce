@@ -157,6 +157,25 @@
       padding: 24px;
     }
 
+    .articles-list {
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+
+    .articles-list ul {
+      margin: 8px 0 0 18px;
+      padding: 0;
+    }
+
+    .articles-list li {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 4px 0;
+    }
+
     .search-bar {
       margin-bottom: 18px;
       display: flex;
@@ -317,7 +336,7 @@
           return;
         }
 
-        renderHistoryList(commandes);
+        renderHistoryList(grouperCommandesParColis(commandes));
       } catch (error) {
         console.error('Erreur de chargement de l’historique :', error);
         container.innerHTML = `
@@ -348,32 +367,64 @@
     function filterHistory(query) {
       const search = String(query || '').trim().toLowerCase();
       if (!search) {
-        return allCommandes;
+        return grouperCommandesParColis(allCommandes);
       }
 
-      return allCommandes.filter(commande => {
-        const produitNom = String(commande?.produitId?.nom || '').toLowerCase();
-        const clientNom = String(commande?.acheteurId?.nom || '').toLowerCase();
-        const statut = String(commande?.statut || '').toLowerCase();
-        const commune = String(commande?.adresseLivraison?.commune || '').toLowerCase();
-        const quartier = String(commande?.adresseLivraison?.quartier || '').toLowerCase();
-        const avenue = String(commande?.adresseLivraison?.avenue || '').toLowerCase();
-        const numeroParcelle = String(commande?.adresseLivraison?.numeroParcelle || '').toLowerCase();
-        const reference = String(commande?.adresseLivraison?.reference || '').toLowerCase();
-        const adresseBrute = String(commande?.adresseLivraison?.adresse || '').toLowerCase();
+      return grouperCommandesParColis(allCommandes).filter(colis => {
+        const valeursRecherche = [
+          colis.colisGroupId,
+          colis.statut,
+          colis.clientNom,
+          colis.adresse,
+          ...colis.articles.map(article => article.nom)
+        ];
 
-        return [
-          produitNom,
-          clientNom,
-          statut,
-          commune,
-          quartier,
-          avenue,
-          numeroParcelle,
-          reference,
-          adresseBrute
-        ].some(value => value.includes(search));
+        return valeursRecherche.some(value => String(value || '').toLowerCase().includes(search));
       });
+    }
+
+    function grouperCommandesParColis(commandes) {
+      const groupes = new Map();
+
+      commandes.forEach(commande => {
+        const groupeKey = commande?.colisGroupId || commande?._id || commande?.id;
+        if (!groupeKey) return;
+
+        if (!groupes.has(groupeKey)) {
+          groupes.set(groupeKey, {
+            colisGroupId: groupeKey,
+            commandes: [],
+            quantiteTotale: 0,
+            totalTTC: 0,
+            derniereDate: commande.updatedAt || commande.createdAt,
+            statut: commande.statut || 'Inconnu',
+            motifEchec: commande.motifEchec || null, // Conserve le motif d'échec associé au colis.
+            acheteur: commande.acheteurId || {},
+            adresseLivraison: commande.adresseLivraison || null
+          });
+        }
+
+        const colis = groupes.get(groupeKey);
+        colis.commandes.push(commande);
+        if (commande.motifEchec) colis.motifEchec = commande.motifEchec; // Récupère le motif même s'il est présent sur une autre ligne du colis.
+        colis.quantiteTotale += Number(commande.quantite) || 1;
+        colis.totalTTC += Number(commande.totalTTC) || 0;
+
+        const dateCommande = new Date(commande.updatedAt || commande.createdAt);
+        if (dateCommande > new Date(colis.derniereDate)) {
+          colis.derniereDate = commande.updatedAt || commande.createdAt;
+        }
+      });
+
+      return Array.from(groupes.values()).map(colis => ({
+        ...colis,
+        clientNom: `${colis.acheteur.prenom || ''} ${colis.acheteur.nom || ''}`.trim() || 'Client non disponible',
+        adresse: formatAdresseLivraison(colis.adresseLivraison),
+        articles: colis.commandes.map(commande => ({
+          nom: commande?.produitId?.nom || 'Produit non disponible',
+          quantite: Number(commande?.quantite) || 1
+        }))
+      }));
     }
 
     // =========================
@@ -382,16 +433,20 @@
     function renderHistoryItem(commande) {
       const statut = (commande?.statut || 'Inconnu').toString();
       const badgeClass = getBadgeClass(statut);
-      const dateText = formatDate(commande?.updatedAt || commande?.createdAt);
-      const produitNom = commande?.produitId?.nom || 'Produit non disponible';
-      const clientNom = commande?.acheteurId?.nom || 'Client non disponible';
-      const adresse = formatAdresseLivraison(commande?.adresseLivraison);
+      const dateText = formatDate(commande?.derniereDate);
+      const clientNom = commande?.clientNom || 'Client non disponible';
+      const adresse = commande?.adresse || 'Adresse non communiquée';
+      const motifEchec = commande?.motifEchec ? escapeHtml(commande.motifEchec) : ''; // Sécurise le motif avant son insertion dans le HTML.
+      const motifEchecHtml = motifEchec && getBadgeClass(statut) === 'danger' ? `<div class="failure-reason"><strong><i class="fas fa-circle-exclamation"></i> Motif :</strong> ${motifEchec}</div>` : ''; // Affiche le motif uniquement pour un échec de livraison.
+      const articlesHtml = commande.articles.map(article => `
+        <li><span>${escapeHtml(article.nom)}</span><strong>${article.quantite}x</strong></li>
+      `).join('');
 
       return `
         <article class="history-item">
           <div class="history-top">
             <div>
-              <h4>${escapeHtml(produitNom)}</h4>
+              <h4>Colis #${escapeHtml(commande.colisGroupId)}</h4>
               <div class="meta">
                 <span><i class="fas fa-user"></i> ${escapeHtml(clientNom)}</span>
                 <span><i class="fas fa-map-marker-alt"></i> ${escapeHtml(adresse)}</span>
@@ -404,9 +459,16 @@
 
           <div class="meta">
             <span><i class="fas fa-calendar-alt"></i> ${escapeHtml(dateText)}</span>
-            <span><i class="fas fa-box"></i> ${escapeHtml(commande?.quantite || '1')} unité(s)</span>
-            <span><i class="fas fa-money-bill-wave"></i> ${formatPrice(commande?.totalTTC || commande?.prixUnitaire || 0)} FC</span>
+            <span><i class="fas fa-box"></i> ${commande.quantiteTotale} unité(s)</span>
+            <span><i class="fas fa-money-bill-wave"></i> ${formatPrice(commande.totalTTC)} FC</span>
           </div>
+
+          <div class="articles-list">
+            <strong><i class="fas fa-receipt"></i> Contenu du colis :</strong>
+            <ul>${articlesHtml}</ul>
+          </div>
+
+          ${motifEchecHtml}
         </article>
       `;
     }

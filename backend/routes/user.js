@@ -18,4 +18,7 @@ router.put('/me', auth, userctrl.updateProfile);
 // 🎯 ROUTE POUR CHANGER LE MOT DE PASSE DE L'UTILISATEUR
 router.put('/me/password', auth, userctrl.updatePassword);
 
+// 🎯 ROUTE POUR DEVENIR VENDEUR 
+router.put('/me/devenir-vendeur', auth, userctrl.devenirVendeur);
+
 module.exports = router;

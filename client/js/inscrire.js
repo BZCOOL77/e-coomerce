@@ -6,14 +6,13 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
     const prenom = document.getElementById('prenom').value;
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-    const role = document.querySelector('input[name="role"]:checked').value;
+    
 
     const userData = {
         nom: nom,
         prenom: prenom,
         email: email,
-        password: password,
-        role: role
+        password: password
     };
 
     try {

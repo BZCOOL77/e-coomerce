@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>shopy cloth</title>
+        <link rel="stylesheet" href="../css/tobeseller.css">
+        <script src="../js/tobeseller.js" defer></script>
+        <script src="../js/url.js"></script>
+    </head>
+
+    <body>
+        <header>
+            <h1>DEVENIR VENDEUR CHEZ SHOPYCLTOH </h1>
+           
+        </header>
+        <main class="form-contenair">
+            <form method="post">
+                <div class="form-step is-active" data-step="1">
+                    <p class="step-count">ÉTAPE 1 SUR 2</p>
+                    <p class="p1">INFO DE LA BOUTIQUE</p>
+                    <label for="btqname">NOM DE LA BOUTIQUE</label>
+                    <input id="btqname" name="nomBoutique" class="btqname" type="text" placeholder="ex : bz-shop" required>
+                    <label for="description">DESCRIPTION</label>
+                    <textarea id="description" name="descriptionBoutique" class="description" placeholder="ex : vente de chaussures" required></textarea>
+                    <label for="photoBoutique">PHOTO DE LA BOUTIQUE</label>
+                    <input type="text" name="photoBoutique" placeholder="URL de la photo de la boutique" >
+                    
+                    <div class="categorie">
+                        <p class="p2">SÉLECTIONNEZ VOTRE CATÉGORIE</p>
+                        <input type="radio" id="categorie1" name="categorieBoutique" value="Électronique" required>
+                        <label for="categorie1">Électronique</label>
+                        <input type="radio" id="categorie2" name="categorieBoutique" value="Vêtements">
+                        <label for="categorie2">Vêtements</label>
+                        <input type="radio" id="categorie3" name="categorieBoutique" value="Maison">
+                        <label for="categorie3">Maison</label>
+                        <input type="radio" id="categorie4" name="categorieBoutique" value="Autres">
+                        <label for="categorie4">Autres</label>
+                    </div>
+                    <button type="button" class="btn-primary" data-next>Continuer <span aria-hidden="true">→</span></button>
+                </div>
+
+                <div class="form-step" data-step="2" hidden>
+                    <p class="step-count">ÉTAPE 2 SUR 2</p>
+                    <p class="p1">PAIEMENT ET ADRESSE DE COLLECTE</p>
+                    
+                    <p class="section-label">MOYEN DE PAIEMENT</p>
+                    <p class="helper">Choisissez le moyen utilisé pour recevoir les paiements de vos ventes.</p>
+                    <label for="typePaiement">MOYEN DE PAIEMENT PRÉFÉRÉ</label>
+                    <select id="typePaiement" name="typePaiement" required>
+                        <option value="MOBILE_MONEY">Mobile Money (M-Pesa / Airtel / Orange)</option>
+                        <option value="IBAN">Compte bancaire (IBAN / numéro de compte)</option>
+                    </select>
+                    <label id="label-coordonnees" for="coordonneesPaiement">NUMÉRO MOBILE MONEY</label>
+                    <input id="coordonneesPaiement" name="coordonneesPaiement" type="text" inputmode="tel" placeholder="Ex : 0812345678" required>
+                    <p id="payment-error" class="field-error" role="alert" hidden>Veuillez renseigner votre numéro Mobile Money ou votre IBAN.</p>
+
+                    
+                    <p class="section-label address-title">ADRESSE DE RÉCUPÉRATION</p>
+                    <div class="notice">
+                        Ces informations sont indispensables au livreur pour localiser votre boutique et récupérer la marchandise.
+                    </div>
+                    <label for="ville">INDIQUEZ VOTRE VILLE</label>
+                    <select id="ville" name="villeBoutique" required>
+                        <option value="" disabled selected>-- Sélectionnez une ville --</option>
+                        <option value="LUBUMBASHI">Lubumbashi</option>
+                    </select>
+                    <label for="adresse-commune">INDIQUEZ VOTRE COMMUNE</label>
+                    <select id="adresse-commune" name="communeBoutique" required>
+                        <option value="" disabled selected>-- Sélectionnez une commune --</option>
+                        <option value="LUBUMBASHI">Lubumbashi</option>
+                        <option value="KATUBA">Katuba</option>
+                        <option value="KENYA">Kenya</option>
+                        <option value="KAMPEMBA">Kampemba</option>
+                        <option value="ANNEXE">Annexe</option>
+                        <option value="RUASHI">Ruashi</option>
+                        <option value="KAMALONDO">Kamalondo</option>
+                    </select>
+                    <button type="button" id="btnGeoloc" class="btn-secondary">📍 Utiliser ma position GPS exacte</button>
+                    <span id="geoStatus"></span><br>
+                    <label for="quartier">QUARTIER</label>
+                    <input id="quartier" name="quartierBoutique" type="text" placeholder="ex : Golf" required>
+                    <label for="avenue">AVENUE / RUE</label>
+                    <input id="avenue" name="avenueBoutique" type="text" placeholder="ex : Avenue des Écoles" required>
+                    <label for="telephoneBoutique">TÉLÉPHONE</label>
+                    <input type="tel" id="telephoneBoutique" name="telephoneBoutique" placeholder="ex : 0812345678" required>
+                    <div class="address-grid">
+                        <div>
+                            <label for="numero-maison">N° DE MAISON</label>
+                            <input id="numero-maison" name="numeroadresseBoutique" type="text" placeholder="ex : 12" required>
+                        </div>
+                        <div>
+                            <label for="type-lieu">TYPE DE LIEU</label>
+                            <select id="type-lieu" name="typeLocalBoutique" required>
+                                <option value="" disabled selected>Choisir</option>
+                                <option value="boutique">Boutique</option>
+                                <option value="entrepot">Entrepôt</option>
+                                <option value="domicile">Domicile</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="step-actions">
+                        <button type="button" class="btn-secondary" data-previous>← Retour</button>
+                        <button type="submit" class="btn-primary">Créer ma boutique</button>
+                    </div>
+                </div>
+            </form>
+            
+        </main>
+    </body>
+</html>

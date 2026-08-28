@@ -1,13 +1,32 @@
 // On récupère le bouton panier de la barre de navigation ou du header
 const navbarre = document.getElementById('navbarre');
 const header = document.querySelector('header');
+const tousLesProduitsBtn = document.getElementById('tous-les-produits');
+
+if (tousLesProduitsBtn) {
+    const vendeurId = new URLSearchParams(window.location.search).get('vendeurId');
+    tousLesProduitsBtn.style.display = vendeurId ? '' : 'none';
+}
+
+//devenir vendeur
+const besellerBtn = document.getElementById('beseller-btn');
+if (besellerBtn) {
+    besellerBtn.addEventListener('click', () => {
+        // Redirection vers la page tobeseller.html
+        window.location.href = '../html/tobeseller.html';
+    });
+}
 
 function gererNavigationPrincipale(event) {
+    const tousLesProduitsBtn = event.target.closest('.tous-les-produits');
     const vendeurBtn = event.target.closest('.vendeur');
     const mescommandesBtn = event.target.closest('.mescommandes');
     const adminBtn = event.target.closest('.adminBtn');
     const panierBtn = event.target.closest('.panier');
 
+    if (tousLesProduitsBtn) {
+        window.location.href = '../html/client.html';
+    }
     if (panierBtn) {
         // Redirection vers la page panier.html
         window.location.href = '../html/panier.html';
@@ -95,20 +114,48 @@ function hideLoading() {
     if(overlay) overlay.style.display = 'none';
 }
 
-// 1. Fonction pour CHARGER les produits depuis le serveur
-async function chargerProduits() {
+// 1. Fonction pour CHARGER les produits depuis le serveur (gère désormais le filtre par catégorie)
+async function chargerProduits(categorie = '', event = null) {
     showLoading(); 
 
-    // 1. On analyse l'URL actuelle à la recherche de '?vendeurId=...'
+    // -------------------------------------------------------------
+    // GESTION DU STYLE DU BOUTON ACTIF
+    // -------------------------------------------------------------
+    const tousLesBoutons = document.querySelectorAll('.bouton-categorie button');
+
+    if (event && event.currentTarget) {
+        // Clic utilisateur : on nettoie tout et on active le bouton cliqué
+        tousLesBoutons.forEach(btn => btn.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+    } else if (!document.querySelector('.bouton-categorie button.active')) {
+        // Chargement initial (pas de clic) : on s'assure que "Tous" est actif si aucun ne l'est
+        if (tousLesBoutons.length > 0) {
+            tousLesBoutons[0].classList.add('active');
+        }
+    }// FIN DE LA GESTION DU STYLE DU BOUTON ACTIF
+
+    // 1. On analyse l'URL actuelle du navigateur à la recherche de '?vendeurId=...'
     const urlParams = new URLSearchParams(window.location.search);
     const vendeurId = urlParams.get('vendeurId');
 
-    // 2. On prépare l'URL de notre API backend
-    // Si vendeurId existe, on l'ajoute à l'URL du fetch, sinon on garde l'URL normale
-    let urlAPI = `${CONFIG.API_BASE_URL}/api/products`;
+    // 2. On prépare l'objet URLSearchParams pour construire une URL propre et sans erreurs
+    const queryParams = new URLSearchParams();
+
+    // 3. Si un vendeurId est présent dans la page, on l'ajoute aux paramètres de requête
     if (vendeurId) {
-        urlAPI += `?vendeurId=${vendeurId}`;
+        queryParams.append('vendeurId', vendeurId);
     }
+
+    // 4. Si une catégorie est transmise à la fonction, on l'ajoute également aux paramètres
+    if (categorie) {
+        queryParams.append('categorie', categorie);
+    }
+
+    // 5. On prépare l'URL finale de notre API backend
+    // Si des paramètres existent, toString() les formate automatiquement (ex: ?vendeurId=123&categorie=Electronique)
+    const queryString = queryParams.toString();
+    const urlAPI = `${CONFIG.API_BASE_URL}/api/products${queryString ? `?${queryString}` : ''}`;
+
     try {
         const response = await fetch(urlAPI);
 
@@ -120,8 +167,6 @@ async function chargerProduits() {
         // LE PONT : On appelle la fonction d'affichage en lui passant les données
         afficherProduits(produits); 
 
-        
-
     } catch (error) {
         console.error("Erreur lors du chargement :", error);
         alert("Vérifiez que le Backend est lancé !");
@@ -129,6 +174,7 @@ async function chargerProduits() {
         hideLoading(); 
     }
 }
+
 
 // 2. Fonction pour AFFICHER les produits (utilisée par le chargement ET la recherche)
 function afficherProduits(produits) {
@@ -138,7 +184,7 @@ function afficherProduits(produits) {
     container.innerHTML = ''; // On vide pour repartir à zéro
 
     if (produits.length === 0) {
-            container.innerHTML = "<p style='color: white;'>Ce vendeur n'a aucun produit en vente pour le moment.</p>";
+            container.innerHTML = "<p style='color: black;'>Ce vendeur n'a aucun produit en vente pour le moment.</p>";
             return;
         }
 
@@ -183,9 +229,8 @@ function afficherProduits(produits) {
     });
 }
 
-
-// On lance tout au chargement de la page
-window.onload = chargerProduits;
+// Lance le chargement automatique de tous les produits au démarrage de la page
+document.addEventListener('DOMContentLoaded', () => chargerProduits());
 
 /**
  * SECTION : GESTION DU PANIER 
@@ -294,18 +339,44 @@ function filtrerAvecDebounce() {
 }//FIN DE LA FONCTION POUR LA BARRE DE RECHERCHE 
 
 
-//l'ecouteur pour voir si vendeur ou si client
- document.addEventListener('DOMContentLoaded', () => {
-    const role = localStorage.getItem('role');
+function afficherInterfaceSelonRole(role) {
     const adminBtn = document.getElementById('adminBtn');
+    const blocVendeur = document.getElementById('bloc-devenir-vendeur');
+    const roleNormalise = (role || '').trim().toLowerCase();
 
-    if (adminBtn) {
-        if (role === 'vendeur') {
-            // 1. On le rend visible
-            adminBtn.style.display = 'block'; 
-        } else {
-            // Un client ne doit même pas voir que ce bouton existe dans le DOM
-            adminBtn.remove(); 
+    if (roleNormalise === 'vendeur') {
+        if (adminBtn) adminBtn.style.display = 'flex';
+        if (blocVendeur) blocVendeur.style.display = 'none';
+        return;
+    }
+
+    if (adminBtn) adminBtn.style.display = 'none';
+    if (blocVendeur) {
+        blocVendeur.style.display = roleNormalise === 'acheteur' ? 'block' : 'none';
+    }
+}
+
+// Afficher les bons boutons selon le rôle enregistré puis confirmer le rôle côté serveur.
+document.addEventListener('DOMContentLoaded', async () => {
+    afficherInterfaceSelonRole(localStorage.getItem('role'));
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/auth/me`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) return;
+
+        const user = await response.json();
+        if (user.role) {
+            localStorage.setItem('role', user.role);
+            afficherInterfaceSelonRole(user.role);
         }
+    } catch (error) {
+        console.error('Impossible de synchroniser le rôle utilisateur :', error);
     }
 });
+

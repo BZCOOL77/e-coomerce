@@ -80,7 +80,7 @@ body {
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 8px;                  /* Espace entre l'émoji 📥 et le texte */
+    gap: 8px;                  /* Espace entre l'icône et le texte */
     transition: all 0.2s ease-in-out;
     box-shadow: 0 2px 4px rgba(26, 54, 93, 0.1);
 }
@@ -218,31 +218,6 @@ main {
     padding: 0.65rem 0.9rem;
     cursor: pointer;
     font-size: 0.95rem;
-}
-
-.filter-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.65rem;
-    justify-content: flex-end;
-}
-
-.filter-pill {
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    background: #f8fafc;
-    color: #475569;
-    border-radius: 999px;
-    padding: 0.65rem 1rem;
-    cursor: pointer;
-    font-weight: 600;
-    transition: all 0.2s ease;
-}
-
-.filter-pill.active,
-.filter-pill:hover {
-    background: #eff6ff;
-    border-color: #93c5fd;
-    color: #1d4ed8;
 }
 
 /* ===== Conteneur des Commandes ===== */
@@ -664,14 +639,6 @@ main {
 
     .search-box input {
         width: 100%;
-    }
-
-    .filter-group {
-        justify-content: flex-start;
-    }
-
-    .filter-pill {
-        padding: 0.55rem 0.95rem;
     }
 
     .ligne-commande {

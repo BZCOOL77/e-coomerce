@@ -114,6 +114,8 @@ h1 {
 form {
     position: relative;
     z-index: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .form-group {
@@ -209,6 +211,7 @@ input[type="password"]::placeholder {
 }
 
 #submit-btn {
+    align-self: stretch;
     width: 100%;
     padding: 16px;
     background: linear-gradient(135deg, #132238, #23416d);

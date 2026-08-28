@@ -13,11 +13,9 @@ exports.inscrire = (req, res, next) => {
             password: hash,// on enregistre le mot de passe hashé pour la sécurité
             nom: req.body.nom,
             prenom: req.body.prenom,
-            role: req.body.role, // "client" ou "vendeur" récupéré le ton <select> du formulaire d'inscription
+            role: 'acheteur', //on force le rôle à "acheteur" pour tous les nouveaux inscrits, même si le frontend envoie autre chose
         
-            //  forcer ces valeurs au départ pour être sûr
-            isLicenseActive: false, 
-            dateFinLicence: null
+           
             });
             user.save()
             .then(() => res.status(201).json({
@@ -76,7 +74,7 @@ exports.sedeconnecter = (req, res, next) => {};
 
 exports.getAllVendeurs = (req, res, next) => {
     // On cherche tous les utilisateurs ayant le rôle 'vendeur'
-    User.find({ role: 'vendeur' }, 'nom email') // On ne sélectionne que le nom et l'email
+    User.find({ role: 'vendeur' }, 'nom email boutique') // On renvoie aussi les informations de la boutique
         .then(vendeurs => res.status(200).json(vendeurs))
         .catch(error => res.status(400).json({ error }));
 };
@@ -104,99 +102,138 @@ exports.getProfile = async (req, res, next) => {
 
 
 
-//FONCTION POUR CHANGER LES INFOS DU PROFILE UTILISATEUR (nom, prenom, email) ET ENREGISTRER L'HISTORIQUE DES MODIFICATIONS
+// FONCTION POUR CHANGER LES INFOS DU PROFIL UTILISATEUR (nom, prenom, email, boutique) ET ENREGISTRER L'HISTORIQUE
 exports.updateProfile = async (req, res) => {
     try {
         const userId = req.auth.userId; // ID sécurisé via le token JWT
-        // Le frontend peut envoyer le prénom, le nom, ou l'email (ou les trois !)
-        const { prenom, nom, email } = req.body; 
-        const allowedFields = ["prenom", "nom", "email"];
-        const requestedFields = Object.keys(req.body).filter((key) => allowedFields.includes(key));
-        const hasRequestedFields = requestedFields.length > 0;
 
-        // 1. On va chercher l'utilisateur actuel en BDD
+        // 1. Chercher l'utilisateur actuel en BDD
         const currentUser = await User.findById(userId);
         if (!currentUser) {
             return res.status(404).json({ message: "Utilisateur introuvable !" });
         }
 
-        // 2. Préparation des objets pour l'historique
+        const isVendeur = currentUser.role === 'vendeur';
+
+        // 2. Définition dynamique des champs autorisés selon le rôle
+        const allowedUserFields = ["prenom", "nom", "email"];
+        const allowedBoutiqueFields = isVendeur ? [
+            "nomBoutique", "descriptionBoutique", "categorieBoutique", 
+            "solutionPaiement", "moyenPaiement", "typePaiement", "coordonneesPaiement", "communeBoutique", "quartierBoutique", 
+            "avenueBoutique", "numeroadresseBoutique", "telephoneBoutique",
+            "villeBoutique", "typeLocalBoutique", "latitudeBoutique",
+            "longitudeBoutique", "photoBoutique"
+        ] : [];
+
+        const allowedFields = [...allowedUserFields, ...allowedBoutiqueFields];
+        const requestedFields = Object.keys(req.body).filter((key) => allowedFields.includes(key));
+        const hasRequestedFields = requestedFields.length > 0;
+
+        // 3. Préparation des objets pour l'historique
         const oldValues = {};
         const newValues = {};
         let hasChanges = false;
 
-        // --- ÉTAPE 3 : ANALYSE STRICTE DES CHAMPS ---
+        // --- ANALYSE DES CHAMPS UTILISATEUR DE BASE ---
+        const { prenom, nom, email } = req.body;
 
-        // On vérifie le Prénom (si fourni et différent)
         if (prenom && prenom !== currentUser.prenom) {
             oldValues.prenom = currentUser.prenom;
             newValues.prenom = prenom;
-            currentUser.prenom = prenom; // On prépare la modif en BDD
+            currentUser.prenom = prenom;
             hasChanges = true;
         }
 
-        // On vérifie le Nom (si fourni et différent)
         if (nom && nom !== currentUser.nom) {
             oldValues.nom = currentUser.nom;
             newValues.nom = nom;
-            currentUser.nom = nom; // On prépare la modif en BDD
+            currentUser.nom = nom;
             hasChanges = true;
         }
 
-        // On vérifie l'Email (si fourni et différent)
         if (email && email !== currentUser.email) {
-            // Sécurité : On vérifie si ce nouvel email n'est pas déjà pris par quelqu'un d'autre
             const emailExists = await User.findOne({ email: email });
             if (emailExists) {
-                return res.status(400).json({ error: "Cet adresse email est déjà utilisée par un autre compte ! 🛑" });
+                return res.status(400).json({ error: "Cette adresse email est déjà utilisée par un autre compte ! 🛑" });
             }
-
             oldValues.email = currentUser.email;
             newValues.email = email;
-            currentUser.email = email; // On prépare la modif en BDD
+            currentUser.email = email;
             hasChanges = true;
         }
 
-        // --- ÉTAPE 4 : ENREGISTREMENT ---
+        // --- ANALYSE DES CHAMPS BOUTIQUE (SI VENDEUR) ---
+        if (isVendeur) {
+            // Initialiser l'objet boutique si absurde/vide en BDD
+            if (!currentUser.boutique) {
+                currentUser.boutique = {};
+            }
 
-        if (hasChanges) {
-            // On crée le log d'historique avec le nouveau champ "modifierName"
-            const historyLog = new UserHistory({
-                userId: currentUser._id,
-                modifierId: req.auth.userId,
-                // On utilise les infos fraîches ou actuelles pour le nom du modificateur
-                modifierName: `${currentUser.prenom} ${currentUser.nom}`.trim(),
-                oldValues: oldValues, // Contient uniquement les champs modifiés !
-                newValues: newValues  // Contient uniquement les nouvelles valeurs !
-            });
+            allowedBoutiqueFields.forEach((field) => {
+                if (req.body[field] !== undefined) {// On vérifie que le champ est bien présent dans la requête
+                    let newValue = req.body[field];
 
-            // On sauvegarde le ticket d'historique
-            await historyLog.save();
+                    if (field === 'moyenPaiement' && typeof newValue === 'string') {
+                        newValue = newValue.split(':', 1)[0].trim().toUpperCase();
+                    }
 
-            // On sauvegarde l'utilisateur mis à jour dans la collection 'users'
-            await currentUser.save();
+                    // 🎯 Normalisation pour l'enum commune (majuscules + retrait des espaces)
+                    if (field === 'communeBoutique' && typeof newValue === 'string') {
+                        newValue = newValue.toUpperCase().trim();
+                    }
 
-            return res.status(200).json({ 
-                message: "Profil mis à jour avec succès et historique archivé ! 📑",
-                user: {
-                    prenom: currentUser.prenom,
-                    nom: currentUser.nom,
-                    email: currentUser.email
+                    const oldValue = currentUser.boutique[field] || null;
+
+                    if (newValue !== oldValue) {
+                        oldValues[`boutique.${field}`] = oldValue;
+                        newValues[`boutique.${field}`] = newValue;
+                        currentUser.boutique[field] = newValue;
+                        hasChanges = true;
+                    }
                 }
             });
         }
 
-        // Si l'utilisateur a envoyé des champs, mais qu'ils sont strictement identiques à la version actuelle
+        // --- ÉTAPE 4 : ENREGISTREMENT & LOG ---
+        if (hasChanges) {
+            const historyLog = new UserHistory({
+                userId: currentUser._id,
+                modifierId: req.auth.userId,
+                modifierName: `${currentUser.prenom || ''} ${currentUser.nom || ''}`.trim(),
+                oldValues: oldValues,
+                newValues: newValues
+            });
+
+            await historyLog.save();
+            await currentUser.save();
+
+            // Construction de la réponse propre
+            const responseData = {
+                prenom: currentUser.prenom,
+                nom: currentUser.nom,
+                email: currentUser.email,
+                role: currentUser.role
+            };
+
+            if (isVendeur) {
+                responseData.boutique = currentUser.boutique;
+            }
+
+            return res.status(200).json({ 
+                message: "Profil et boutique mis à jour avec succès ! 📑",
+                user: responseData
+            });
+        }
+
         if (hasRequestedFields) {
             return res.status(400).json({ message: "Aucune modification détectée. Les valeurs envoyées sont identiques à celles déjà enregistrées." });
         }
 
-        // Si aucun champ autorisé n'a été reçu dans la requête
         return res.status(400).json({ message: "Aucune donnée de profil à mettre à jour n'a été fournie." });
 
     } catch (error) {
         console.error("Erreur lors de la mise à jour du profil :", error);
-        res.status(500).json({ error: "Une erreur est survenue lors de la mise à jour." });
+        res.status(500).json({ error: error.message || "Une erreur est survenue lors de la mise à jour." });
     }
 };
 
@@ -272,5 +309,100 @@ exports.updatePassword = async (req, res) => {
     } catch (error) {
         console.error("Erreur changement mot de passe :", error);
         res.status(500).json({ error: "Impossible de modifier le mot de passe." });
+    }
+};
+
+
+// devenir vendeur (Mise à jour PUT)
+exports.devenirVendeur = async (req, res, next) => {
+    try {
+        const userId = req.auth.userId;
+
+        // 1. Extraire les données du body
+        const {
+            nomBoutique,
+            descriptionBoutique,
+            categorieBoutique,
+            moyenPaiement,
+            solutionPaiement,
+            coordonneesPaiement,
+            communeBoutique,
+            quartierBoutique,
+            avenueBoutique,
+            numeroadresseBoutique,
+            telephoneBoutique,
+            villeBoutique,
+            typeLocalBoutique,
+            latitudeBoutique,
+            longitudeBoutique,
+            photoBoutique
+        } = req.body;
+
+        // 🔒 2. Validation "manuelle" AVANT toute modification :
+        // On vérifie que tous les champs requis sont bien transmis dans la requête
+        if (
+            !nomBoutique || !descriptionBoutique || !categorieBoutique || 
+            !moyenPaiement || !communeBoutique || !quartierBoutique || 
+            !avenueBoutique || !numeroadresseBoutique || !telephoneBoutique
+        ) {
+            return res.status(400).json({ 
+                error: "Tous les champs de la boutique sont obligatoires pour devenir vendeur." 
+            });
+        }
+
+        // 3. Récupérer l'utilisateur existant en BDD
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: "Utilisateur non trouvé." });
+        }
+
+        // 4. Mettre à jour son rôle et affecter le sous-objet boutique
+        user.role = 'vendeur';
+        user.boutique = {
+            
+            nomBoutique: String(nomBoutique || '').trim(),
+            descriptionBoutique: String(descriptionBoutique || '').trim(),
+            categorieBoutique: String(categorieBoutique || '').trim(),
+            moyenPaiement: String(moyenPaiement || '').trim(),
+            solutionPaiement: String(solutionPaiement || '').trim(),
+            coordonneesPaiement: String(coordonneesPaiement || '').trim(),
+            villeBoutique: String(villeBoutique || '').trim().toUpperCase(),
+            communeBoutique: String(communeBoutique || '').trim().toUpperCase(),
+            quartierBoutique: String(quartierBoutique || '').trim(),
+            avenueBoutique: String(avenueBoutique || '').trim(),
+            numeroadresseBoutique: String(numeroadresseBoutique || '').trim(),
+            telephoneBoutique: String(telephoneBoutique || '').trim(),
+            typeLocalBoutique: String(typeLocalBoutique || '').trim(),
+            latitudeBoutique: latitudeBoutique !== undefined ? Number(latitudeBoutique) : null,// On convertit en Number si défini, sinon null
+            longitudeBoutique: longitudeBoutique !== undefined ? Number(longitudeBoutique) : null,
+            photoBoutique: String(photoBoutique || '').trim()
+            
+        };
+
+        console.log("Données reçues :", req.body);
+
+        // Traces temporaires pour vérifier si le blocage se produit pendant la sauvegarde MongoDB.
+        console.log('Début sauvegarde vendeur :', user._id);
+        await user.save();
+        console.log('Sauvegarde vendeur terminée :', user._id);
+
+        // 6. Générer le nouveau Token JWT rafraîchi avec role: 'vendeur'
+        const token = jwt.sign(
+            { userId: user._id, role: user.role },
+            process.env.JWT_SECRET || 'RANDOM_TOKEN_SECRET',
+            { expiresIn: '24h' }
+        );
+
+        // 7. Renvoyer la réponse
+        return res.status(200).json({
+            message: 'Félicitations ! Vous êtes maintenant un vendeur sur notre plateforme ! 🎉',
+            userId: user._id,
+            role: user.role,
+            token: token
+        });
+
+    } catch (error) {
+        console.error("Erreur devenir vendeur :", error);
+        return res.status(500).json({ error: error.message || "Impossible de devenir vendeur." });
     }
 };

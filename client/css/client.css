@@ -5,6 +5,18 @@
     box-sizing: border-box;
 }
 
+.beseller-butn {
+    padding: 0.65rem 1.2rem;
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #132238, #1f3d63);
+    color: #ffffff;
+    font-size: 0.92rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.22s ease, box-shadow 0.22s ease, opacity 0.22s ease;
+}
+
 :root {
     --bg: #f5f1ea;
     --bg-soft: #fbf8f4;
@@ -187,6 +199,26 @@ header,
 .btn-profile-hero {
     background: linear-gradient(135deg, #e9a94a, #c8851f);
     color: #fff;
+}
+
+/* Style de base des boutons de catégorie */
+.bouton-categorie button {
+    padding: 8px 16px;
+    border: 1px solid #ccc;
+    background-color: #f8f9fa;
+    color: #333;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+/* Style lorsque la catégorie est SELECTIONNÉE (active) */
+.bouton-categorie button.active {
+    background-color: #007bff; /* Couleur principale */
+    color: white;
+    border-color: #007bff;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.4);
 }
 
 .header-panier {

@@ -8,10 +8,12 @@
    
 </head>
 <body>
-    <p id="retour-acueil"><a class="client-return-link" href="../html/client.html">Retour à l'accueil</a></p>
+    
     <header>
         <h1>Shopy-Cloths</h1>
         <h2>Découvrez nos boutiques partenaires</h2>
+        <button id="refresh-vendeurs" class="btn-refresh">🔄 Actualiser la liste</button>
+        <p id="retour-acueil"><a class="client-return-link" href="../html/client.html">Retour à l'accueil</a></p>
     </header>
 
     <main>
@@ -41,9 +43,14 @@
         vendeurs.forEach(vendeur => {
             // On génère une carte pour chaque vendeur
             // Au clic, on envoie le client vers client.html avec l'ID du vendeur en paramètre URL
+            const photoBoutique = vendeur.boutique?.photoBoutique?.trim();
+            const imageParDefaut = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="600" height="360" viewBox="0 0 600 360"%3E%3Crect width="600" height="360" fill="%23eee"/%3E%3Ctext x="300" y="190" text-anchor="middle" font-family="Arial" font-size="28" fill="%23666"%3EBoutique%3C/text%3E%3C/svg%3E';
+            const imageBoutique = photoBoutique || imageParDefaut;
+
             container.innerHTML += `
                 <div class="vendeur-card">
-                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">🏪</div>
+                    <img class="photo-boutique" src="${imageBoutique}" alt="Photo de la boutique ${vendeur.boutique?.nomBoutique || vendeur.nom}" onerror="this.src='${imageParDefaut}'; this.onerror=null;">
+                    <h3>${vendeur.boutique?.nomBoutique || 'Boutique non renseignée'}</h3>
                     <h3>${vendeur.nom}</h3>
                     <p style="color: #666; font-size: 0.9rem;">${vendeur.email}</p>
                     <a href="client.html?vendeurId=${vendeur._id}" class="btn-voir-boutique">
@@ -62,6 +69,9 @@
 
 // Lancement au chargement du DOM
 document.addEventListener('DOMContentLoaded', chargerLesVendeurs);
+
+// Gestion du bouton d'actualisation
+document.getElementById('refresh-vendeurs').addEventListener('click', chargerLesVendeurs);
     </script>
 </body>
 </html>

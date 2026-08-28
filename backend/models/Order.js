@@ -20,7 +20,7 @@ const orderSchema = mongoose.Schema({
     quantite: { type: Number, default: 1 },
     statut: { 
         type: String, 
-        enum: ['en attente', 'En cours', 'expédiée','attribuéeAlivreur','prise en charge', 'livrée','reçue','echec de livraison', 'annulée', 'annulée par acheteur'], 
+        enum: ['en attente', 'En cours', 'expédiée','attribuéeAlivreur','prise en charge', 'livrée','echec de livraison', 'annulée', 'annulée par acheteur'], 
         default: 'en attente' 
     },
 
@@ -45,6 +45,9 @@ const orderSchema = mongoose.Schema({
         latitude: { type: Number, default: null },       // Ex: -4.3275
         longitude: { type: Number, default: null }
     },
+
+    //CODE OTP DE LIVRAISON POUR CONFIRMER LA LIVRAISON
+    codeOtp: { type: String, default: null },
 
 
 

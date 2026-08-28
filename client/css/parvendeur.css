@@ -87,6 +87,16 @@ main {
     box-shadow: 0 16px 34px rgba(19, 34, 56, 0.14);
 }
 
+.photo-boutique {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 14px;
+    display: block;
+    margin-bottom: 0.75rem;
+    background: #eee;
+}
+
 .vendeur-card h3 {
     margin: 0.5rem 0 0.25rem 0;
     font-size: 1.25rem;

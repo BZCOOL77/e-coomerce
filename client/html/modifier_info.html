@@ -45,6 +45,117 @@
                     </div>
                 </div>
 
+                <!-- Ces champs sont affichés uniquement pour un vendeur et restent modifiables depuis cette page. -->
+                <div id="boutique-fields" class="form-grid boutique-fields" hidden>
+                    <div class="boutique-title">
+                        <h3>Informations de la boutique</h3>
+                        <p>Modifiez les informations utilisées pour votre boutique.</p>
+                    </div>
+
+                    <div class="field">
+                        <label for="nomBoutique">Nom de la boutique</label>
+                        <input id="nomBoutique" name="nomBoutique" type="text" placeholder="Entrez le nom de votre boutique">
+                    </div>
+
+                    <div class="field field-full">
+                        <label for="descriptionBoutique">Description de la boutique</label>
+                        <textarea id="descriptionBoutique" name="descriptionBoutique" placeholder="Décrivez votre boutique"></textarea>
+                    </div>
+
+                    <div class="field">
+                        <label for="categorieBoutique">Catégorie de la boutique</label>
+                        <select id="categorieBoutique" name="categorieBoutique">
+                            <option value="" disabled>Choisissez une catégorie</option>
+                            <option value="Électronique">Électronique</option>
+                            <option value="Vêtements">Vêtements</option>
+                            <option value="Maison">Maison</option>
+                            <option value="Autres">Autres</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label for="villeBoutique">Ville</label>
+                        <select id="villeBoutique" name="villeBoutique">
+                            <option value="" disabled>Choisissez une ville</option>
+                            <option value="LUBUMBASHI">Lubumbashi</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label for="typePaiement">Moyen de paiement préféré</label>
+                        <select id="typePaiement" name="typePaiement">
+                            <option value="MOBILE_MONEY">Mobile Money (M-Pesa / Airtel / Orange)</option>
+                            <option value="IBAN">Compte bancaire (IBAN / numéro de compte)</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label id="label-coordonnees" for="coordonneesPaiement">Numéro Mobile Money</label>
+                        <input id="coordonneesPaiement" name="coordonneesPaiement" type="text" inputmode="tel" placeholder="Ex : 0812345678">
+                    </div>
+
+                    <div class="field">
+                        <label for="telephoneBoutique">Téléphone de la boutique</label>
+                        <input id="telephoneBoutique" name="telephoneBoutique" type="tel" inputmode="tel" placeholder="Ex : +243 81 234 5678">
+                    </div>
+
+                    <div class="field">
+                        <label for="communeBoutique">Commune</label>
+                        <select id="communeBoutique" name="communeBoutique">
+                            <option value="" disabled>Choisissez une commune</option>
+                            <option value="LUBUMBASHI">Lubumbashi</option>
+                            <option value="KATUBA">Katuba</option>
+                            <option value="KENYA">Kenya</option>
+                            <option value="KAMPEMBA">Kampemba</option>
+                            <option value="ANNEXE">Annexe</option>
+                            <option value="RUASHI">Ruashi</option>
+                            <option value="KAMALONDO">Kamalondo</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label for="quartierBoutique">Quartier</label>
+                        <input id="quartierBoutique" name="quartierBoutique" type="text" placeholder="Entrez le quartier">
+                    </div>
+
+                    <div class="field">
+                        <label for="avenueBoutique">Avenue / rue</label>
+                        <input id="avenueBoutique" name="avenueBoutique" type="text" placeholder="Entrez l'avenue ou la rue">
+                    </div>
+
+                    <div class="field">
+                        <label for="numeroadresseBoutique">Numéro d'adresse</label>
+                        <input id="numeroadresseBoutique" name="numeroadresseBoutique" type="text" placeholder="Ex : 12">
+                    </div>
+
+                    <div class="field">
+                        <label for="typeLocalBoutique">Type de local</label>
+                        <select id="typeLocalBoutique" name="typeLocalBoutique">
+                            <option value="" disabled>Choisissez un type</option>
+                            <option value="boutique">Boutique</option>
+                            <option value="entrepot">Entrepôt</option>
+                            <option value="domicile">Domicile</option>
+                        </select>
+                    </div>
+
+                    <div class="field field-full">
+                        <label for="photoBoutique">Photo de la boutique (URL)</label>
+                        <input id="photoBoutique" name="photoBoutique" type="url" placeholder="https://exemple.com/photo.jpg">
+                    </div>
+
+                    <!-- Les coordonnées sont conservées dans des champs cachés et mises à jour par le bouton GPS. -->
+                    <div class="field field-full localisation-field">
+                        <label>Localisation GPS</label>
+                        <button type="button" id="btnGeoloc" class="btn-secondary">
+                            <i class="fa-solid fa-location-crosshairs"></i> Capturer ma position GPS
+                        </button>
+                        <span id="geoStatus" role="status" aria-live="polite"></span>
+                        <input id="latitudeBoutique" name="latitudeBoutique" type="hidden">
+                        <input id="longitudeBoutique" name="longitudeBoutique" type="hidden">
+                    </div>
+
+                </div>
+
                 <div id="message" class="message" aria-live="polite"></div>
 
                 <div class="actions">
@@ -61,6 +172,11 @@
         const form = document.getElementById('modifierForm');
         const message = document.getElementById('message');
         const token = localStorage.getItem('token');
+        // Ce rôle est renseigné après le chargement du profil pour contrôler l'affichage et le payload vendeur.
+        let roleUtilisateur = '';
+        // Ces variables gardent la dernière position GPS capturée pendant la modification.
+        let latitudeBoutique = null;
+        let longitudeBoutique = null;
 
         function showMessage(text, type = 'success') {
             message.textContent = text;
@@ -71,6 +187,79 @@
             if (overlay) overlay.style.display = isLoading ? 'block' : 'none';
             if (loader) loader.style.display = isLoading ? 'block' : 'none';
         }
+
+        function gererChangementPaiement(type) {
+            const isIban = type === 'IBAN';
+            document.getElementById('label-coordonnees').textContent = isIban
+                ? 'Numéro de compte / IBAN'
+                : 'Numéro Mobile Money';
+            document.getElementById('coordonneesPaiement').placeholder = isIban
+                ? 'Ex : CD59 1234 5678 9012...'
+                : 'Ex : 0812345678';
+            document.getElementById('coordonneesPaiement').inputMode = isIban ? 'text' : 'tel';
+        }
+
+        // Lecture des nouvelles propriétés, avec compatibilité pour les anciens comptes.
+        function extraireMoyensPaiement(boutiqueData) {
+            // Les coordonnées modernes sont la source principale, même si le type est absent.
+            if (boutiqueData.coordonneesPaiement !== undefined && boutiqueData.coordonneesPaiement !== null) {
+                const typePaiement = boutiqueData.typePaiement === 'IBAN' ? 'IBAN' : 'MOBILE_MONEY';
+                return {
+                    typePaiement,
+                    coordonneesPaiement: String(boutiqueData.coordonneesPaiement).trim()
+                };
+            }
+
+            const moyenPaiement = boutiqueData.moyenPaiement || '';
+            if (boutiqueData.telephoneBoutique || boutiqueData.ibanBoutique) {
+                return {
+                    typePaiement: boutiqueData.telephoneBoutique ? 'MOBILE_MONEY' : 'IBAN',
+                    coordonneesPaiement: boutiqueData.telephoneBoutique || boutiqueData.ibanBoutique
+                };
+            }
+            const paiement = moyenPaiement || '';
+            const mobileMoneyMatch = paiement.match(/Mobile Money:\s*(.*?)(?=\s*\|\s*IBAN:|$)/i);
+            const ibanMatch = paiement.match(/IBAN:\s*(.*)$/i);
+
+            return {
+                typePaiement: mobileMoneyMatch ? 'MOBILE_MONEY' : 'IBAN',
+                coordonneesPaiement: mobileMoneyMatch
+                    ? mobileMoneyMatch[1].trim()
+                    : (ibanMatch ? ibanMatch[1].trim() : '')
+            };
+        }
+
+        document.getElementById('typePaiement').addEventListener('change', (event) => {
+            gererChangementPaiement(event.target.value);
+        });
+
+        // Demander la position uniquement après une action explicite du vendeur.
+        document.getElementById('btnGeoloc').addEventListener('click', () => {
+            const status = document.getElementById('geoStatus');
+
+            if (!navigator.geolocation) {
+                status.textContent = "La géolocalisation n'est pas supportée par votre navigateur.";
+                return;
+            }
+
+            status.textContent = 'Recherche de votre position...';
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    latitudeBoutique = position.coords.latitude;
+                    longitudeBoutique = position.coords.longitude;
+                    document.getElementById('latitudeBoutique').value = latitudeBoutique;
+                    document.getElementById('longitudeBoutique').value = longitudeBoutique;
+                    status.textContent = `Position capturée ! (${latitudeBoutique.toFixed(4)}, ${longitudeBoutique.toFixed(4)})`;
+                    status.style.color = '#28a745';
+                },
+                (error) => {
+                    console.error('Erreur de géolocalisation', error);
+                    status.textContent = 'Position indisponible. Vous pouvez continuer sans GPS.';
+                    status.style.color = '#b42318';
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        });
 
         document.getElementById('cancelBtn').addEventListener('click', () => {
             window.location.href = 'client.html';
@@ -96,9 +285,55 @@
                 }
 
                 const user = await response.json();
+                roleUtilisateur = user.role || '';
                 document.getElementById('nom').value = user.nom || '';
                 document.getElementById('prenom').value = user.prenom || '';
                 document.getElementById('email').value = user.email || '';
+
+                // Les données de boutique peuvent être regroupées dans user.boutique selon la réponse de l'API.
+                if (roleUtilisateur === 'vendeur') {
+                    const boutiqueFields = document.getElementById('boutique-fields');
+                    const boutiqueData = user.boutique || user;
+                    const paiementData = extraireMoyensPaiement(boutiqueData);
+                    const champsBoutique = [
+                        'nomBoutique',
+                        'descriptionBoutique',
+                        'categorieBoutique',
+                        'villeBoutique',
+                        'communeBoutique',
+                        'quartierBoutique',
+                        'avenueBoutique',
+                        'numeroadresseBoutique',
+                        'typeLocalBoutique',
+                        'photoBoutique'
+                    ];
+
+                    champsBoutique.forEach((nomChamp) => {
+                        const champ = document.getElementById(nomChamp);
+                        if (champ) {
+                            champ.value = boutiqueData[nomChamp] || '';
+                            // Les champs sont obligatoires uniquement pour un vendeur, jamais pour un client.
+                            champ.required = nomChamp !== 'photoBoutique';
+                        }
+                    });
+
+                    document.getElementById('typePaiement').value = paiementData.typePaiement;
+                    document.getElementById('coordonneesPaiement').value = paiementData.coordonneesPaiement;
+                    document.getElementById('telephoneBoutique').value = boutiqueData.telephoneBoutique || '';
+                    gererChangementPaiement(paiementData.typePaiement);
+
+                    // Préserver les coordonnées existantes et les afficher dans les champs cachés.
+                    latitudeBoutique = boutiqueData.latitudeBoutique ?? null;
+                    longitudeBoutique = boutiqueData.longitudeBoutique ?? null;
+                    document.getElementById('latitudeBoutique').value = latitudeBoutique ?? '';
+                    document.getElementById('longitudeBoutique').value = longitudeBoutique ?? '';
+                    if (latitudeBoutique !== null && longitudeBoutique !== null) {
+                        document.getElementById('geoStatus').textContent = `Position enregistrée (${Number(latitudeBoutique).toFixed(4)}, ${Number(longitudeBoutique).toFixed(4)})`;
+                    }
+
+                    // Le bloc est révélé seulement après avoir confirmé que l'utilisateur est vendeur.
+                    if (boutiqueFields) boutiqueFields.hidden = false;
+                }
             } catch (error) {
                 showMessage(error.message || 'Erreur lors du chargement du profil.', 'error');
             } finally {
@@ -115,6 +350,41 @@
                 prenom: document.getElementById('prenom').value.trim(),
                 email: document.getElementById('email').value.trim()
             };
+
+            // Les champs vendeur sont ajoutés uniquement pour un vendeur afin de préserver le payload client.
+            if (roleUtilisateur === 'vendeur') {
+                const categorieBoutique = document.querySelector("[name='categorieBoutique']");
+                const typePaiement = document.getElementById('typePaiement').value;
+                const coordonneesPaiement = document.getElementById('coordonneesPaiement').value.trim();
+                const telephoneBoutique = document.getElementById('telephoneBoutique').value.trim();
+                if (!coordonneesPaiement) {
+                    showMessage('Veuillez renseigner vos coordonnées de paiement.', 'error');
+                    setLoading(false);
+                    document.getElementById('coordonneesPaiement').focus();
+                    return;
+                }
+
+                const boutiquePayload = {
+                    nomBoutique: document.querySelector("[name='nomBoutique']").value.trim(),
+                    descriptionBoutique: document.querySelector("[name='descriptionBoutique']").value.trim(),
+                    categorieBoutique: categorieBoutique.value,
+                    solutionPaiement: `${typePaiement}: ${coordonneesPaiement}`,
+                    moyenPaiement: typePaiement,
+                    coordonneesPaiement,
+                    villeBoutique: document.querySelector("[name='villeBoutique']").value,
+                    communeBoutique: document.querySelector("[name='communeBoutique']").value,
+                    quartierBoutique: document.querySelector("[name='quartierBoutique']").value.trim(),
+                    avenueBoutique: document.querySelector("[name='avenueBoutique']").value.trim(),
+                    numeroadresseBoutique: document.querySelector("[name='numeroadresseBoutique']").value.trim(),
+                    typeLocalBoutique: document.querySelector("[name='typeLocalBoutique']").value.trim(),
+                    telephoneBoutique,
+                    latitudeBoutique,
+                    longitudeBoutique,
+                    photoBoutique: document.querySelector("[name='photoBoutique']").value.trim()
+                };
+
+                Object.assign(payload, boutiquePayload);
+            }
 
             //ON ENVOIE LA REQUETE PUT POUR METTRE A JOUR LES INFORMATIONS DE L'UTILISATEUR
             try {

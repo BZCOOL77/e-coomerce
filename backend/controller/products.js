@@ -5,10 +5,15 @@ const Thing = require('../models/Thing');// Importer le modèle de données pour
 // Middleware pour créer une nouvelle marchandise
 exports.createProduct = (req, res, next) => {
   delete req.body._id; // Supprimer l'ID généré par le client
+
+  // 1. Validation : Vérifier que la catégorie est bien présente
+  if (!req.body.categorie) {
+    return res.status(400).json({ error: 'La catégorie est obligatoire.' });
+  }
   
     const thing = new Thing({
         ...req.body,
-        vendeurId: req.auth.userId // Associer le vendeurId à l'utilisateur authentifié qui crée le produit 
+        vendeurId: req.auth.userId // Associer le vendeurId à l'utilisateur authentifié qui crée le produit
     });
     thing.save()
         .then(() => res.status(201).json({ message: 'Objet enregistré !' }))
@@ -32,17 +37,29 @@ exports.getOneProduct =  (req, res, next) => {
     });
 } 
 
-// Middleware pour envoyer toutes les marchandises au frontend
+// MIDDLEWARE POUR ENVOYER TOUTES LES MARCHANDISES AU FRONTEND (avec filtres optionnels)
 exports.getAllProducts = (req, res, next) => {
-  // 1. On regarde si un vendeurId est présent dans l'URL (ex: ?vendeurId=65f...)
-    const filtreVendeur = req.query.vendeurId;
-    
-    // 2. Si oui, on cherche uniquement ses produits. Si non, on cherche TOUS les produits.
-    const conditionDeRecherche = filtreVendeur ? { vendeurId: filtreVendeur } : {};
-  Thing.find(conditionDeRecherche)
-    .then((things) => res.status(200).json(things))
-    .catch((error) => res.status(400).json({ error }));
-}
+    // 1. On extrait les paramètres de filtrage depuis l'URL (ex: ?vendeurId=65f...&categorie=Électronique)
+    const { vendeurId, categorie } = req.query;
+
+    // 2. On construit un objet de recherche MongoDB dynamique
+    const conditionDeRecherche = {};
+
+    // 3. Si un vendeurId est présent, on l'ajoute à la condition
+    if (vendeurId) {
+        conditionDeRecherche.vendeurId = vendeurId;
+    }
+
+    // 4. Si une catégorie est présente, on l'ajoute à la condition (avec regex pour être insensible à la casse)
+    if (categorie) {
+        conditionDeRecherche.categorie = { $regex: new RegExp(`^${categorie.trim()}$`, 'i') };
+    }
+
+    // 5. Exécution de la recherche en BDD avec l'ensemble des filtres appliqués
+    Thing.find(conditionDeRecherche)
+        .then((things) => res.status(200).json(things))
+        .catch((error) => res.status(400).json({ error }));
+};
 
 // Middleware pour modifier une marchandise
 exports.updateProduct =  (req, res, next) => {

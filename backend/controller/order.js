@@ -12,11 +12,17 @@ const PDFDocument = require('pdfkit');// Importation de PDFKit pour la générat
 
 // Normalise les statuts métier vers les valeurs du modèle Expedition.
 // Cela évite les variantes comme "prise-en-charge" ou "échec de livraison".
+// Cette normalisation est nécessaire pour que le workflow de livraison reste cohérent
+// même si le front envoie des variantes comme "attribuéeAlivreur" ou "priseencharge".
 const normaliserStatutExpedition = (statut) => {
     const statutNettoye = (statut || '').toString().toLowerCase().trim();
 
     if (['prise en charge', 'prise-en-charge', 'priseencharge'].includes(statutNettoye)) {
         return 'prise en charge';
+    }
+
+    if (['attribuéealivreur', 'attribueealivreur', 'attribuee a livreur', 'attribuee alivreur', 'attribuee au livreur', 'attribuée au livreur', 'attribuée a livreur'].includes(statutNettoye)) {
+        return 'attribuéeAlivreur';
     }
 
     if (['livrée', 'livree', 'livré', 'livre'].includes(statutNettoye)) {
@@ -28,6 +34,90 @@ const normaliserStatutExpedition = (statut) => {
     }
 
     return null;
+};
+
+// Normalise les statuts côté backend pour les comparer proprement,
+// même avec des accents, des majuscules ou des tirets.
+const normaliserStatutWorkflow = (statut) => {
+    return (statut || '')
+        .toString()
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[-_]/g, ' ')
+        .replace(/\s+/g, ' ');
+};
+
+// Définit une priorité métier pour chaque statut afin de calculer
+// un statut global du colis sans sauter les étapes intermédiaires.
+const prioriteStatutGlobal = (statut) => {
+    const statutNorm = normaliserStatutWorkflow(statut);
+
+    if (!statutNorm) return 0;
+    if (['annulee', 'annulee par acheteur', 'annulee par l acheteur'].includes(statutNorm)) return 0;
+    if (statutNorm === 'en attente') return 1;
+    if (statutNorm === 'en cours') return 2;
+    if (statutNorm === 'expediee') return 3;
+    if (['attribuee alivreur', 'attribuee a livreur', 'attribuee au livreur', 'attribueealivreur'].includes(statutNorm)) return 4;
+    if (['prise en charge', 'prise encharge', 'priseencharge'].includes(statutNorm)) return 5;
+    if (['livree', 'livreee', 'livre'].includes(statutNorm)) return 6;
+    if (statutNorm === 'recue') return 7;
+    if (['echec de livraison', 'echec livraison', 'echec de livraisons', 'echec_de_livraison'].includes(statutNorm)) return 8;
+
+    return 2;
+};
+
+// Calcule le statut global d’un colis à partir des statuts de ses articles.
+// Cela permet d’afficher correctement les étapes : en attente → en cours → expédiée → attribuéeAlivreur → prise en charge → livrée.
+const calculerStatutGlobalDepuisArticles = (articles = []) => {
+    if (!Array.isArray(articles) || articles.length === 0) {
+        return 'en attente';// Si aucun article, on considère le colis comme "en attente" par défaut.
+    }
+
+    const statuts = articles.map(article => article?.statutIndividuel || article?.statut || 'en attente');
+    const statutsAnnulesParAcheteur = statuts.every(statut => {
+        const statutNorm = normaliserStatutWorkflow(statut);
+        return ['annulee par acheteur', 'annulee par l acheteur'].includes(statutNorm);
+    });
+
+    if (statutsAnnulesParAcheteur) {
+        return 'annulée par acheteur';
+    }
+
+    const statutsAnnules = statuts.every(statut => {
+        const statutNorm = normaliserStatutWorkflow(statut);
+        return ['annulee', 'annulee par acheteur', 'annulee par l acheteur'].includes(statutNorm);
+    });
+
+    if (statutsAnnules) {
+        return 'annulée';
+    }
+
+    // On calcule la priorité maximale parmi les statuts des articles pour déterminer le statut global du colis.
+
+    const priorites = statuts.map(prioriteStatutGlobal);// On récupère la priorité de chaque statut individuel pour déterminer le statut global du colis.
+    const prioriteMax = Math.max(...priorites);// On prend la priorité maximale pour déterminer le statut global du colis.
+
+    switch (prioriteMax) {
+        case 8:
+            return 'echec de livraison';
+        case 7:
+            return 'reçue';//statut supprimer 
+        case 6:
+            return 'livrée';
+        case 5:
+            return 'prise en charge';
+        case 4:
+            return 'attribuéeAlivreur';
+        case 3:
+            return 'expédiée';
+        case 2:
+            return 'En cours';
+        case 1:
+        default:
+            return 'en attente';
+    }
 };
 
 // Synchronise un groupe de commandes vers le document Expedition correspondant.
@@ -294,7 +384,7 @@ const createOrder = async (req, res, next) => {
 const getVendeurOrders = async (req, res) => {
     try {
         // On récupère toutes les commandes destinées à ce vendeur connecté
-        const orders = await Order.find({ vendeurId: req.auth.userId })
+        const orders = await Order.find({ vendeurId: req.auth.userId }).select('-otp')// On exclut le champ OTP pour des raisons de sécurité
             .populate('produitId') // On récupère les infos du produit pour chaque commande
             .populate('acheteurId', 'nom email')// On récupère les infos de l'acheteur pour chaque commande
             .sort({ createdAt: -1 }); // Tri par date de création
@@ -326,30 +416,10 @@ const getVendeurOrders = async (req, res) => {
         });
 
         // 🧠 RECALCUL DU STATUT GLOBAL (Plus clair et ultra-sécurisé)
+        // On remplace l’ancienne logique trop simple par un calcul basé sur la priorité métier
+        // des statuts afin de ne plus sauter les étapes intermédiaires du workflow.
         Object.values(colisRegroupes).forEach(colis => {
-            // On extrait tous les statuts des articles en minuscules
-            const statuts = colis.articles.map(a => a.statutIndividuel.toLowerCase());
-
-            // 1. Si TOUS les articles sont annulés (par le vendeur ou l'acheteur)
-            if (statuts.every(s => s === 'annulée' || s === 'annulée par acheteur')) {
-                colis.statutGlobal = 'annulée';
-            }
-            // 2. S'il reste au moins un article en attente
-            else if (statuts.includes('en attente')) {
-                colis.statutGlobal = 'en attente';
-            }
-            // 3. S'il n'y a plus d'attente mais qu'au moins un est en cours de préparation
-            else if (statuts.includes('en cours')) {
-                colis.statutGlobal = 'En cours';
-            }
-            // 4. Si tout le reste est expédié
-            else if (statuts.includes('expédiée')) {
-                colis.statutGlobal = 'expédiée';
-            }
-            // 5. Si toutes les conditions précédentes échouent, c'est que tout est livré !
-            else {
-                colis.statutGlobal = 'livrée';
-            }
+            colis.statutGlobal = calculerStatutGlobalDepuisArticles(colis.articles);
         });
 
         // On convertit notre dictionnaire en un beau tableau JSON pour le frontend
@@ -400,6 +470,25 @@ const updateColisStatut = async (req, res, next) => {
             }
         }
 
+        // Si on veut marquer le colis comme "expédiée", seul le vendeur propriétaire peut le faire.
+        if (statutNorm === 'expediee' || statutNorm === 'expédiée' || statutNorm === 'expedie') {
+            if (roleUtilisateur !== 'vendeur') {
+                return res.status(403).json({
+                    error: "🛑 Sécurité : Seul le vendeur du colis peut le passer au statut 'expédiée'."
+                });
+            }
+        }
+
+
+        //si on veut marquer le colis comme "attribuéeAlivreur", seul le backend peut le faire.
+        if (statutNorm === 'attribuéeAlivreur' || statutNorm === 'attribuee a livreur' || statutNorm === 'attribuee au livreur' || statutNorm === 'attribuéealivreur') {
+            if (roleUtilisateur === 'vendeur' || roleUtilisateur === 'acheteur') {
+                return res.status(403).json({
+                    error: "🛑 Sécurité : Seul nous pouvons attribuer un colis à un livreur."
+                });
+            }
+        }
+
         // Si on veut marquer le colis comme "prise en charge", seul le livreur peut le faire.
         if (statutNorm === 'prise en charge' || statutNorm === 'prise-en-charge' || statutNorm === 'priseencharge') {
             if (!estLivreur) {
@@ -418,29 +507,7 @@ const updateColisStatut = async (req, res, next) => {
             }
         }
 
-        // Si on veut marquer le colis comme livré, seul le livreur peut le faire.
-        if (statutNorm === 'livrée' || statutNorm === 'livree' || statutNorm === 'livré' || statutNorm === 'livre') {
-            if (!estLivreur) {
-                return res.status(403).json({
-                    error: "🛑 Sécurité : Seul un livreur peut passer un colis au statut 'livrée'."
-                });
-            }
-        }
-
-        // Si on veut marquer le colis comme reçu, seul l'acheteur peut le faire.
-        if (statutNorm === 'reçue' || statutNorm === 'recue') {
-            const commandeTemoin = await Order.findOne({ colisGroupId: colisGroupId });
-
-            if (!commandeTemoin) {
-                return res.status(404).json({ error: "Aucun colis correspondant trouvé." });
-            }
-
-            if (commandeTemoin.acheteurId.toString() !== idUtilisateurConnecte.toString()) {
-                return res.status(403).json({
-                    error: "🛑 Sécurité : Seul le client qui a acheté ce colis peut confirmer sa réception !"
-                });
-            }
-        }
+       
 
         // Si le livreur a saisi un motif depuis la modale, on le transmet
         // vers le document Expedition pour l'enregistrer dans le champ notesLivreur.
@@ -462,8 +529,34 @@ const updateColisStatut = async (req, res, next) => {
 
         const expedition = await Expedition.findOne({ colisGroupId: colisGroupId }).session(session);
         const statutPriseEnCharge = statutNorm === 'prise en charge' || statutNorm === 'prise-en-charge' || statutNorm === 'priseencharge';
-        const statutLivree = statutNorm === 'livrée' || statutNorm === 'livree' || statutNorm === 'livré' || statutNorm === 'livre';
+        const estPassageALivree = ['livree', 'livreee', 'livre', 'livrée'].includes(statutNorm);
+        const statutLivree = estPassageALivree;
         const statutEchec = statutNorm === 'echec de livraison' || statutNorm === 'échec de livraison' || statutNorm === 'echecdelivraison' || statutNorm === 'échecdelivraison';
+
+        // L'OTP est stocké sous codeOtp dans le schéma Order. Un seul code protège
+        // le colis complet, il est donc lu sur la première commande qui en possède un.
+        const codeOtpColis = commandesDuColis.find(commande => commande.codeOtp)?.codeOtp || null;
+
+        // Si le colis doit être livré, seul le livreur peut le faire et son OTP est vérifié.
+        if (estPassageALivree) {
+            if (!estLivreur) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(403).json({
+                    error: "🛑 Sécurité : Seul un livreur peut passer un colis au statut 'livrée'."
+                });
+            }
+
+            const otpEnvoyeParLivreur = (req.body.codeOtp || req.body.otpLivraison || '').toString().trim();
+
+            if (!otpEnvoyeParLivreur || otpEnvoyeParLivreur !== codeOtpColis) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(400).json({
+                    error: "🔑 Code OTP invalide ou manquant ! Demandez le code au client."
+                });
+            }
+        }
 
         // 2. Si on veut prendre en charge le colis, on vérifie que personne d'autre ne l'a déjà réservé.
         // Le test porte sur les commandes elles-mêmes et sur le document Expedition pour éviter toute divergence.
@@ -485,9 +578,9 @@ const updateColisStatut = async (req, res, next) => {
         // l'unique propriétaire de la réservation du colis. Sinon, on bloque l'action.
         if (statutLivree || statutEchec) {
             const livreurDejaAffectue = expedition?.livreur?.toString();// On récupère l'ID du livreur déjà affecté à l'expédition, s'il existe.
-            const estAssigneAuBonLivreur = Boolean(livreurDejaAffectue && livreurDejaAffectue === idUtilisateurConnecteString);
+            const estAssigneAuBonLivreur = Boolean(livreurDejaAffectue && livreurDejaAffectue === idUtilisateurConnecteString);// On vérifie si le livreur actuellement connecté est bien celui qui a été assigné à l'expédition.
             const ordreEstAssigneAuBonLivreur = commandesDuColis.every(commande =>
-                !commande.livreurAssignationId || commande.livreurAssignationId.toString() === idUtilisateurConnecteString
+                !commande.livreurAssignationId || commande.livreurAssignationId.toString() === idUtilisateurConnecteString // On vérifie que chaque commande du colis est soit non assignée, soit assignée au livreur actuellement connecté.
             );
 
             if (!estAssigneAuBonLivreur || !ordreEstAssigneAuBonLivreur) {
@@ -505,6 +598,11 @@ const updateColisStatut = async (req, res, next) => {
 
         if (statutPriseEnCharge) {
             payloadMiseAJourCommande.livreurAssignationId = idUtilisateurConnecte;
+            payloadMiseAJourCommande.codeOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        }
+
+        if (statutLivree) {
+            payloadMiseAJourCommande.codeOtp = null;
         }
 
         // 5. On applique la mise à jour de manière atomique sur toutes les lignes du groupe de colis.
@@ -543,8 +641,11 @@ const updateColisStatut = async (req, res, next) => {
 
         res.status(200).json({ message: `Le colis complet est passé au statut : ${nouveauStatut} !` });
     } catch (error) {
+        if (session.inTransaction()) {
         await session.abortTransaction();
-        session.endSession();
+        }
+        session.endSession();// On termine la session même en cas d'erreur pour éviter les fuites de ressources.
+        console.error('Erreur lors de la mise à jour du statut du colis :', error);
         res.status(400).json({ error: error.message });
     }
 };
@@ -664,7 +765,7 @@ const getAcheteurOrders = (req, res, next) => {
     Order.find({ acheteurId: req.auth.userId })//fonction pour récupérer les commandes de l'acheteur connecté
         .populate('produitId') // On récupère les infos du produit pour chaque commande
         .populate('acheteurId', 'nom email')// On récupère les infos de l'acheteur pour chaque commande
-        .sort({ createdAt: -1 }) // Tri natif via MongoDB Mongoose
+        .sort({ createdAt: -1 }) // Tri natif via MongoDB Mongoose qui renvoie les commandes les plus récentes en premier
         .then(orders => res.status(200).json(orders))
         .catch(error => res.status(400).json({ error }));
 };
@@ -682,8 +783,19 @@ const annulerCommandeParVendeur = async (req, res, next) => {
         }
 
         const statutNettoye = (commande.statut || '').toLowerCase();
-        if (statutNettoye === 'livrée' || statutNettoye === 'annulée' || statutNettoye === 'annulée par acheteur' || statutNettoye === 'expédiée') {
-            return res.status(400).json({ error: "Impossible d'annuler une commande déjà clôturée." });
+        if (
+            statutNettoye === 'livrée' ||
+            statutNettoye === 'annulée' ||
+            statutNettoye === 'annulée par acheteur' ||
+            statutNettoye === 'expédiée' ||
+            statutNettoye === 'attribuéealivreur' ||
+            statutNettoye === 'prise en charge' ||
+            statutNettoye === 'reçue' ||
+            statutNettoye === 'recue' ||
+            statutNettoye === 'echec de livraison' ||
+            statutNettoye === 'échec de livraison'
+        ) {
+            return res.status(400).json({ error: "Impossible d'annuler une commande déjà clôturée ou déjà engagée dans un workflow de livraison." });
         }
 
         // 🌟 Mise à jour propre avec le statut explicite décidé (utilise 'annulée' conforme au schéma)
@@ -724,7 +836,7 @@ const annulerCommandeParAcheteur = async (req, res, next) => {
 
         if (commande.statut.toLowerCase() !== 'en attente') {
             return res.status(400).json({ 
-                error: "Impossible d'annuler cette commande. Le vendeur a déjà commencé à la traiter !" 
+                error: "Impossible d'annuler cette commande. Elle a déjà été traitée ou engagée dans le workflow de livraison." 
             });
         }
 

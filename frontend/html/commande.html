@@ -4,24 +4,32 @@
         <meta charset="utf-8">
         <script src="../../client/js/url.js"></script><!--url api-->
         <script src="../js/header-auth.js" ></script>
+        <!-- Icônes Font Awesome servies par le CDN Cloudflare. -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
         <link rel="stylesheet" href="../css/commande.css">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
     <body>
-    <!-- Séparateur d'onglets pour le tableau de bord -->
+    <!-- Les quatre onglets regroupent les commandes selon leur parcours. -->
     <div class="onglets-container">
-        <button id="onglet-en-cours" class="onglet active" onclick="basculerOnglet('en-cours')">
-            📦 Commandes à traité <span id="compteur-en-cours" class="badge-compteur" style="display: none;">0</span>
+        <button id="onglet-en-attente" class="onglet active" onclick="basculerOnglet('en-attente')">
+            <i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> En attente <span id="compteur-en-attente" class="badge-compteur" style="display: none;">0</span>
+        </button>
+        <button id="onglet-traitement" class="onglet" onclick="basculerOnglet('traitement')">
+            <i class="fa-solid fa-gears" aria-hidden="true"></i> En traitement <span id="compteur-traitement" class="badge-compteur" style="display: none;">0</span>
+        </button>
+        <button id="onglet-chez-livreur" class="onglet" onclick="basculerOnglet('chez-livreur')">
+            <i class="fa-solid fa-truck" aria-hidden="true"></i> Chez livreur <span id="compteur-chez-livreur" class="badge-compteur" style="display: none;">0</span>
         </button>
         <button id="onglet-historique" class="onglet" onclick="basculerOnglet('historique')">
-            📜 Historique (Livrées, annulée)
+            <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Historique <span id="compteur-historique" class="badge-compteur" style="display: none;">0</span>
         </button>
     </div>
         <!-- Loader et overlay (doivent être uniques dans la page) -->
         <div id="overlay"></div>
         <div id="loader"><div class="spinner"></div></div>
 
-        <a href="nav.html" class="btn-retour">← Retour a ma boutique</a>
+        <a href="nav.html" class="btn-retour"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Retour a ma boutique</a>
 <main>
     <div class="commande-topbar">
         <div class="page-title">
@@ -31,14 +39,7 @@
         <div class="commande-actions">
             <div class="search-box">
                 <input id="recherche-commande" type="search" placeholder="Rechercher ID, client, article..." aria-label="Recherche de commande">
-                <button id="btn-recherche-commande" type="button">🔍</button>
-            </div>
-            <div class="filter-group">
-                <button class="filter-pill active" type="button">Toutes</button>
-                <button class="filter-pill" type="button">En attente</button>
-                <button class="filter-pill" type="button">En cours</button>
-                <button class="filter-pill" type="button">Expédiée</button>
-                
+                <button id="btn-recherche-commande" type="button" aria-label="Rechercher"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button>
             </div>
         </div>
     </div>
@@ -64,9 +65,17 @@
 
     <!--javascript de la page commande.html-->
     <script>
-        // Variable globale pour stocker le filtre actuel ('en-cours' par défaut)
-let filtreActuel = 'en-cours';
+        // Variable globale qui mémorise l'onglet ou le filtre actuellement sélectionné.
+// L'onglet affiché par défaut correspond aux commandes qui attendent un traitement.
+let filtreActuel = 'en-attente';
 let termeRecherche = '';//le terme de recherche saisi par l'utilisateur dans la barre de recherche
+
+// Conserve les commandes chargées afin de pouvoir marquer les colis historiques
+// comme lus lorsque l'utilisateur ouvre l'onglet Historique.
+let commandesChargees = [];
+
+// Clé utilisée par le navigateur pour mémoriser les colis historiques déjà lus.
+const CLE_HISTORIQUE_LU = 'commandes-vendeur-historique-lu';
 
 // Normalise le texte saisi dans la barre de recherche pour pouvoir
 // comparer les valeurs de manière fiable, même si l'utilisateur tape
@@ -80,6 +89,83 @@ function normaliserTexteRecherche(value) {
         .replace(/[\u0300-\u036f]/g, '')
         .replace(/[-_]/g, ' ')
         .replace(/\s+/g, ' ');
+}
+
+// Assigne un rang à chaque statut pour guider la progression du colis
+// dans l’interface vendeur sans ignorer les étapes intermédiaires.
+function getStatusRank(statut) {
+    const statutNorm = normaliserStatut(statut);
+
+    if (!statutNorm) return 0;
+    if (['annulee', 'annulee par acheteur', 'annulee par l acheteur'].includes(statutNorm)) return 0;
+    if (statutNorm === 'en attente') return 1;//si le statut est "en attente", on le considère comme le premier rang
+    if (statutNorm === 'en cours') return 2;
+    if (statutNorm === 'expediee') return 3;
+    if (['attribueealivreur', 'attribuéeAlivreur', 'attribuee au livreur', 'attribueealivreur'].includes(statutNorm)) return 4;
+    if (['prise en charge', 'prise encharge', 'priseencharge'].includes(statutNorm)) return 5;
+    if (['livree', 'livreee', 'livre'].includes(statutNorm)) return 6;
+    if (['echec de livraison', 'echec livraison', 'echec de livraisons', 'echec_de_livraison'].includes(statutNorm)) return 8;
+
+    return 2;
+}
+
+// Détermine quel statut doit apparaître ensuite dans le parcours du colis.
+// Cela permet d’afficher le bon bouton d’action au vendeur selon l’état actuel.
+function nextStatusFor(statut) {
+    const rank = getStatusRank(statut);
+
+    switch (rank) {
+        case 1:
+            return 'En cours';
+        case 2:
+            return 'expédiée';
+        case 3:
+            return 'attribuéeAlivreur';
+        case 4:
+            return 'prise en charge';
+        case 5:
+            return 'livrée';
+        case 8:
+            return '';
+        default:
+            return '';
+    }
+}
+
+function estStatutLivreur(statut) {
+    const statutNorm = normaliserStatut(statut);
+
+    return [
+        'attribuéeAlivreur',
+        'attribueealivreur',
+        'attribuee au livreur',
+        'attribuee alivreur',
+        'prise en charge',
+        'priseencharge',
+        'livree',
+        'livreee',
+        'livre',
+        'livrée',
+        'echec de livraison',
+        'echec livraison',
+        'annulee',
+        'annulee par acheteur'
+    ].includes(statutNorm);
+}
+
+// Le vendeur peut annuler uniquement une commande qui est encore sous son
+// contrôle. Tous les statuts livreur, terminaux ou inconnus sont refusés.
+function peutAnnulerCommande(statut) {
+    return ['en attente', 'en cours', 'expediee'].includes(classerStatut(statut));
+}
+
+// Vérifie si le bouton de progression peut être affiché au vendeur.
+// Dès que le colis est attribué au livreur, le vendeur ne doit plus pouvoir
+// faire avancer son statut, même si un statut suivant existe techniquement.
+function peutAfficherBoutonProgression(statutActuel, prochainStatut) {
+    return Boolean(prochainStatut)
+        && !estStatutLivreur(statutActuel)
+        && !estStatutLivreur(prochainStatut);
 }
 
 // Initialise la recherche locale de la page.
@@ -127,6 +213,9 @@ async function chargerMesVentes() {
             throw new Error('Format inattendu des commandes');
         }
 
+        // On conserve la réponse courante afin de gérer le badge des historiques.
+        commandesChargees = commandes;
+
         
 
         commandes.forEach(colis => {
@@ -159,10 +248,11 @@ async function chargerMesVentes() {
 
                 
 
-                const estLivree = statutArticle.toLowerCase() === 'livrée';
-                const estAnnulee = statutArticle.toLowerCase() === 'annulée';
-                const estAnnuleeParAcheteur = statutArticle.toLowerCase() === 'annulée par acheteur';
-                const peutAnnuler = !estLivree && !estAnnulee && !estAnnuleeParAcheteur;
+                const statutArticleClasse = classerStatut(statutArticle);
+                const estLivree = statutArticleClasse === 'livree';
+                const estAnnulee = ['annulee', 'annulee par vendeur'].includes(statutArticleClasse);
+                const estAnnuleeParAcheteur = statutArticleClasse === 'annulee par acheteur';
+                const peutAnnuler = peutAnnulerCommande(statutArticle);
 
                 articlesHtml += `
                     <div class="ligne-commande commande-card ${estLivree ? 'commande-livree' : ''}" data-statut="${statutArticle}" data-recherche="${normaliserTexteRecherche(`${idColis} ${nomAcheteur} ${nomProduit} ${descriptionProduit}`)}">
@@ -183,9 +273,9 @@ async function chargerMesVentes() {
                         <div class="actions-statut">
                             ${peutAnnuler ? `
                                 <button class="btn-action btn-annuler" onclick="annulerCommande('${orderId}')">
-                                    ❌ Annuler
+                                    <i class="fa-solid fa-xmark" aria-hidden="true"></i> Annuler
                                 </button>
-                            ` : (estAnnuleeParAcheteur ? '<span class="annulee-acheteur">⚠️ Annulée par l\'acheteur</span>' : (estAnnulee ? '<span>❌ Vente annulée</span>' : '<span>✅ Vente terminée</span>'))}
+                            ` : (estAnnuleeParAcheteur ? '<span class="annulee-acheteur"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Annulée par l\'acheteur</span>' : (estAnnulee ? '<span><i class="fa-solid fa-xmark" aria-hidden="true"></i> Vente annulée</span>' : (estLivree ? '<span><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Vente terminée</span>' : '')))}
                         </div>
                        
                     </div>
@@ -194,7 +284,7 @@ async function chargerMesVentes() {
 
             // Bouton pour télécharger la facture PDF du colis concerné.
                 let boutonFacture = `<button onclick="telechargerFacturePDF('${idColis}')" class="btn-pdf">
-                                        📥 Télécharger ma facture (PDF)
+                                        <i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> Télécharger ma facture (PDF)
                                         </button>`;
 
             // Construit une chaîne de texte de recherche pour chaque colis.
@@ -218,9 +308,9 @@ async function chargerMesVentes() {
                             <p><strong>Statut global:</strong> <span class="badge statut-${statutGlobal.toLowerCase().replace(/ /g,'-')}">${statutGlobal}</span></p>
                         </div>
                        <div class="colis-actions">
-                        ${(prochainStatutColis && prochainStatutColis.toLowerCase() !== 'livrée' && prochainStatutColis.toLowerCase() !== 'livree')
-                        ? `<button class="btn-action btn-suivant" onclick="changerStatutColis('${idColis}', '${prochainStatutColis}')">➡️ Passer le colis à : ${prochainStatutColis}</button>`
-                        : (prochainStatutColis ? `<span class="badge-attente-acheteur">⏳ En attente de livraison (Acheteur)</span>` : '')
+                        ${peutAfficherBoutonProgression(statutGlobal, prochainStatutColis)
+                        ? `<button class="btn-action btn-suivant" onclick="changerStatutColis('${idColis}', '${prochainStatutColis}')"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i> Passer le colis à : ${prochainStatutColis}</button>`
+                        : (prochainStatutColis ? `<span class="badge-attente-acheteur"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> En attente de livraison (livreur)</span>` : '')
                      }
                     </div>
                     </header>
@@ -229,31 +319,39 @@ async function chargerMesVentes() {
             `;
         });
 
-        //COMPTEUR DES COMMANDES A TRAITER
-            let totalCommandesEnCours = 0;
-        const statutsHistoriques = [
-            'livrée', 'livree',
-            'annulée', 'annulee', 'annulée par acheteur', 'annulee par acheteur',
-            'échec de livraison', 'echec de livraison', 'echec livraison', 'echec_de_livraison'
-        ];
+        // Compte le nombre de colis appartenant à chaque onglet.
+        // Le comptage reprend exactement la même fonction de classement que
+        // le filtrage, afin que le badge corresponde toujours à l'affichage.
+        const compteursOnglets = {
+            'en-attente': 0,
+            'traitement': 0,
+            'chez-livreur': 0
+        };
 
         commandes.forEach(colis => {
-            const statutGlobal = (colis.statutGlobal || colis.statut || 'N/A').toLowerCase();
-            // Si le statut global du colis n'est pas dans l'historique, c'est qu'il est "En cours" !
-            if (!statutsHistoriques.includes(statutGlobal)) {
-                totalCommandesEnCours++;
+            const statutGlobal = colis.statutGlobal || colis.statut || 'N/A';
+            const ongletAssocie = determinerOngletStatut(statutGlobal);
+
+            // L'historique n'a pas de badge : seuls les onglets opérationnels
+            // affichent un volume de colis à suivre.
+            if (Object.prototype.hasOwnProperty.call(compteursOnglets, ongletAssocie)) {
+                compteursOnglets[ongletAssocie]++;
             }
         });
 
-        const badgeCompteur = document.getElementById('compteur-en-cours');
-        if (badgeCompteur) {
-            if (totalCommandesEnCours > 0) {
-                badgeCompteur.textContent = totalCommandesEnCours;
-                badgeCompteur.style.display = 'inline-block'; // On l'affiche s'il y a du travail
-            } else {
-                badgeCompteur.style.display = 'none'; // Caché s'il n'y a rien à faire
-            }
+        // Met à jour un badge et le masque lorsqu'il n'y a aucun colis.
+        function mettreAJourBadgeCompteur(identifiant, total) {
+            const badge = document.getElementById(identifiant);
+            if (!badge) return;
+
+            badge.textContent = total;
+            badge.style.display = total > 0 ? 'inline-block' : 'none';
         }
+
+        mettreAJourBadgeCompteur('compteur-en-attente', compteursOnglets['en-attente']);
+        mettreAJourBadgeCompteur('compteur-traitement', compteursOnglets.traitement);
+        mettreAJourBadgeCompteur('compteur-chez-livreur', compteursOnglets['chez-livreur']);
+        mettreAJourBadgeHistorique();
 
         appliquerFiltrage();
     } catch (err) {
@@ -265,10 +363,10 @@ async function chargerMesVentes() {
     }
 }
 
-function nextStatusFor(statut) {
-    if (!statut) return '';
-    // Normalisation légère pour couvrir variantes (accents, tirets, underscores)
-    const norm = statut
+// Normalise un statut pour le rendre comparable, même si la base contient
+// des accents, des majuscules, des tirets ou des underscores.
+function normaliserStatut(statut) {
+    return (statut || '')
         .toString()
         .trim()
         .toLowerCase()
@@ -276,19 +374,136 @@ function nextStatusFor(statut) {
         .replace(/[\u0300-\u036f]/g, '')
         .replace(/[-_]/g, ' ')
         .replace(/\s+/g, ' ');
-
-    // Cas particuliers détectés par mots-clés (gère camelCase ou variantes sans espace)
-    if (norm.includes('echec') && norm.includes('livraison')) return ''; // considéré comme historique
-    if (norm.includes('attribu') && norm.includes('livreur')) return 'prise en charge';
-    if (norm.includes('prise') && norm.includes('charge')) return 'En cours';
-    if (norm === 'en attente' || norm === 'enattente') return 'En cours';
-    if (norm === 'en cours' || norm === 'encours') return 'expédiée';
-    if (norm.includes('exped') || norm.includes('expedi')) return 'livrée';
-
-    return '';
 }
 
-// nextStatusFor consolidée plus haut — doublon supprimé
+// Classe un statut dans une famille métier simple pour l'interface.
+// Cette version est plus robuste que les tests simples sur des mots-clés,
+// car elle gère les statuts réels présents en base et laisse une marge
+// pour des nouveaux statuts ajoutés plus tard.
+// Classe les statuts reçus en familles métier simples pour l’interface.
+// Cela permet de reconnaître correctement les valeurs issues de la base, y compris "attribuéeAlivreur".
+function classerStatut(statut) {
+    const statutNorm = normaliserStatut(statut);
+
+    if (!statutNorm) return 'inconnu';
+
+    // Mapping explicite des statuts connus de la base.
+    const mappingStatuts = {
+        'en attente': 'en attente',
+        'en cours': 'en cours',
+        'encours': 'en cours',
+        'expediee': 'expediee',
+        'expedie': 'expediee',
+        'attribuee a livreur': 'attribueealivreur',
+        'attribueealivreur': 'attribueealivreur',
+        'attribuee au livreur': 'attribueealivreur',
+        'attribuee alivreur': 'attribueealivreur',
+        'prise en charge': 'prise en charge',
+        'livree': 'livree',
+        'livreee': 'livree',
+        'echec de livraison': 'echec de livraison',
+        'echec livraison': 'echec de livraison',
+        'annulee': 'annulee',
+        'annuler': 'annulee',
+        'annulee par acheteur': 'annulee par acheteur',
+        'annulee par l acheteur': 'annulee par acheteur',
+        'annulee par vendeur': 'annulee par vendeur',
+        'annulee par le vendeur': 'annulee par vendeur'
+    };
+
+    if (mappingStatuts[statutNorm]) {
+        return mappingStatuts[statutNorm];
+    }
+
+    // Fallback souple pour les nouveaux statuts :
+    // on regarde les mots-clés uniquement s'ils correspondent à des familles métier.
+    if (statutNorm.includes('annule')) return 'annulee';
+    if (statutNorm.includes('livre')) return 'livree';
+    if (statutNorm.includes('echec') && statutNorm.includes('livraison')) return 'echec de livraison';
+    if (statutNorm.includes('attente')) return 'en attente';
+    if (statutNorm.includes('cours') || statutNorm.includes('prepar') || statutNorm.includes('trait') || statutNorm.includes('charge')) return 'en cours';
+    if (statutNorm.includes('exped')) return 'expediee';
+    if (statutNorm.includes('attribue') && statutNorm.includes('livreur')) return 'attribuee a livreur';
+
+    return statutNorm;
+}
+
+// Détermine si un colis appartient réellement à l'onglet Historique.
+// Cette fonction reprend le classement principal des onglets afin d'éviter
+// qu'un colis « livré » soit compté dans Historique alors qu'il reste affiché
+// dans « Chez livreur ».
+function estStatutHistorique(statut) {
+    return determinerOngletStatut(statut) === 'historique';
+}
+
+// Récupère la liste des identifiants historiques déjà lus par le vendeur.
+// Une protection est prévue au cas où le stockage du navigateur serait indisponible.
+function obtenirHistoriqueLu() {
+    try {
+        const historiqueLu = JSON.parse(localStorage.getItem(CLE_HISTORIQUE_LU) || '[]');
+        return Array.isArray(historiqueLu) ? historiqueLu : [];
+    } catch (erreur) {
+        console.warn('Impossible de lire les historiques consultés.', erreur);
+        return [];
+    }
+}
+
+// Enregistre les identifiants historiques que le vendeur vient de consulter.
+function enregistrerHistoriqueLu(identifiants) {
+    try {
+        localStorage.setItem(CLE_HISTORIQUE_LU, JSON.stringify(identifiants));
+    } catch (erreur) {
+        console.warn('Impossible d’enregistrer les historiques consultés.', erreur);
+    }
+}
+
+// Met à jour le badge comme une notification de messagerie :
+// seuls les colis historiques qui n'ont jamais été ouverts sont comptés.
+function mettreAJourBadgeHistorique() {
+    const badge = document.getElementById('compteur-historique');
+    if (!badge) return;
+
+    const colisHistoriques = commandesChargees
+        // Le badge suit exactement le même classement que l'onglet Historique.
+        .filter(colis => determinerOngletStatut(colis.statutGlobal || colis.statut || '') === 'historique')
+        .map(colis => String(colis.colisGroupId || colis._id || ''))
+        .filter(Boolean);
+    const historiqueLu = obtenirHistoriqueLu();
+    const nombreNonLus = colisHistoriques.filter(id => !historiqueLu.includes(id)).length;//compte le nombre de colis historiques non lus
+
+    badge.textContent = nombreNonLus;
+    badge.style.display = nombreNonLus > 0 ? 'inline-block' : 'none';
+}
+
+// Considère tous les colis historiques actuellement chargés comme lus
+// dès que l'utilisateur ouvre l'onglet Historique.
+function marquerHistoriqueCommeLu() {
+    const identifiantsHistoriques = commandesChargees
+        // Seuls les colis réellement visibles dans Historique sont marqués lus.
+        .filter(colis => determinerOngletStatut(colis.statutGlobal || colis.statut || '') === 'historique')
+        .map(colis => String(colis.colisGroupId || colis._id || ''))
+        .filter(Boolean);
+
+    if (identifiantsHistoriques.length === 0) return;
+
+    const historiqueLu = new Set(obtenirHistoriqueLu());
+    identifiantsHistoriques.forEach(id => historiqueLu.add(id));
+    enregistrerHistoriqueLu([...historiqueLu]);
+    mettreAJourBadgeHistorique();
+}
+
+// Associe chaque statut à l'un des quatre onglets de la page vendeur.
+// Les statuts inconnus restent dans « En traitement » afin de rester visibles.
+function determinerOngletStatut(statut) {
+    const statutClasse = classerStatut(statut);
+
+    if (statutClasse === 'en attente') return 'en-attente';
+    if (['en cours', 'expediee'].includes(statutClasse)) return 'traitement';
+    if (['attribueealivreur', 'prise en charge', 'echec de livraison'].includes(statutClasse)) return 'chez-livreur';
+    if (['livree', 'annulee', 'annulee par acheteur', 'annulee par vendeur'].includes(statutClasse)) return 'historique';
+
+    return 'traitement';
+}
 
 // Met à jour le statut global d'un colis complet via l'API.
 // Cette fonction sert à faire avancer le colis dans son parcours de livraison.
@@ -322,42 +537,16 @@ async function changerStatutColis(colisGroupId, nouveauStatut) {
 }
 
 // Applique les filtres visibles sur la page :
-// - le statut actif (onglet "en-cours" / "historique")
+// - le statut actif (l'un des quatre onglets ou un filtre secondaire)
 // - la recherche saisie par l'utilisateur dans la barre de recherche
 // Cette fonction masque ou affiche les cartes et les blocs selon les critères.
 function appliquerFiltrage() {
-    // Liste des statuts considérés comme historiques.
-    const historiqueStatuses = [
-        'livrée', 'livree',
-        'annulée', 'annulee', 'annulée par acheteur', 'annulee par acheteur',
-        'échec de livraison', 'echec de livraison', 'echec livraison', 'echec_de_livraison'
-    ];
-
-    // Normalise un statut pour pouvoir le comparer correctement.
-    // On supprime les accents, on met en minuscule et on uniformise les espaces.
-    function normalizeStatus(s) {
-        return (s || '')
-            .toString()
-            .trim()
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[-_]/g, ' ')
-            .replace(/\s+/g, ' ');
-    }
-
-    // Convertit le filtre actif en valeur uniforme pour comparaison.
-    const filtreNorm = normalizeStatus(filtreActuel || 'toutes');
     const termeRechercheNorm = normaliserTexteRecherche(termeRecherche);
 
-    // Vérifie si le statut d'un élément correspond au filtre sélectionné.
+    // Vérifie si le statut d'un élément correspond à l'onglet sélectionné.
     const filtreAffiche = statutRaw => {
-        const statutNorm = normalizeStatus(statutRaw || '');
-        if (filtreActuel !== 'historique' && historiqueStatuses.map(normalizeStatus).includes(statutNorm)) return false;
-        if (filtreNorm === 'toutes') return true;
-        if (filtreNorm === 'historique') return historiqueStatuses.map(normalizeStatus).includes(statutNorm);
-        // Filtrage strict par égalité normalisée (ex : 'en cours' vs 'expediee')
-        return statutNorm === filtreNorm;
+        // Chaque onglet correspond à une famille métier complète de statuts.
+        return determinerOngletStatut(statutRaw) === filtreActuel;
     };
 
     // Vérifie si le texte d'un élément contient la requête de recherche.
@@ -393,110 +582,22 @@ function appliquerFiltrage() {
     });
 }
 
-// Bascule entre l'onglet "Commandes à traiter" et l'onglet historique.
-// Cela permet de faire varier l'affichage des commandes selon l'état souhaité.
+// Bascule entre les quatre onglets et relance le filtrage de la page.
 function basculerOnglet(mode) {
-    filtreActuel = mode === 'historique' ? 'historique' : 'en-cours';
+    const ongletsAutorises = ['en-attente', 'traitement', 'chez-livreur', 'historique'];
+    filtreActuel = ongletsAutorises.includes(mode) ? mode : 'en-attente';
+
+    // L'ouverture de l'onglet confirme la lecture de tous ses colis historiques.
+    if (filtreActuel === 'historique') {
+        marquerHistoriqueCommeLu();
+    }
 
     document.querySelectorAll('.onglet').forEach(btn => {
-        btn.classList.toggle('active', btn.id === `onglet-${mode}`);
-    });
-
-    document.querySelectorAll('.filter-pill').forEach(btn => {
-        btn.classList.toggle('active', btn.textContent.trim().toLowerCase() === 'toutes');
+        btn.classList.toggle('active', btn.id === `onglet-${filtreActuel}`);
     });
 
     appliquerFiltrage();
 }
-
-// Initialise les boutons de filtre par statut affichés en haut de la page.
-// Chaque bouton devient cliquable et met à jour le filtre actif.
-function initialiserFiltres() {
-    // Initialise les boutons "filter-pill".
-    // Comportements couverts :
-    // - clic souris
-    // - activation au clavier (Enter / Espace)
-    // - gestion d'un seul bouton actif à la fois
-    // - mise à jour de la variable `filtreActuel` suivie d'un appel à `appliquerFiltrage()`
-
-    const pills = Array.from(document.querySelectorAll('.filter-pill'));
-
-    // Normalise une étiquette pour comparaison (minuscules, sans espaces multiples, sans accents)
-    function normalizeLabel(label) {
-        return label
-            .toString()
-            .trim()
-            .toLowerCase()
-            .replace(/\s+/g, ' ')
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '');
-    }
-
-    // Mappe l'étiquette affichée vers la valeur attendue par `appliquerFiltrage()`.
-    // On conserve certaines valeurs avec accents pour correspondre aux statuts présents dans les données.
-    function mapToFiltre(normalized) {
-        if (normalized === 'toutes' || normalized === 'tout') return 'toutes';
-        if (normalized === 'en cours' || normalized === 'encours' || normalized === 'en-cours') return 'en-cours';
-        if (normalized === 'en attente' || normalized === 'en-attente') return 'en attente';
-        if (normalized === 'expediee' || normalized === 'expedie' || normalized === 'expedier' || normalized === 'expedier') return 'expédiée';
-        if (normalized === 'expedie' || normalized === 'expediee') return 'expédiée';
-        if (normalized === 'livree' || normalized === 'livree' || normalized === 'livree') return 'livrée';
-        if (normalized === 'historique') return 'historique';
-        // Par défaut, retourne la forme normalisée (utile si les statuts sont identiques aux labels)
-        return normalized;
-    }
-
-    // Active visuellement un bouton et met à jour les attributs accessibilité
-    function activatePill(targetBtn) {
-        pills.forEach(p => {
-            const isTarget = p === targetBtn;
-            p.classList.toggle('active', isTarget);
-            p.setAttribute('aria-pressed', isTarget ? 'true' : 'false');
-        });
-
-        const label = normalizeLabel(targetBtn.textContent || targetBtn.innerText || 'toutes');
-        filtreActuel = mapToFiltre(label);
-
-        // Synchronise l'état des onglets principaux (en-cours / historique)
-        document.querySelectorAll('.onglet').forEach(el => {
-            if (filtreActuel === 'historique') {
-                el.classList.toggle('active', el.id === 'onglet-historique');
-            } else {
-                el.classList.toggle('active', el.id === 'onglet-en-cours');
-            }
-        });
-
-        // Appliquer immédiatement le filtrage sur les cartes affichées
-        appliquerFiltrage();
-    }
-
-    // Handler clavier pour accessibilité (Enter / Space déclenchent l'action)
-    function pillKeyHandler(e) {
-        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {// 'Spacebar' pour compatibilité avec d'anciens navigateurs
-            e.preventDefault();
-            activatePill(e.currentTarget);
-        }
-    }
-
-    // Attach listeners et initialise l'état
-    pills.forEach(btn => {
-        // role/button semantics for screenreaders
-        btn.setAttribute('role', 'button');
-        btn.setAttribute('tabindex', '0');
-        btn.setAttribute('aria-pressed', btn.classList.contains('active') ? 'true' : 'false');
-
-        btn.addEventListener('click', () => activatePill(btn));// clic souris 
-        btn.addEventListener('keydown', pillKeyHandler);// activation clavier (Enter / Space)
-    });
-
-    // Si aucun bouton n'est actif, on active le premier par défaut
-    const initiallyActive = pills.find(p => p.classList.contains('active')) || pills[0];
-    if (initiallyActive) activatePill(initiallyActive);
-}
-
-
-
-
 
 // Annule une commande côté vendeur via l'API.
 // Cette action est réservée aux commandes qui ne sont pas déjà livrées
@@ -611,7 +712,6 @@ async function telechargerFacturePDF(colisGroupId) {
 // Lancement initial
 document.addEventListener('DOMContentLoaded', () => {
     initialiserRecherche();
-    initialiserFiltres();
     chargerMesVentes();
 });
 

@@ -33,25 +33,6 @@ body {
     font-weight: 700;
 }
 
-.btn-valider-reception {
-    background: linear-gradient(135deg, #132238, #23416d);
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    margin-top: 10px;
-    transition: all 0.2s ease;
-    width: 100%;
-    box-shadow: 0 8px 18px rgba(19, 34, 56, 0.18);
-}
-
-.btn-valider-reception:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 24px rgba(19, 34, 56, 0.22);
-}
-
 .main-mes-commandes {
     padding: 2rem;
     max-width: 980px;

@@ -140,6 +140,38 @@ function calculerTotal(panier) {
     document.getElementById('total-global').innerText = `${total.toFixed(2)} €`;
 }
 
+// Coordonnées GPS conservées entre le clic sur le bouton GPS et la validation de la commande.
+let clientLat = null;
+let clientLng = null;
+
+// Le bouton doit être écouté dès le chargement de la page, avant le clic sur "Passer à la caisse".
+document.getElementById('btnGeoloc').addEventListener('click', () => {
+    const status = document.getElementById('geoStatus');
+
+    if (!navigator.geolocation) {
+        status.textContent = "La géolocalisation n'est pas supportée par votre navigateur.";
+        return;
+    }
+
+    status.textContent = "Recherche de votre position...";
+    status.style.color = "#6a7280";
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            clientLat = position.coords.latitude;
+            clientLng = position.coords.longitude;
+            status.textContent = `Position capturée ! (${clientLat.toFixed(4)}, ${clientLng.toFixed(4)})`;
+            status.style.color = "#28a745";
+        },
+        (error) => {
+            console.error("Erreur de géolocalisation", error);
+            status.textContent = "Impossible de récupérer votre position. Saisissez votre adresse manuellement.";
+            status.style.color = "#dc3545";
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+});
+
 // 6. Simulation de commande (Version corrigée et groupée)
 async function validerPanierEtCommander() {
     let panier = JSON.parse(localStorage.getItem('panier_shopy')) || [];
@@ -168,37 +200,6 @@ async function validerPanierEtCommander() {
         alert("Aucun article valide dans le panier.");
         return;
     }
-
-    // recuperation des info de geolocalisation
-    let clientLat = null;
-    let clientLng = null;
-
-    document.getElementById('btnGeoloc').addEventListener('click', () => {
-    const status = document.getElementById('geoStatus');
-
-    if (!navigator.geolocation) {
-        status.textContent = "La géolocalisation n'est pas supportée par votre navigateur.";
-        return;
-    }
-
-    status.textContent = "Recherche de votre position...";
-
-    navigator.geolocation.getCurrentPosition(
-        (position) => {
-            clientLat = position.coords.latitude;
-            clientLng = position.coords.longitude;
-            status.textContent = `✅ Position capturée ! (${clientLat.toFixed(4)}, ${clientLng.toFixed(4)})`;
-            status.style.color = "#28a745";
-        },
-        (error) => {
-            status.textContent = "Impossible de récupérer votre position. Saisissez votre adresse manuellement.";
-            status.style.color = "#dc3545";
-        },
-        { enableHighAccuracy: true } // Active le GPS haute précision du smartphone
-    );
-});
-
-
 
     const commune = document.getElementById('adresse-commune').value;
     const quartier = document.getElementById('adresse-quartier').value.trim();

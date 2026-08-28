@@ -1,5 +1,6 @@
 const Order = require('../models/Order');
 const User = require('../models/user');
+const Expedition = require('../models/expedition'); // Importe les expéditions pour récupérer le motif d'échec du colis.
 
 // =========================================================================
 // Récupère toutes les commandes dont le statut est "expédiée"
@@ -34,20 +35,65 @@ const getExpedieesOrders = async (req, res, next) => {
         // de façon explicite. Cela évite tout conflit entre tournées de plusieurs livreurs.
         const maxColisLivraison = Math.min(2, livreur.zoneAssignee?.capaciteMaxColis || 2);
 
-        // Étape A : vérifier si ce livreur a déjà des colis dans sa tournée actuelle.
-        // Si oui, on les renvoie pour qu'il puisse continuer à les livrer.
-        // Le statut est filtré avec une expression régulière pour accepter les variantes de casse
-        // et éviter que des écritures mineures bloquent la logique métier.
-        let orders = await Order.find({
+        const statutsActifsLivreur = {
             statut: { $regex: /^(attribu(?:ée|ee|e)alivreur|prise(?: |-)en(?: |-)charge)$/i },
             livreurAssignationId: userId
-        })
-            .populate('produitId')                      // informations du produit
-            .populate('acheteurId', 'nom prenom email') // nom, prénom et email de l'acheteur
-            .populate('vendeurId', 'nom prenom email')  // nom, prénom et email du vendeur
-            .sort({ createdAt: 1 })                     // plus anciens d'abord pour une tournée cohérente
-            .limit(maxColisLivraison)                   // max 2 colis pour ce livreur
-            .lean();                                    // renvoie des objets JavaScript purs
+        };
+
+        const selectionnerColis = (commandes, limite) => {
+            const groupesVus = new Set();
+            const groupesAvecIdentifiant = [];
+            const idsSansIdentifiant = [];
+
+            for (const commande of commandes) {
+                const groupeKey = commande.colisGroupId || commande._id.toString();
+                if (groupesVus.has(groupeKey)) continue;
+
+                groupesVus.add(groupeKey);
+                if (commande.colisGroupId) {
+                    groupesAvecIdentifiant.push(commande.colisGroupId);
+                } else {
+                    idsSansIdentifiant.push(commande._id);
+                }
+
+                if (groupesVus.size === limite) break;
+            }
+
+            return { groupesAvecIdentifiant, idsSansIdentifiant };
+        };
+
+        const construireFiltreColis = selection => {
+            const filtres = [];
+
+            if (selection.groupesAvecIdentifiant.length > 0) {
+                filtres.push({ colisGroupId: { $in: selection.groupesAvecIdentifiant } });
+            }
+            if (selection.idsSansIdentifiant.length > 0) {
+                filtres.push({ _id: { $in: selection.idsSansIdentifiant } });
+            }
+
+            return filtres.length > 0 ? { $or: filtres } : { _id: { $in: [] } };
+        };
+
+        const chargerSelectionComplete = async (selection, filtreSupplementaire) => {
+            return Order.find({
+                ...filtreSupplementaire,
+                ...construireFiltreColis(selection)
+            })
+                .populate('produitId')
+                .populate('acheteurId', 'nom prenom email')
+                // On charge les informations boutique nécessaires à l'adresse de retrait chez le vendeur.
+                .populate('vendeurId', 'nom prenom email boutique')
+                .sort({ createdAt: 1 })
+                .lean();
+        };
+
+        // Étape A : sélectionner 2 colis distincts, puis charger toutes leurs lignes.
+        const commandesActives = await Order.find(statutsActifsLivreur)
+            .sort({ createdAt: 1 })
+            .lean();
+        const selectionActuelle = selectionnerColis(commandesActives, maxColisLivraison);
+        let orders = await chargerSelectionComplete(selectionActuelle, statutsActifsLivreur);
 
         // Étape B : si la tournée du livreur est vide, on recharge avec des colis libres
         // qui sont encore au statut "expédiée" dans ses communes. Ces colis sont ensuite
@@ -56,21 +102,21 @@ const getExpedieesOrders = async (req, res, next) => {
             // Expression régulière insensible à la casse pour chaque commune
             const communesRegex = communesLivraison.map(c => new RegExp(`^${c}$`, 'i'));
 
-            const colisDisponibles = await Order.find({
+            const commandesDisponibles = await Order.find({
                 statut: { $regex: /^exp(?:e|é)di(?:e|é)e?$/i },
                 livreurAssignationId: null,
                 'adresseLivraison.commune': { $in: communesRegex }
             })
-                .limit(maxColisLivraison)
-                .select('_id')
+                .sort({ createdAt: 1 })
+                .select('_id colisGroupId')
                 .lean();
 
-            const idsAAssigner = colisDisponibles.map(c => c._id);
+            const selectionDisponible = selectionnerColis(commandesDisponibles, maxColisLivraison);
 
-            if (idsAAssigner.length > 0) {
+            if (selectionDisponible.groupesAvecIdentifiant.length > 0 || selectionDisponible.idsSansIdentifiant.length > 0) {
                 const updateResult = await Order.updateMany(
                     {
-                        _id: { $in: idsAAssigner },
+                        ...construireFiltreColis(selectionDisponible),
                         livreurAssignationId: null
                     },
                     {
@@ -81,19 +127,9 @@ const getExpedieesOrders = async (req, res, next) => {
                     }
                 );
 
-                // On ne récupère que les colis réellement attribués à ce livreur après l'update.
-                // La requête de confirmation évite de relire un document qu'un autre livreur aurait déjà pris entre-temps.
+                // On recharge toutes les lignes des colis réellement attribués à ce livreur.
                 orders = updateResult.modifiedCount > 0
-                    ? await Order.find({
-                        _id: { $in: idsAAssigner },
-                        livreurAssignationId: userId,
-                        statut: { $regex: /^(attribu(?:ée|ee|e)alivreur|prise(?: |-)en(?: |-)charge)$/i }
-                    })
-                        .populate('produitId')
-                        .populate('acheteurId', 'nom prenom email')
-                        .populate('vendeurId', 'nom prenom email')
-                        .sort({ createdAt: 1 })
-                        .lean()
+                    ? await chargerSelectionComplete(selectionDisponible, statutsActifsLivreur)
                     : [];
             }
         }
@@ -117,6 +153,32 @@ const getExpedieesOrders = async (req, res, next) => {
                 createdAt: order.createdAt || null,
                 updatedAt: order.updatedAt || null,
                 adresseLivraison: order.adresseLivraison || null,
+                longitude: order.adresseLivraison?.longitude || null,
+                latitude: order.adresseLivraison?.latitude || null,
+                
+                // On expose l'adresse boutique uniquement pour un colis attribué au livreur.
+                adresseRecuperation: order.statut === 'attribuéeAlivreur' && order.vendeurId?.boutique
+                    // On transforme les champs boutique en adresse lisible par le frontend.
+                    ? {
+                        // On transmet la commune de la boutique comme lieu de retrait.
+                        commune: order.vendeurId.boutique.communeBoutique || null,
+                        // On transmet le quartier de la boutique comme lieu de retrait.
+                        quartier: order.vendeurId.boutique.quartierBoutique || null,
+                        // On transmet l'avenue de la boutique comme lieu de retrait.
+                        avenue: order.vendeurId.boutique.avenueBoutique || null,
+                        // On transmet le numéro d'adresse de la boutique comme lieu de retrait.
+                        numeroParcelle: order.vendeurId.boutique.numeroadresseBoutique || null,
+                        // On transmet le téléphone de la boutique pour faciliter le contact.
+                        telephone: order.vendeurId.boutique.telephoneBoutique || null,
+                        // On transmet le nom de la boutique pour identifier le lieu de retrait.
+                        nomBoutique: order.vendeurId.boutique.nomBoutique || null,
+                        //on transmet la longitude de la boutique pour le géocodage
+                        longitude: order.vendeurId.boutique.longitudeBoutique || null,
+                        //on transmet la latitude de la boutique pour le géocodage
+                        latitude: order.vendeurId.boutique.latitudeBoutique || null
+                    }
+                    // On évite d'afficher une adresse de retrait pour les autres statuts.
+                    : null,
                 colisGroupId: order.colisGroupId || null
             };
         });
@@ -166,10 +228,15 @@ const getLivreurHistory = async (req, res, next) => {
             .limit(50) // On limite pour éviter de surcharger
             .lean();
 
+        const colisGroupIds = [...new Set(history.map(commande => commande.colisGroupId).filter(Boolean))]; // Extrait les identifiants uniques des colis présents dans l'historique.
+        const expeditions = await Expedition.find({ colisGroupId: { $in: colisGroupIds } }).select('colisGroupId notesLivreur').lean(); // Récupère uniquement le motif associé à chaque colis.
+        const motifsParColis = new Map(expeditions.map(expedition => [expedition.colisGroupId, expedition.notesLivreur])); // Indexe les motifs pour les retrouver rapidement.
+        const historyAvecMotifs = history.map(commande => ({ ...commande, motifEchec: motifsParColis.get(commande.colisGroupId) || null })); // Ajoute le motif correspondant à chaque ligne de commande.
+
         return res.status(200).json({
             success: true,
-            count: history.length,
-            commandes: history
+            count: historyAvecMotifs.length,
+            commandes: historyAvecMotifs
         });
     } catch (error) {
         return res.status(500).json({ error: 'Erreur lors de la récupération de l’historique.' });
