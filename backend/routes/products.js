@@ -25,12 +25,10 @@ router.get( '/', productsctrl.getAllProducts);
 
 
 
-// Middleware pour envoyer les marchandises au frontend
+// Middleware pour envoyer une seule marchandise au frontend et aussi
+//pour preremplir les champs du formulaire de modification
 router.get('/:id', productsctrl.getOneProduct);
 
-
-//middleware pour preremplire les champs du formulaire de modification
-router.get('/:id',auth,vendeurOnly, productsctrl.getProductForEdit);
 
 
 //middleware pour modifier une marchandise

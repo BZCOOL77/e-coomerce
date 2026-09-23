@@ -10,14 +10,18 @@
     <!--pour le loader-->
     <div id="overlay"></div>
     <div id="loader"><div class="spinner"></div></div>
+    <button id="retour" onclick="window.location.href='nav.html'">Retour</button>
     <h1>Renseignez les informations de votre produit</h1>
     
     <form id="productForm">
         <p class="p1">Remplissez le formulaire de vente</p>
         <input type="text" id="nom" placeholder="Nom du produit" required><br>
         <input type="number" id="prix" placeholder="Prix" required><br>
-        <input type="textarea" id="description" placeholder="Description" required></input><br>
+        <textarea id="description" placeholder="Description" required></textarea><br>
         <input type="text" id="image" placeholder="Lien de l'image" required><br>
+        <input type="text" id="image1" placeholder="Lien de l'image" ><br>
+        <input type="text" id="image2" placeholder="Lien de l'image" ><br>
+        <input type="text" id="image3" placeholder="Lien de l'image" ><br>
         <input type="number" id="stock" name="stock" min="1" value="10" placeholder="quantité en stock" required class="form-input"><br>
         <div class="categorie">
             <input type="radio" id="categorie1" name="categorie" value="Électronique" required>
@@ -63,6 +67,9 @@
                 prix: Number(document.getElementById('prix').value),
                 description: document.getElementById('description').value,
                 image: document.getElementById('image').value,
+                image1: document.getElementById('image1').value,
+                image2: document.getElementById('image2').value,
+                image3: document.getElementById('image3').value,
                 stock: Number(document.getElementById('stock').value),
                 categorie: document.querySelector('input[name="categorie"]:checked').value
             };

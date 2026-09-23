@@ -4,11 +4,15 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         
-        <script src="../js/url.js"></script>
-        <link rel="stylesheet" href="../css/client.css">
-        <!-- Font Awesome pour les icônes -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-        <script src="../js/client.js" defer></script> 
+     <!-- 1. Feuilles de style CSS (Toujours dans le <head>) -->
+     <link rel="stylesheet" href="../css/client.css">
+     <!-- Font Awesome pour les icônes -->
+     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+
+     <!-- 2. Scripts JavaScript (Avec defer partout pour respecter l'ordre exact) -->
+     <script src="../js/url.js" defer></script>
+     <script src="../js/client.js" defer></script>
+     <script src="../js/wishlist.js" defer></script>
         <title>Shopy-Cloths</title>
          
     </head>
@@ -24,6 +28,28 @@
             <h1>shopy-cloths</h1>
             <h2>meilleur experience shopping en ligne</h2>
             <div class="header-actions">
+                <!-- Menu déroulant du header.
+                     Pour ajouter un autre élément dans ce menu, il suffit de rajouter
+                     un nouveau lien .menu-link dans le bloc .menu-dropdown. -->
+                <div class="header-menu">
+                    <button class="menu-trigger" type="button" aria-expanded="false" aria-controls="menu-favoris" aria-label="Ouvrir le menu">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+
+                    <div id="menu-favoris" class="menu-dropdown" hidden>
+                        <a href="mawishlist.html" class="menu-link">
+                            <i class="fa-solid fa-heart"></i>
+                            <span>Ma wishlist</span>
+                        </a>
+                        <!-- Exemple : ajouter un autre élément ici
+                        <a href="autre-page.html" class="menu-link">
+                            <i class="fa-solid fa-user"></i>
+                            <span>Mon autre page</span>
+                        </a>
+                        -->
+                    </div>
+                </div>
+
                 <button id="monprofile" class="btn-profile-hero">
                     <i class="fa-solid fa-user-circle"></i>
                     <span></span><!--PROFILE-->
@@ -206,8 +232,49 @@
 <!-- LE JS POUR LE MODALE DU PROFIL UTILISATEUR -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    // Gestion du bouton de profil principal.
     const boutonProfil = document.getElementById('monprofile');
     if (boutonProfil) boutonProfil.addEventListener('click', ouvrirProfil);
+
+    // MENU DÉROULANT DU HEADER
+    // Cette logique est générique pour tous les menus du header.
+    // Si tu veux ajouter un nouvel élément plus tard, il suffit de créer
+    // un nouveau .menu-link à l'intérieur du .menu-dropdown correspondant.
+    const headerMenus = document.querySelectorAll('.header-menu');
+
+    headerMenus.forEach((menu) => {
+        const trigger = menu.querySelector('.menu-trigger');
+        const dropdown = menu.querySelector('.menu-dropdown');
+
+        if (!trigger || !dropdown) return;
+
+        trigger.addEventListener('click', (event) => {
+            event.stopPropagation();
+
+            const isOpen = dropdown.hidden === false;
+            dropdown.hidden = isOpen;
+            trigger.setAttribute('aria-expanded', String(!isOpen));
+        });
+    });
+
+    // On ferme tous les menus si on clique ailleurs dans la page.
+    document.addEventListener('click', (event) => {
+        const clickInsideMenu = event.target.closest('.header-menu');
+
+        headerMenus.forEach((menu) => {
+            const trigger = menu.querySelector('.menu-trigger');
+            const dropdown = menu.querySelector('.menu-dropdown');
+
+            if (!trigger || !dropdown) return;
+
+            const shouldClose = !clickInsideMenu || clickInsideMenu !== menu;
+            if (shouldClose) {
+                dropdown.hidden = true;
+                trigger.setAttribute('aria-expanded', 'false');
+            }
+        });
+    });
+    // FIN MENU DÉROULANT DU HEADER
 
     // Boutons internes à la modale
     const btnClose = document.getElementById('btn-close-modal');

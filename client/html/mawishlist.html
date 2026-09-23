@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ma wishlist | Shopy-Cloths</title>
+
+    <!-- Police / icônes utilitaires globales -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <script src="../js/url.js" defer></script>
+
+    <style>
+        /* ==========================================================
+           1. VARIABLES + RESET
+           ========================================================== */
+        :root {
+            --primary-900: #0f172a;
+            --primary-800: #1e293b;
+            --primary-700: #334155;
+            --primary-500: #667eea;
+            --primary-600: #5567d8;
+            --accent-500: #f59e0b;
+            --accent-600: #d97706;
+            --rose-500: #e63946;
+            --rose-100: rgba(230, 57, 70, 0.08);
+            --green-500: #16a34a;
+            --green-100: rgba(22, 163, 74, 0.1);
+            --slate-50: #f8fafc;
+            --slate-100: #f1f5f9;
+            --slate-200: #e2e8f0;
+            --slate-500: #64748b;
+            --slate-700: #334155;
+            --white: #ffffff;
+            --shadow-soft: 0 16px 36px rgba(15, 23, 42, 0.08);
+            --shadow-strong: 0 18px 42px rgba(15, 23, 42, 0.12);
+            --radius-lg: 22px;
+            --radius-md: 16px;
+            --radius-sm: 12px;
+            --transition: 0.25s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background:
+                linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(15, 23, 42, 0.92) 100%),
+                linear-gradient(135deg, rgba(102, 126, 234, 0.14), rgba(148, 163, 184, 0.06));
+            color: var(--primary-900);
+        }
+
+        img {
+            max-width: 100%;
+            display: block;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        button,
+        input,
+        textarea {
+            font: inherit;
+        }
+
+        /* ==========================================================
+           2. HEADER
+           ========================================================== */
+        .page-header {
+            background: linear-gradient(135deg, var(--primary-900) 0%, var(--primary-700) 100%);
+            color: var(--white);
+            padding: 1.2rem 1rem;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+        }
+
+        .page-header-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.9rem;
+            flex-wrap: wrap;
+        }
+
+        .brand-block {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .brand-title {
+            margin: 0;
+            font-size: clamp(1.2rem, 3vw, 2rem);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-weight: 800;
+        }
+
+        .brand-subtitle {
+            margin: 0;
+            font-size: 0.72rem;
+            opacity: 0.8;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            padding: 0.72rem 1rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: var(--white);
+            font-weight: 700;
+            transition: var(--transition);
+        }
+
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.14);
+            transform: translateY(-1px);
+        }
+
+        /* ==========================================================
+           3. MAIN / CONTENEUR
+           ========================================================== */
+        .page-main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.2rem 1rem 2.5rem;
+        }
+
+        .wishlist-shell {
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-strong);
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .wishlist-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.1rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid var(--slate-200);
+        }
+
+        .wishlist-title {
+            margin: 0;
+            font-size: clamp(1.4rem, 3vw, 2.2rem);
+            letter-spacing: -0.04em;
+        }
+
+        .wishlist-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 39px;
+            height: 39px;
+            padding: 0 0.7rem;
+            border-radius: 999px;
+            background: var(--rose-100);
+            color: var(--rose-500);
+            font-weight: 800;
+            font-size: 0.9rem;
+        }
+
+        .btn-add-all {
+            border: 1px solid rgba(22, 163, 74, 0.2);
+            border-radius: 12px;
+            padding: 0.7rem 0.9rem;
+            background: var(--green-100);
+            color: var(--green-500);
+            font-weight: 800;
+            cursor: pointer;
+            transition: transform var(--transition), box-shadow var(--transition);
+        }
+
+        .btn-add-all:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 22px rgba(22, 163, 74, 0.12);
+        }
+
+        .btn-add-all:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* ==========================================================
+           4. LISTE / CARTES PRODUITS
+           ========================================================== */
+        .wishlist-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .wishlist-card {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.9rem;
+            padding: 0.8rem;
+            border: 1px solid var(--slate-200);
+            border-radius: var(--radius-lg);
+            background: linear-gradient(180deg, var(--white) 0%, var(--slate-50) 100%);
+            box-shadow: var(--shadow-soft);
+            transition: transform var(--transition), box-shadow var(--transition);
+        }
+
+        .wishlist-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 18px 38px rgba(15, 23, 42, 0.1);
+        }
+
+        .product-visual {
+            position: relative;
+            overflow: hidden;
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(59, 130, 246, 0.04));
+            border: 1px solid var(--slate-200);
+            min-height: 220px;
+        }
+
+        .remove-favorite-btn {
+            position: absolute;
+            top: 0.8rem;
+            right: 0.8rem;
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.96);
+            color: var(--rose-500);
+            cursor: pointer;
+            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
+            transition: transform var(--transition), box-shadow var(--transition);
+        }
+
+        .remove-favorite-btn:hover {
+            transform: scale(1.06);
+            box-shadow: 0 12px 26px rgba(15, 23, 42, 0.14);
+        }
+
+        .product-visual img {
+            width: 100%;
+            height: 100%;
+            min-height: 220px;
+            object-fit: cover;
+        }
+
+        .product-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            padding: 0.2rem 0.2rem 0.2rem 0;
+        }
+
+        .product-badge {
+            display: inline-flex;
+            align-self: flex-start;
+            padding: 0.45rem 0.75rem;
+            border-radius: 999px;
+            background: rgba(102, 126, 234, 0.12);
+            color: var(--primary-600);
+            font-size: 0.7rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-weight: 800;
+        }
+
+        .product-name {
+            margin: 0;
+            font-size: clamp(1.3rem, 3vw, 2rem);
+            line-height: 1.2;
+            letter-spacing: -0.04em;
+        }
+
+        .product-seller {
+            margin: 0;
+            padding: 0.7rem 0.8rem;
+            border-left: 4px solid var(--primary-500);
+            border-radius: var(--radius-sm);
+            background: rgba(102, 126, 234, 0.05);
+            color: var(--slate-700);
+            font-weight: 700;
+        }
+
+        .product-price {
+            margin: 0;
+            font-size: clamp(1.5rem, 4vw, 2.2rem);
+            font-weight: 900;
+            color: var(--primary-900);
+            background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .product-description {
+            margin: 0;
+            color: var(--slate-700);
+            line-height: 1.7;
+            background: rgba(248, 250, 252, 0.9);
+            border: 1px solid var(--slate-200);
+            border-radius: var(--radius-md);
+            padding: 0.8rem 0.9rem;
+        }
+
+        .stock-state {
+            margin: 0;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .stock-state.in-stock {
+            color: var(--green-500);
+        }
+
+        .stock-state.out-of-stock {
+            color: var(--rose-500);
+        }
+
+        .card-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.7rem;
+            margin-top: 0.2rem;
+        }
+
+        .btn-detail,
+        .btn-cart,
+        .btn-empty,
+        .btn-remove {
+            border: none;
+            border-radius: 12px;
+            padding: 0.8rem 1rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: transform var(--transition), box-shadow var(--transition);
+        }
+
+        .btn-detail {
+            flex: 1 1 120px;
+            background: rgba(102, 126, 234, 0.1);
+            color: var(--primary-700);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        .btn-cart {
+            flex: 1 1 160px;
+            background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+            color: var(--white);
+            box-shadow: 0 14px 30px rgba(102, 126, 234, 0.22);
+        }
+
+        .btn-remove {
+            background: rgba(230, 57, 70, 0.08);
+            color: var(--rose-500);
+            border: 1px solid rgba(230, 57, 70, 0.12);
+        }
+
+        .btn-cart.disabled {
+            background: #cbd5e1;
+            color: #475569;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .btn-detail:hover,
+        .btn-cart:hover,
+        .btn-remove:hover,
+        .btn-empty:hover {
+            transform: translateY(-1px);
+        }
+
+        /* ==========================================================
+           5. MESSAGE VIDE
+           ========================================================== */
+        .empty-state {
+            padding: 2rem 1rem;
+            text-align: center;
+            color: var(--slate-700);
+            background: rgba(255, 255, 255, 0.94);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--slate-200);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .empty-state .empty-icon {
+            font-size: 3rem;
+            color: var(--rose-500);
+            margin-bottom: 0.8rem;
+        }
+
+        .empty-state h2 {
+            margin: 0 0 0.5rem;
+        }
+
+        .empty-state p {
+            margin: 0 0 1rem;
+            line-height: 1.7;
+        }
+
+        .btn-empty {
+            background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+            color: var(--white);
+        }
+
+        /* ==========================================================
+           6. RESPONSIVE MOBILE-FIRST
+           ========================================================== */
+        @media (min-width: 700px) {
+            .page-header {
+                padding: 1.3rem 1.5rem;
+            }
+
+            .page-main {
+                padding: 1.5rem 1.5rem 3rem;
+            }
+
+            .wishlist-shell {
+                padding: 1.2rem 1.3rem;
+            }
+
+            .wishlist-list {
+                gap: 1.2rem;
+            }
+
+            .wishlist-card {
+                grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+                align-items: center;
+                padding: 1rem;
+            }
+
+            .product-content {
+                padding-left: 0.2rem;
+            }
+        }
+
+        @media (min-width: 980px) {
+            .page-main {
+                padding-top: 2rem;
+            }
+
+            .wishlist-shell {
+                padding: 1.5rem;
+            }
+
+            .wishlist-card {
+                gap: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ==========================================================
+         HEADER / NAVIGATION
+         ========================================================== -->
+    <header class="page-header">
+        <div class="page-header-inner">
+            <div class="brand-block">
+                <div aria-hidden="true" style="font-size: 1.4rem;">
+                    <i class="fa-solid fa-heart-circle-check"></i>
+                </div>
+                <div>
+                    <h1 class="brand-title">Shopy-Cloths</h1>
+                    <p class="brand-subtitle">Ma wishlist</p>
+                </div>
+            </div>
+
+            <a href="client.html" class="back-link">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Retour au catalogue</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- ==========================================================
+         MAIN CONTENT
+         ========================================================== -->
+    <main class="page-main">
+        <section class="wishlist-shell" aria-live="polite">
+            <div class="wishlist-head">
+                <h2 class="wishlist-title">Produits favoris</h2>
+                <div>
+                    <span id="wishlist-count" class="wishlist-count" aria-label="Nombre de produits favoris">0</span>
+                    <button id="add-all-btn" class="btn-add-all" type="button" hidden>
+                        <i class="fa-solid fa-cart-plus"></i>
+                        <span>Tout ajouter au panier</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="wishlist-container" class="wishlist-list"></div>
+        </section>
+    </main>
+
+    <script>
+        /* ==========================================================
+           1. UTILITAIRES PANIER / TOKEN
+           ========================================================== */
+        function getToken() {
+            return localStorage.getItem('token');
+        }
+
+        function getPanier() {
+            const panierData = localStorage.getItem('panier_shopy');
+            return panierData ? JSON.parse(panierData) : [];
+        }
+
+        function sauverPanier(panier) {
+            localStorage.setItem('panier_shopy', JSON.stringify(panier));
+        }
+
+        function parsePrix(value) {
+            const cleaned = String(value ?? 0).replace(/[^\d,.-]/g, '').replace(',', '.');
+            const parsed = Number.parseFloat(cleaned || '0');
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function ajouterAuPanier(id, nom, prix, image, vendeurId) {
+            const panier = getPanier();
+            const idStr = String(id);
+            const produitExistant = panier.find(item => String(item.id) === idStr);
+
+            if (produitExistant) {
+                produitExistant.quantite += 1;
+            } else {
+                panier.push({
+                    id: idStr,
+                    nom: nom,
+                    prix: parsePrix(prix),
+                    image: image,
+                    quantite: 1,
+                    vendeurId: vendeurId
+                });
+            }
+
+            sauverPanier(panier);
+        }
+
+        /* ==========================================================
+           2. RENDERING DES PRODUITS
+           ========================================================== */
+        function renderEmptyState() {
+            const container = document.getElementById('wishlist-container');
+            const addAllButton = document.getElementById('add-all-btn');
+            if (!container) return;
+
+            if (addAllButton) addAllButton.hidden = true;
+
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon" aria-hidden="true">
+                        <i class="fa-regular fa-heart"></i>
+                    </div>
+                    <h2>Votre wishlist est vide</h2>
+                    <p>Ajoutez des produits à vos favoris pour les retrouver ici rapidement.</p>
+                    <a href="client.html" class="btn-empty">
+                        <i class="fa-solid fa-bag-shopping"></i>
+                        <span>Découvrir les produits</span>
+                    </a>
+                </div>
+            `;
+        }
+
+        function renderWishlist(products) {
+            const container = document.getElementById('wishlist-container');
+            const countBadge = document.getElementById('wishlist-count');
+
+            if (!container) return;
+
+            if (!Array.isArray(products) || products.length === 0) {
+                if (countBadge) countBadge.textContent = '0';
+                renderEmptyState();
+                return;
+            }
+
+            if (countBadge) countBadge.textContent = String(products.length);
+
+            container.innerHTML = products.map((produit) => {
+                const estEpuise = Number(produit.stock) <= 0;
+                const image = produit.image || 'https://via.placeholder.com/800x800?text=Produit';
+                const nom = produit.nom || 'Produit sans nom';
+                const prix = parsePrix(produit.prix || 0);
+                const description = produit.description || 'Aucune description disponible pour ce produit.';
+                const vendeurLabel = produit.vendeurId && typeof produit.vendeurId === 'object'
+                    ? (produit.vendeurId.boutique?.nomBoutique || produit.vendeurId.nom || 'Boutique officielle')
+                    : 'Boutique officielle';
+
+                const nomEscaped = escapeHtml(nom);
+                const descriptionEscaped = escapeHtml(description);
+                const imageEscaped = escapeHtml(image);
+                const vendeurEscaped = escapeHtml(vendeurLabel);
+                const produitId = escapeHtml(produit._id || '');
+
+                return `
+                    <article class="wishlist-card" data-id="${produitId}">
+                        <div class="product-visual">
+                            <button class="remove-favorite-btn" type="button" data-remove-id="${produitId}" aria-label="Retirer des favoris">
+                                <i class="fa-solid fa-heart-crack"></i>
+                            </button>
+                            <img src="${imageEscaped}" alt="${nomEscaped}" />
+                        </div>
+
+                        <div class="product-content">
+                            <span class="product-badge">Produit</span>
+                            <h3 class="product-name">${nomEscaped}</h3>
+                            <p class="product-seller">Vendu par : ${vendeurEscaped}</p>
+                            <p class="product-price">${prix.toLocaleString('fr-FR')} FC</p>
+                            <p class="product-description">${descriptionEscaped}</p>
+
+                            <p class="stock-state ${estEpuise ? 'out-of-stock' : 'in-stock'}">
+                                ${estEpuise ? '❌ Rupture de stock' : '✅ En stock'}
+                            </p>
+
+                            <div class="card-actions">
+                                <button type="button" class="btn-detail" data-detail-id="${produitId}">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                    <span>Détails</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn-cart ${estEpuise ? 'disabled' : ''}"
+                                    data-cart-id="${produitId}"
+                                    data-cart-name="${nomEscaped}"
+                                    data-cart-price="${prix}"
+                                    data-cart-image="${imageEscaped}"
+                                    data-cart-vendeur="${escapeHtml(produit.vendeurId && typeof produit.vendeurId === 'object' ? (produit.vendeurId._id || '') : (produit.vendeurId || ''))}"
+                                    ${estEpuise ? 'disabled' : ''}
+                                >
+                                    <i class="fa-solid fa-cart-plus"></i>
+                                    <span>${estEpuise ? 'Indisponible' : 'Ajouter au panier'}</span>
+                                </button>
+
+                                <button type="button" class="btn-remove" data-remove-id="${produitId}">
+                                    <i class="fa-solid fa-trash"></i>
+                                    <span>Retirer</span>
+                                </button>
+                            </div>
+                        </div>
+                    </article>
+                `;
+            }).join('');
+
+            const addAllButton = document.getElementById('add-all-btn');
+            if (addAllButton) addAllButton.hidden = false;
+        }
+
+        /* ==========================================================
+           3. FETCH / API WISHLIST
+           ========================================================== */
+        async function chargerWishlist() {
+            const token = getToken();
+            if (!token) {
+                renderEmptyState();
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/wishlist`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        alert('Vous devez être connecté pour voir votre wishlist.');
+                        window.location.href = 'connexion.html';
+                        return;
+                    }
+                    throw new Error('Impossible de charger la wishlist');
+                }
+
+                const data = await response.json();
+                const produits = Array.isArray(data.wishlist) ? data.wishlist : [];
+                renderWishlist(produits);
+            } catch (error) {
+                console.error('Erreur wishlist :', error);
+                renderEmptyState();
+            }
+        }
+
+        /* ==========================================================
+           4. REMOVE FAVORITE / TOGGLE
+           ========================================================== */
+        async function retirerDesFavoris(productId) {
+            const token = getToken();
+            if (!token) {
+                alert('Veuillez vous reconnecter pour modifier votre wishlist.');
+                window.location.href = 'connexion.html';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/wishlist/toggle`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ productId })
+                });
+
+                if (!response.ok) {
+                    const data = await response.json().catch(() => ({}));
+                    throw new Error(data.error || 'Impossible de mettre à jour la wishlist');
+                }
+
+                await chargerWishlist();
+            } catch (error) {
+                console.error('Erreur suppression wishlist :', error);
+                alert(error.message || 'Erreur lors de la suppression du favori.');
+            }
+        }
+
+        function ajouterTousLesProduitsDisponibles() {
+            const buttons = document.querySelectorAll('[data-cart-id]:not(:disabled)');
+            const addAllButton = document.getElementById('add-all-btn');
+
+            buttons.forEach(button => {
+                ajouterAuPanier(
+                    button.dataset.cartId,
+                    button.dataset.cartName,
+                    button.dataset.cartPrice,
+                    button.dataset.cartImage,
+                    button.dataset.cartVendeur
+                );
+            });
+
+            if (addAllButton) {
+                const originalText = addAllButton.innerHTML;
+                addAllButton.innerHTML = '<i class="fa-solid fa-check"></i><span>Produits ajoutés !</span>';
+                addAllButton.disabled = true;
+
+                setTimeout(() => {
+                    addAllButton.innerHTML = originalText;
+                    addAllButton.disabled = false;
+                }, 1600);
+            }
+        }
+
+        /* ==========================================================
+           5. GESTION DES BOUTONS
+           ========================================================== */
+        document.addEventListener('click', async (event) => {
+            const addAllButton = event.target.closest('#add-all-btn');
+            if (addAllButton) {
+                ajouterTousLesProduitsDisponibles();
+                return;
+            }
+
+            const btnDetail = event.target.closest('[data-detail-id]');
+            if (btnDetail) {
+                const id = btnDetail.dataset.detailId;
+                if (id) {
+                    window.location.href = `detail.html?id=${id}`;
+                }
+                return;
+            }
+
+            const btnCart = event.target.closest('[data-cart-id]');
+            if (btnCart && !btnCart.disabled) {
+                const id = btnCart.dataset.cartId;
+                const nom = btnCart.dataset.cartName;
+                const prix = btnCart.dataset.cartPrice;
+                const image = btnCart.dataset.cartImage;
+                const vendeurId = btnCart.dataset.cartVendeur;
+
+                ajouterAuPanier(id, nom, prix, image, vendeurId);
+
+                const oldText = btnCart.innerHTML;
+                btnCart.innerHTML = '<i class="fa-solid fa-check"></i><span>Ajouté !</span>';
+                setTimeout(() => {
+                    btnCart.innerHTML = oldText;
+                }, 1600);
+                return;
+            }
+
+            const btnRemove = event.target.closest('[data-remove-id]');
+            if (btnRemove) {
+                const id = btnRemove.dataset.removeId;
+                if (id) {
+                    await retirerDesFavoris(id);
+                }
+            }
+        });
+
+        /* ==========================================================
+           6. DÉMARRAGE
+           ========================================================== */
+        window.addEventListener('DOMContentLoaded', () => {
+            chargerWishlist();
+        });
+    </script>
+</body>
+</html>

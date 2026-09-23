@@ -1060,6 +1060,358 @@ main {
     }
 }
 
+/* ===== Cartes colis compactes et responsive ===== */
+#liste-commandes {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+#liste-commandes .colis-block,
+#liste-commandes .colis-block:nth-of-type(even) {
+    --colis-bg: var(--white);
+    --ligne-bg: #e6f2ff;
+    --colis-accent: rgba(59, 130, 246, 0.18);
+    background: var(--white);
+    border: 1px solid rgba(44, 62, 80, 0.08);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+}
+
+.colis-header {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    padding: 0.75rem 0.85rem;
+    margin-bottom: 0.5rem;
+}
+
+.colis-header h2 {
+    font-size: 1rem;
+}
+
+.colis-header p {
+    font-size: 0.82rem;
+    line-height: 1.35;
+}
+
+.colis-actions {
+    justify-content: flex-start;
+    gap: 0.5rem;
+}
+
+.colis-articles {
+    gap: 0.45rem;
+    padding: 0 0.5rem 0.5rem;
+}
+
+.ligne-commande {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 0.65rem;
+    padding: 0.65rem;
+    border-radius: 10px;
+}
+
+.col-image,
+.col-image img {
+    width: 44px;
+    height: 44px;
+}
+
+.col-infos {
+    min-width: 0;
+}
+
+.info-main,
+.info-secondary {
+    gap: 0.35rem;
+}
+
+.info-item {
+    font-size: 0.78rem;
+}
+
+.actions-statut {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    min-width: 0;
+    gap: 0.45rem;
+}
+
+.actions-statut button {
+    min-width: 0;
+    max-width: none;
+}
+
+.btn-action {
+    padding: 0.45rem 0.7rem;
+    font-size: 0.8rem;
+}
+
+@media (min-width: 640px) {
+    #liste-commandes {
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 0.9rem;
+    }
+
+    .ligne-commande {
+        grid-template-columns: 50px minmax(0, 1fr) auto;
+        gap: 0.75rem;
+        padding: 0.75rem;
+    }
+
+    .col-image,
+    .col-image img {
+        width: 50px;
+        height: 50px;
+    }
+
+    .actions-statut {
+        grid-column: auto;
+        flex-direction: column;
+        align-items: flex-end;
+        justify-content: center;
+    }
+}
+
+@media (min-width: 900px) {
+    #liste-commandes {
+        grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+        gap: 1rem;
+    }
+
+    .colis-header {
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        padding: 0.85rem 1rem;
+    }
+
+    .colis-actions {
+        justify-content: flex-end;
+    }
+}
+
+/* ===== Responsive mobile-first final ===== */
+html,
+body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+body {
+    padding: 0;
+}
+
+main {
+    width: 100%;
+    padding: 1rem 0.75rem;
+}
+
+.onglets-container {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+    width: 100%;
+    margin: 0;
+    padding: 0.65rem 0.75rem;
+    overflow: hidden;
+}
+
+.onglet {
+    min-width: 0;
+    padding: 0.65rem 0.4rem;
+    font-size: 0.78rem;
+    line-height: 1.2;
+    white-space: normal;
+}
+
+.onglet i {
+    margin-right: 0.2rem;
+}
+
+.btn-retour {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(100% - 1.5rem);
+    min-height: 42px;
+    margin: 0.25rem 0.75rem 0;
+}
+
+.commande-topbar {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+.page-title h1 {
+    font-size: clamp(1.45rem, 8vw, 2.15rem);
+    line-height: 1.1;
+}
+
+.page-title small {
+    font-size: 0.86rem;
+    line-height: 1.4;
+}
+
+.commande-actions,
+.search-box {
+    width: 100%;
+}
+
+.search-box {
+    min-width: 0;
+    padding: 0.45rem 0.5rem 0.45rem 0.75rem;
+}
+
+.search-box input {
+    min-width: 0;
+    width: 100%;
+}
+
+.search-box button {
+    flex: 0 0 42px;
+    min-height: 42px;
+    padding: 0.5rem;
+}
+
+.colis-block,
+.ligne-commande,
+.col-infos,
+.info-main,
+.info-secondary {
+    min-width: 0;
+}
+
+.colis-header h2,
+.colis-header p,
+.info-value,
+.colis-header a {
+    overflow-wrap: anywhere;
+}
+
+.info-secondary {
+    display: grid;
+    grid-template-columns: 1fr;
+}
+
+.info-item {
+    min-width: 0;
+    white-space: normal;
+}
+
+.actions-statut {
+    flex-wrap: wrap;
+}
+
+.actions-statut button,
+.actions-statut .btn-action {
+    flex: 1 1 100%;
+    width: 100%;
+}
+
+@media (min-width: 420px) {
+    .onglets-container {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .onglet {
+        font-size: 0.82rem;
+    }
+
+    .info-secondary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .actions-statut button,
+    .actions-statut .btn-action {
+        flex: 0 1 auto;
+        width: auto;
+    }
+}
+
+@media (min-width: 640px) {
+    main {
+        padding-right: 1rem;
+        padding-left: 1rem;
+    }
+
+    .onglets-container {
+        padding-right: 1rem;
+        padding-left: 1rem;
+    }
+
+    .btn-retour {
+        width: auto;
+        margin-left: 1rem;
+    }
+}
+
+@media (min-width: 768px) {
+    .commande-topbar {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+    }
+
+    .commande-actions {
+        width: auto;
+    }
+
+    .search-box {
+        width: min(100%, 360px);
+    }
+}
+
+/* ===== Ajustements navigation mobile ===== */
+.onglets-container {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 0.45rem;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+}
+
+.onglet {
+    flex: 0 0 auto;
+    min-width: 9.5rem;
+    white-space: nowrap;
+}
+
+.btn-retour {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    max-width: 100%;
+    min-height: 38px;
+    margin: 0.25rem 0.75rem 0;
+    padding: 0.55rem 0.8rem;
+    font-size: 0.84rem;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+@media (min-width: 640px) {
+    .btn-retour {
+        margin-left: 1rem;
+    }
+}
+
+@media (min-width: 768px) {
+    .onglets-container {
+        overflow-x: visible;
+    }
+
+    .onglet {
+        min-width: 0;
+    }
+}
+
 /* ===== Impression ===== */
 @media print {
     #overlay,

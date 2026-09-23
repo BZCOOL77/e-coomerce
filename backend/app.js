@@ -7,6 +7,8 @@ const productsroutes = require('./routes/products');// Importer les routes des p
 const userroutes = require('./routes/user');// Importer les routes client d'authentification
 const orderroutes = require('./routes/order');// Importer les routes des commandes
 const livreurroutes = require('./routes/livreurroute'); // Routes pour les livreurs
+const reviewroutes = require('./routes/review'); // Routes pour les avis des clients
+const wishlistRoutes = require('./routes/wishlist'); // Routes pour la gestion des favoris
 
 
 
@@ -41,7 +43,11 @@ app.use('/api/orders', orderroutes);
 // Middleware pour gérer les routes spécifiques aux livreurs
 app.use('/api/livreur', livreurroutes);
 
+// Middleware pour gérer les routes des avis
+app.use('/api/reviews', reviewroutes);
 
+// Middleware pour gérer les routes des favoris
+app.use('/api/wishlist', wishlistRoutes);
 
 console.log("Routes d'authentification chargées !");
 

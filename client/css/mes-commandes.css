@@ -1,24 +1,29 @@
 /* --- Styles modernes et professionnels pour la page Mes Commandes --- */
 
 :root {
-    --bg: #f5f1ea;
+    --bg: #f4f7fb;
     --surface: #ffffff;
-    --surface-soft: #f8f4ee;
-    --primary: #132238;
-    --primary-strong: #0d1726;
-    --accent: #e9a94a;
-    --accent-strong: #c8851f;
-    --text: #17202b;
-    --muted: #6a7280;
-    --border: rgba(16, 29, 49, 0.08);
-    --shadow: 0 20px 50px rgba(19, 34, 56, 0.12);
+    --surface-soft: #f8fafc;
+    --primary: #2f5bff;
+    --primary-strong: #101828;
+    --primary-dark: #172033;
+    --accent: #ffad33;
+    --accent-strong: #ed8b00;
+    --text: #101828;
+    --muted: #667085;
+    --border: rgba(148, 163, 184, 0.2);
+    --shadow: 0 16px 34px rgba(16, 24, 40, 0.1);
+}
+
+* {
+    box-sizing: border-box;
 }
 
 body {
     background:
-        radial-gradient(circle at top left, rgba(233, 169, 74, 0.18), transparent 24%),
-        linear-gradient(180deg, #f8f3ec 0%, #f2eee8 100%);
-    font-family: "Poppins", "Segoe UI", Arial, sans-serif;
+        radial-gradient(circle at top left, rgba(47, 91, 255, 0.07), transparent 25%),
+        linear-gradient(180deg, #f7f9fc 0%, #eef4ff 100%);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
     color: var(--text);
     margin: 0;
     min-height: 100vh;
@@ -34,13 +39,14 @@ body {
 }
 
 .main-mes-commandes {
-    padding: 2rem;
-    max-width: 980px;
+    width: min(100% - 1.5rem, 1120px);
+    padding: clamp(1rem, 4vw, 2rem);
+    max-width: 1120px;
     margin: 0 auto;
     background: rgba(255, 255, 255, 0.92);
     border-radius: 24px;
     box-shadow: var(--shadow);
-    margin-top: 2rem;
+    margin: 1rem auto 2rem;
     border: 1px solid var(--border);
 }
 
@@ -48,13 +54,14 @@ body {
     display: flex;
     gap: 10px;
     margin-bottom: 24px;
-    border-bottom: 2px solid #e8e2d6;
+    border-bottom: 2px solid #dfe6ee;
     padding-bottom: 10px;
     overflow-x: auto;
 }
 
 .onglet {
-    padding: 12px 24px;
+    min-height: 42px;
+    padding: 0.65rem 1rem;
     border: none;
     background: transparent;
     font-size: 1rem;
@@ -67,9 +74,9 @@ body {
 }
 
 .onglet.active {
-    color: var(--primary-strong);
-    border-bottom: 3px solid var(--accent);
-    background: #f9f3e7;
+    color: var(--primary);
+    border-bottom: 3px solid var(--primary);
+    background: #eef4ff;
 }
 
 .commande-card {
@@ -79,7 +86,7 @@ body {
     margin-bottom: 22px;
     padding: 18px 22px;
     transition: box-shadow 0.2s;
-    border-left: 5px solid #132238;
+    border-left: 5px solid var(--primary);
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -100,7 +107,7 @@ body {
     height: 82px;
     object-fit: cover;
     border-radius: 12px;
-    border: 1px solid rgba(19, 34, 56, 0.12);
+    border: 1px solid rgba(47, 91, 255, 0.14);
     background: #fff;
 }
 
@@ -119,7 +126,7 @@ body {
 .suivi-colis {
     margin-top: 10px;
     padding: 12px;
-    background: #f7f5ef;
+    background: #eef4ff;
     border-radius: 10px;
     font-size: 0.96rem;
     color: var(--text);
@@ -134,7 +141,7 @@ body {
 .loader-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(248, 243, 236, 0.8);
+    background: rgba(247, 249, 252, 0.84);
     z-index: 1000;
     display: flex;
     align-items: center;
@@ -142,7 +149,7 @@ body {
 }
 
 .spinner {
-    border: 6px solid rgba(19, 34, 56, 0.12);
+    border: 6px solid rgba(47, 91, 255, 0.14);
     border-top: 6px solid var(--accent);
     border-radius: 50%;
     width: 60px;
@@ -249,7 +256,8 @@ body {
 }
 
 #retour-acueil {
-    margin: 20px 0; /* Espace au-dessus et en-dessous */
+    width: min(100% - 1.5rem, 1120px);
+    margin: 1rem auto 0;
     padding: 0;
 }
 
@@ -257,23 +265,23 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 8px; /* Écart entre la flèche et le texte */
-    color: #4a5568; /* Gris ardoise élégant */
+    color: var(--primary); /* Bleu principal de l'accueil */
     text-decoration: none; /* Enlève le soulignement moche */
     font-weight: 600;
     font-size: 0.95rem;
     padding: 8px 16px;
     border-radius: 8px;
-    background-color: #f7fafc; /* Fond très légèrement grisé */
-    border: 1px solid #e2e8f0;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(47, 91, 255, 0.14);
     transition: all 0.25s ease-in-out;
 }
 
 /* 🌟 EFFET AU SURVOL (Hover) */
 #retour-acueil a:hover {
-    color: #1a202c; /* Le texte devient plus sombre/noir */
-    background-color: #edf2f7; /* Le fond devient un poil plus foncé */
-    border-color: #cbd5e0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+    color: #ffffff;
+    background-color: var(--primary);
+    border-color: var(--primary);
+    box-shadow: 0 8px 18px rgba(47, 91, 255, 0.18);
     transform: translateX(-3px); /* Le bouton glisse subtilement vers la gauche ! Effect magique */
 }
 
@@ -289,4 +297,199 @@ body {
     font-size: 1.1rem;
     line-height: 1;
     transition: transform 0.25s ease;
+}
+
+/* ==========================================================================\n+   Éléments générés par mes-commandes.js\n+   ========================================================================== */
+.commande-card-wrapper {
+    width: 100%;
+    border-color: var(--border) !important;
+    border-radius: 16px !important;
+    box-shadow: var(--shadow) !important;
+}
+
+.commande-card-wrapper > .commande-header {
+    background: var(--surface-soft) !important;
+    border-bottom-color: var(--border) !important;
+}
+
+.commande-card-wrapper h3 {
+    color: var(--primary-strong) !important;
+    overflow-wrap: anywhere;
+}
+
+.colis-articles-list {
+    background: var(--surface) !important;
+}
+
+.article-ligne-achat {
+    width: 100%;
+    min-width: 0;
+    border-bottom-color: var(--border) !important;
+}
+
+.article-ligne-achat img {
+    flex: 0 0 65px;
+}
+
+.article-ligne-achat > div {
+    min-width: 0;
+}
+
+.article-ligne-achat h4 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.article-ligne-achat .badge {
+    flex: 0 0 auto;
+}
+
+.btn-pdf {
+    min-height: 38px;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid rgba(47, 91, 255, 0.16);
+    border-radius: 9px;
+    background: #eef4ff;
+    color: var(--primary);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.btn-pdf:hover {
+    background: #dfe8ff;
+    transform: translateY(-1px);
+}
+
+button,
+a {
+    -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 520px) {
+    #retour-acueil,
+    .main-mes-commandes {
+        width: calc(100% - 1rem);
+    }
+
+    #retour-acueil a {
+        min-height: 40px;
+        padding: 0.55rem 0.75rem;
+        font-size: 0.8rem;
+    }
+
+    .main-mes-commandes {
+        margin-top: 0.65rem;
+        padding: 0.75rem;
+        border-radius: 16px;
+    }
+
+    .onglets-container {
+        gap: 0.35rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.45rem;
+    }
+
+    .onglet {
+        min-height: 38px;
+        padding: 0.5rem 0.65rem;
+        font-size: 0.72rem;
+    }
+
+    .badge-compteur {
+        padding: 2px 6px;
+        font-size: 0.68rem;
+    }
+
+    .commande-card-wrapper > .commande-header {
+        display: block !important;
+        padding: 0.8rem !important;
+    }
+
+    .commande-card-wrapper > .commande-header > div:last-child {
+        margin-top: 0.75rem;
+    }
+
+    .btn-pdf {
+        width: 100%;
+    }
+
+    .colis-articles-list {
+        padding: 0.8rem !important;
+    }
+
+    .article-ligne-achat {
+        display: grid !important;
+        grid-template-columns: 48px minmax(0, 1fr);
+        gap: 0.6rem !important;
+        align-items: start !important;
+        padding-bottom: 0.8rem !important;
+        margin-bottom: 0.8rem !important;
+    }
+
+    .article-ligne-achat img {
+        width: 48px !important;
+        height: 48px !important;
+        flex: none;
+        border-radius: 8px !important;
+    }
+
+    .article-ligne-achat h4 {
+        font-size: 0.82rem !important;
+    }
+
+    .article-ligne-achat > div:first-of-type > div {
+        flex-wrap: wrap !important;
+        gap: 0.35rem !important;
+    }
+
+    .article-ligne-achat .badge {
+        font-size: 0.62rem !important;
+        padding: 3px 6px !important;
+    }
+
+    .article-actions {
+        grid-column: 2;
+        width: 100%;
+    }
+
+    .btn-annuler {
+        width: 100%;
+        padding: 0.5rem 0.65rem;
+        font-size: 0.72rem;
+    }
+}
+
+@media (min-width: 521px) and (max-width: 900px) {
+    .commande-card-wrapper > .commande-header {
+        flex-wrap: wrap !important;
+    }
+
+    .commande-card-wrapper > .commande-header > div:first-child {
+        min-width: 0;
+        flex: 1 1 250px;
+    }
+
+    .commande-card-wrapper > .commande-header > div:last-child {
+        flex: 0 1 auto;
+    }
+}
+
+@media (min-width: 901px) {
+    .main-mes-commandes {
+        margin-top: 1.5rem;
+    }
+}
+
+@media (horizontal-viewport-segments: 2) {
+    .main-mes-commandes {
+        width: calc(100% - 2rem);
+    }
+
+    .commande-card-wrapper > .commande-header {
+        flex-wrap: wrap !important;
+    }
 }

@@ -83,7 +83,14 @@ const userSchema = mongoose.Schema({// Identifiants de connexion
       enum:['LUBUMBAHI', 'KENYA', 'KAMALONDO', 'RUASHI','KAMPEMBA', 'ANNEXE', 'KATUBA' ]
      }], 
     capaciteMaxColis: { type: Number, default: 30 }
+
   },
+
+  // 💖 TABLEAU DE FAVORIS (Stocke les ID des produits aimés)
+  wishlist: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Thing' // Fait référence à la collection des produits
+  }]
 
 }, { timestamps: true }
 );

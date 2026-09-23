@@ -1,22 +1,24 @@
-// On récupère le bouton panier de la barre de navigation ou du header
+// On récupère les éléments principaux de navigation pour gérer les clics dans le header et la navbar.
 const navbarre = document.getElementById('navbarre');
 const header = document.querySelector('header');
 const tousLesProduitsBtn = document.getElementById('tous-les-produits');
 
+// Si l'utilisateur arrive sur une page de vendeur, on affiche le bouton "Tous les produits".
 if (tousLesProduitsBtn) {
     const vendeurId = new URLSearchParams(window.location.search).get('vendeurId');
     tousLesProduitsBtn.style.display = vendeurId ? '' : 'none';
 }
 
-//devenir vendeur
+// Gestion du bouton pour devenir vendeur.
 const besellerBtn = document.getElementById('beseller-btn');
 if (besellerBtn) {
     besellerBtn.addEventListener('click', () => {
-        // Redirection vers la page tobeseller.html
+        // Redirection vers la page de demande pour devenir vendeur.
         window.location.href = '../html/tobeseller.html';
     });
 }
 
+// Gère les redirections de navigation selon le bouton cliqué.
 function gererNavigationPrincipale(event) {
     const tousLesProduitsBtn = event.target.closest('.tous-les-produits');
     const vendeurBtn = event.target.closest('.vendeur');
@@ -54,40 +56,34 @@ if (header) {
 
 
 
-// evenement de délégation pour gérer les clics sur les boutons DÉTAILS et AJOUTER AU PANIER
+// Événement de délégation pour gérer les clics sur les boutons Détails et Ajouter au panier.
 const catalogue = document.getElementById('catalogue');
 if (catalogue) {
     catalogue.addEventListener('click', (event) => {
-        // 1. On cherche si l'élément cliqué est un de nos deux boutons
         const btnDetail = event.target.closest('.btn-detail');
         const btnPanier = event.target.closest('.ajouter-panier');
 
-        // 2. Logique pour le bouton DÉTAILS
         if (btnDetail) {
             const id = btnDetail.dataset.id;
             console.log("Direction -> Page Détails pour :", id);
             window.location.href = `detail.html?id=${id}`;
         }
 
-        // 3. Logique pour le bouton AJOUTER AU PANIER
         if (btnPanier) {
-            // On récupère les IDs stockés dans les attributs data-
             const id = btnPanier.dataset.id;
             const vendeurId = btnPanier.dataset.vendeur;
             
-            console.log("DEBUG - dataset.id :", id); // DEBUG
-            console.log("DEBUG - dataset.vendeur :", vendeurId); // DEBUG
+            console.log("DEBUG - dataset.id :", id);
+            console.log("DEBUG - dataset.vendeur :", vendeurId);
             
-            // On récupère les infos du produit directement dans la "carte" parente
+            // On récupère les informations du produit depuis la carte pour les ajouter au panier.
             const carte = btnPanier.closest('.carte');
             const nom = carte.querySelector('.nom').innerText;
             const prixTexte = carte.querySelector('.prix').innerText;
-            const prix = prixTexte.replace(/[^\d.]/g, ''); // On garde juste les chiffres et le point
+            const prix = prixTexte.replace(/[^\d.]/g, '');
             const image = carte.querySelector('img').src;
 
-            // On lance la fonction d'ajout avec toutes les données
             ajouterAuPanier(id, nom, prix, image, vendeurId);
-            // Optionnel : Petit effet visuel pour confirmer l'ajout
             btnPanier.innerHTML = '<i class="fa-solid fa-check"></i><span>Ajouté !</span>';
             setTimeout(() => {
                 btnPanier.innerHTML = '<i class="fa-solid fa-cart-plus"></i><span>Ajouter au panier</span>';
@@ -99,7 +95,7 @@ if (catalogue) {
 
 
 
-// Fonctions pour gérer l'affichage du loader (pour éviter les erreurs)
+// Fonctions utilitaires pour afficher ou masquer le loader pendant les appels serveur.
 function showLoading() {
     const loader = document.getElementById('loader');
     const overlay = document.getElementById('overlay');
@@ -114,7 +110,7 @@ function hideLoading() {
     if(overlay) overlay.style.display = 'none';
 }
 
-// 1. Fonction pour CHARGER les produits depuis le serveur (gère désormais le filtre par catégorie)
+// Charge les produits depuis le backend, avec possibilité de filtrage par catégorie.
 async function chargerProduits(categorie = '', event = null) {
     showLoading(); 
 
@@ -176,7 +172,7 @@ async function chargerProduits(categorie = '', event = null) {
 }
 
 
-// 2. Fonction pour AFFICHER les produits (utilisée par le chargement ET la recherche)
+// Affiche les produits dans le catalogue, en créant les cartes HTML correspondantes.
 function afficherProduits(produits) {
     const container = document.getElementById('catalogue');
     if (!container) return; // Sécurité si l'élément n'existe pas
@@ -197,6 +193,9 @@ function afficherProduits(produits) {
         container.innerHTML += `
             <article class="carte">
                 <div class="produit-image">
+                    <button class="heart-icon" type="button" data-product-id="${produit._id}" aria-label="Ajouter aux favoris">
+                        <span class="heart-symbol"><i class="fa-regular fa-heart"></i></span>
+                    </button>
                     <img src="${produit.image}" alt="${produit.nom}">
                 </div>
                 <div class="produit-info">
@@ -227,9 +226,13 @@ function afficherProduits(produits) {
             </article>
         `;
     });
+
+    if (typeof window.initialiserFavoris === 'function') {
+        window.initialiserFavoris();
+    }
 }
 
-// Lance le chargement automatique de tous les produits au démarrage de la page
+// Charge automatiquement tous les produits au démarrage de la page.
 document.addEventListener('DOMContentLoaded', () => chargerProduits());
 
 /**
@@ -379,4 +382,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Impossible de synchroniser le rôle utilisateur :', error);
     }
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

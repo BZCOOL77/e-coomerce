@@ -1,140 +1,276 @@
 :root {
-    --primary: #1565c0;
-    --primary-soft: #e3f2fd;
+  --primary: #1261c9;
+  --primary-dark: #0b3d91;
+  --primary-soft: #e8f1ff;
+  --surface: #ffffff;
+  --page: #f4f8ff;
+  --text: #12213f;
+  --muted: #65748b;
+  --border: #d7e3f4;
+  --shadow: 0 22px 55px rgba(27, 77, 145, 0.14);
 }
 
-body{margin:0; padding:0;background-color:#b0cee2;}
-
-h1{color: aliceblue;text-transform: uppercase;text-align: center;font-weight: 100;
-font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;text-shadow: 20px 20px 50px red;
+* {
+  box-sizing: border-box;
 }
 
-
-form{ 
-  border: 3px solid #1565c0;   /* Bordure noire de 3px */
-  border-radius: 50px;        /* Coins arrondis */
-  padding: 20px;             /* Espace intérieur */
-  margin: 20px auto;         /* Espace autour et centrage */
-  width: 300px;              /* Largeur fixe pour le formulaire */
-  background-color: #ffffff; /* Fond gris clair pour contraste */
-
-;margin-left: 250px;margin-top : 100px;
-
+body {
+  overflow-x: hidden;
+  min-height: 100vh;
+  margin: 0;
+  padding: 3.5rem 1.25rem 4rem;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 88% 4%, rgba(47, 132, 255, 0.16), transparent 28rem),
+    linear-gradient(145deg, #edf5ff 0%, var(--page) 52%, #ffffff 100%);
+  font-family: "Segoe UI", Arial, sans-serif;
 }
 
-
-/*en haut en bas animation*/
-@keyframes bounce {
-  0%   { transform: translateY(0); }
-  50%  { transform: translateY(-38px); }
-  100% { transform: translateY(0); }}
-
-
-input{width:200px;
-margin-left: 50px; padding: 10px; border-radius: 20px ;display: block;       /* force chaque input à être sur une nouvelle ligne */
-  margin-bottom: 5px;}
-.p1{text-align: center; font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-animation: bounce 2s infinite;}
-
-
-.user{text-align: center; font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;font-style: italic;}
-
-
-button{text-align: center;color: black;background-color: rgb(18, 82, 165); border-color:rgb(215, 205, 193);
-border-radius: 20px;padding: 10px;margin-left: 100px;}
-button:hover {
-    background-color: #4CAF50;cursor: pointer;
+h1 {
+  max-width: 680px;
+  margin: 0 auto 1.4rem;
+  color: var(--primary-dark);
+  font-size: clamp(1.7rem, 4vw, 2.55rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  text-align: center;
 }
 
-
-/*animation input*/
-@keyframes pulse {
-  0% { box-shadow: 0 0 5px #4CAF50; }
-  50% { box-shadow: 0 0 20px #4CAF50; }
-  100% { box-shadow: 0 0 5px #4CAF50; }
+#retour {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 42px;
+  margin: 0 auto 1.2rem;
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--primary-dark);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: none;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
-input:focus {
-  animation: pulse 1s infinite;
-  border-color: #4CAF50;
+
+#retour:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-soft);
+  box-shadow: none;
+  transform: translateY(-1px);
 }
 
-
-/*responsive */
 form {
-  max-width: 90%;   /* largeur max relative */
-  width: 400px;     /* largeur par défaut */
-  margin: 40px auto;
+  width: min(100%, 560px);
+  margin: 0 auto;
+  padding: clamp(1.35rem, 4vw, 2.5rem);
+  border: 1px solid rgba(18, 97, 201, 0.14);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
 }
 
-input {
-  width: 80%;       /* largeur relative */
-  margin: 10px auto;
+form > br {
+  display: none;
+}
+
+.p1 {
+  margin: 0 0 1.5rem;
+  color: var(--muted);
+  font-size: 0.98rem;
+  text-align: center;
+}
+
+input,
+textarea {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  margin: 0 0 0.85rem;
+  padding: 0.8rem 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text);
+  background: #fbfdff;
+  font: inherit;
+  font-size: 1rem;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+textarea {
+  min-height: 112px;
+  resize: vertical;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #8492a7;
+}
+
+input:focus,
+textarea:focus {
+  border-color: var(--primary);
+  outline: 0;
+  background: var(--surface);
+  box-shadow: 0 0 0 4px rgba(18, 97, 201, 0.13);
+}
+
+.categorie {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 1.1rem 0 1.5rem;
+}
+
+.categorie input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.categorie label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0.7rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease;
+}
+
+.categorie label:hover,
+.categorie input:checked + label {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+  background: var(--primary-soft);
 }
 
 button {
   display: block;
-  margin: 20px auto;
-  padding: 10px 20px;
+  width: 100%;
+  min-height: 50px;
+  padding: 0.8rem 1.2rem;
+  border: 0;
+  border-radius: 9px;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--primary), #2682e8);
+  box-shadow: 0 8px 18px rgba(18, 97, 201, 0.22);
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
 }
 
-/* Media queries pour petits écrans */
-@media (max-width: 600px) {
-  form {
-    width: 95%;   /* prend presque toute la largeur */
-    padding: 15px;
-  }
-
-  input {
-    width: 100%;  /* occupe toute la largeur */
-    margin: 8px 0;
-  }
-
-  button {
-    width: 100%;
-    margin: 10px 0;
-  }
+button:hover {
+  filter: brightness(1.04);
+  box-shadow: 0 11px 22px rgba(18, 97, 201, 0.28);
+  transform: translateY(-1px);
 }
 
+button:active {
+  box-shadow: 0 5px 12px rgba(18, 97, 201, 0.2);
+  transform: translateY(0);
+}
 
+button:focus-visible,
+label:focus-visible {
+  outline: 3px solid rgba(18, 97, 201, 0.28);
+  outline-offset: 3px;
+}
 
-/*pour le loader
-/* --- FIX DU LOADER --- */
-
-/* L'arrière-plan semi-transparent */
 #overlay {
-    display: none; /* Caché par défaut */
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.7);
-    z-index: 999;
+  display: none;
+  position: fixed;
+  z-index: 999;
+  inset: 0;
+  background: rgba(244, 248, 255, 0.78);
+  backdrop-filter: blur(3px);
 }
 
-/* Le conteneur du spinner au centre */
 #loader {
-    display: none; /* Caché par défaut */
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1000;
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
-/* Le cercle qui tourne (Animation) */
 .spinner {
-    width: 50px;
-    height: 50px;
-    border: 5px solid var(--primary-soft);
-    border-top: 5px solid var(--primary);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--primary-soft);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 800ms linear infinite;
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 520px) {
+  body {
+    min-height: 100dvh;
+    padding: 1.35rem 0.7rem 2rem;
+  }
+
+  h1 {
+    margin-bottom: 1rem;
+    font-size: clamp(1.45rem, 8vw, 1.85rem);
+  }
+
+  #retour {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  form {
+    width: 100%;
+    padding: 1rem;
+    border-radius: 14px;
+  }
+
+  .p1 {
+    margin-bottom: 1.15rem;
+    font-size: 0.92rem;
+  }
+
+  input,
+  textarea {
+    min-height: 52px;
+    margin-bottom: 0.75rem;
+  }
+
+  textarea {
+    min-height: 126px;
+  }
+
+  .categorie {
+    gap: 0.6rem;
+    margin: 1rem 0 1.25rem;
+  }
+
+  .categorie label {
+    min-height: 52px;
+    padding: 0.65rem 0.35rem;
+    font-size: 0.76rem;
+  }
+
+  button {
+    min-height: 54px;
+  }
 }
 
 

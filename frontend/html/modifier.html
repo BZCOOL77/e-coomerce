@@ -3,13 +3,14 @@
 <head>
     <meta charset="utf-8">
     <script src="../../client/js/url.js"></script><!--url api-->
-    <link rel="stylesheet" href="../css/modifier.css">
+    <link rel="stylesheet" href="../css/syleform.css">
     <script src="../js/header-auth.js" defer></script>
 </head>
 <body>
     <!--pour le loader-->
     <div id="overlay"></div>
     <div id="loader"><div class="spinner"></div></div>
+    <button id="retour" onclick="window.location.href='nav.html'">Retour</button>
     <h1>Renseignez les informations de votre produit</h1>
     
     <form id="productForm">
@@ -18,6 +19,9 @@
         <input type="number" id="prix" placeholder="Prix" required><br>
         <textarea id="description" placeholder="Description" required></textarea><br>
         <input type="text" id="image" placeholder="Lien de l'image" required><br>
+        <input type="text" id="image1" placeholder="Lien de l'image" ><br>
+        <input type="text" id="image2" placeholder="Lien de l'image" ><br>
+        <input type="text" id="image3" placeholder="Lien de l'image" ><br>
         <input type="number" id="stock" name="stock" min="1" value="10" placeholder="quantité en stock" required class="form-input"><br>
         <div class="categorie">
             <input type="radio" id="categorie1" name="categorie" value="Électronique" required>
@@ -77,6 +81,9 @@ function hideLoading() {
             document.getElementById('prix').value = produit.prix;
             document.getElementById('description').value = produit.description;
             document.getElementById('image').value = produit.image;
+            document.getElementById('image1').value = produit.image1;
+            document.getElementById('image2').value = produit.image2;
+            document.getElementById('image3').value = produit.image3;
             document.getElementById('stock').value = produit.stock;
             document.querySelector(`input[name="categorie"][value="${produit.categorie}"]`).checked = true;
         } catch (error) {
@@ -97,6 +104,9 @@ function hideLoading() {
             prix: Number(document.getElementById('prix').value),
             description: document.getElementById('description').value,
             image: document.getElementById('image').value,
+            image1: document.getElementById('image1').value,
+            image2: document.getElementById('image2').value,
+            image3: document.getElementById('image3').value,
             stock: Number(document.getElementById('stock').value),
             categorie: document.querySelector('input[name="categorie"]:checked').value
         };

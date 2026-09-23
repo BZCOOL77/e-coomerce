@@ -69,10 +69,43 @@
                 <span id="geoStatus" style="font-size: 0.85rem; color: #6a7280; display: block; margin-top: 0.3rem;"></span>
                 </div>
 
-                <button class="btn-commander" onclick="validerPanierEtCommander()">Passer à la caisse</button>
+                <button id="btnCommander" class="btn-commander" type="button" onclick="validerPanierEtCommander()">
+                    <span class="btn-text">Passer à la caisse</span>
+                </button>
             </div>
         </div>
     </main>
+
+    <style>
+        .btn-commander {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-width: 220px;
+        }
+
+        .btn-commander:disabled {
+            opacity: 0.8;
+            cursor: not-allowed;
+        }
+
+        .btn-commander .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-top-color: #fff;
+            border-radius: 50%;
+            display: inline-block;
+            animation: panier-spin 0.8s linear infinite;
+        }
+
+        @keyframes panier-spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 
     <script>
         // 1. Initialisation : Charger le panier au démarrage
@@ -143,6 +176,24 @@ function calculerTotal(panier) {
 // Coordonnées GPS conservées entre le clic sur le bouton GPS et la validation de la commande.
 let clientLat = null;
 let clientLng = null;
+let isSubmittingOrder = false;
+
+function setCommanderLoading(isLoading) {
+    const button = document.getElementById('btnCommander');
+    if (!button) return;
+
+    button.disabled = isLoading;
+    button.setAttribute('aria-busy', String(isLoading));
+
+    if (isLoading) {
+        button.innerHTML = `
+            <span class="spinner" aria-hidden="true"></span>
+            <span class="btn-text">Validation en cours...</span>
+        `;
+    } else {
+        button.innerHTML = '<span class="btn-text">Passer à la caisse</span>';
+    }
+}
 
 // Le bouton doit être écouté dès le chargement de la page, avant le clic sur "Passer à la caisse".
 document.getElementById('btnGeoloc').addEventListener('click', () => {
@@ -172,15 +223,16 @@ document.getElementById('btnGeoloc').addEventListener('click', () => {
     );
 });
 
-// 6. Simulation de commande (Version corrigée et groupée)
+// 6. Validation d'une commande avec protection anti-double-clic
 async function validerPanierEtCommander() {
+    if (isSubmittingOrder) return;
+
     let panier = JSON.parse(localStorage.getItem('panier_shopy')) || [];
     if (panier.length === 0) {
         alert("Votre panier est vide ! 🛒");
         return;
     }
 
-    // 🚀 UNIFICATION : On prépare TOUS les articles en un seul tableau clean
     const articlesToProcess = [];
 
     for (const item of panier) {
@@ -210,8 +262,6 @@ async function validerPanierEtCommander() {
     const latitude = clientLat;
     const longitude = clientLng;
 
-    
-
     const adresseLivraison = {
         commune,
         quartier,
@@ -229,8 +279,10 @@ async function validerPanierEtCommander() {
         return;
     }
 
+    isSubmittingOrder = true;
+    setCommanderLoading(true);
+
     try {
-        // 📡 UNE SEULE REQUÊTE HTTP pour tout le panier
         const response = await fetch(`${CONFIG.API_BASE_URL}/api/orders`, {
             method: 'POST',
             headers: {
@@ -243,22 +295,21 @@ async function validerPanierEtCommander() {
         const data = await response.json().catch(() => ({}));
 
         if (response.ok) {
-            // 🎉 Succès total : on vide complètement le panier local
             localStorage.setItem('panier_shopy', JSON.stringify([]));
             alert("🎉 Toutes vos commandes ont été validées avec succès !");
             window.location.href = 'mes-commandes.html';
         } else {
-            // Gestion des erreurs de stock ou autres renvoyées par le backend
             alert(`❌ Impossible de valider la commande : ${data.error || 'Erreur serveur'}`);
         }
 
     } catch (error) {
         console.error("Erreur réseau globale", error);
         alert("❌ Erreur réseau. Impossible de contacter le serveur.");
+    } finally {
+        isSubmittingOrder = false;
+        setCommanderLoading(false);
     }
 }
-
-    
 
 // Lancer le chargement
 window.onload = chargerPanier;

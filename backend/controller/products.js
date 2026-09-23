@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Thing = require('../models/Thing');// Importer le modèle de données pour les produits
 
 
@@ -22,20 +23,32 @@ exports.createProduct = (req, res, next) => {
         );
 };
 
-// Middleware pour envoyer les marchandises au frontend
-exports.getOneProduct =  (req, res, next) => {
-  Thing.findOne({ _id: req.params.id })
-    .populate('vendeurId', 'nom')
-    .then((thing) => {
-      if (!thing) {
-        return res.status(404).json({ message: 'Objet non trouvé !' });
-      }
-      res.status(200).json(thing);
-    })
-    .catch((error) => {
-      res.status(500).json({ error });
-    });
-} 
+// Middleware pour envoyer une seule marchandise au frontend et aussi
+//pour preremplir les champs du formulaire de modification
+exports.getOneProduct = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        // 1. Vérification du format de l'ID pour éviter les erreurs CastError
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Format d\'identifiant produit invalide.' });
+        }
+
+        // 2. Recherche du produit + sélection précise des infos vendeur
+        const thing = await Thing.findById(id).populate('vendeurId', 'nom prenom boutique');
+
+        // 3. Vérification si le produit existe
+        if (!thing) {
+            return res.status(404).json({ message: 'Produit non trouvé !' });
+        }
+
+        // 4. Succès
+        return res.status(200).json(thing);
+
+    } catch (error) {
+        return res.status(500).json({ error: error.message || 'Erreur serveur lors de la récupération du produit.' });
+    }
+};
 
 // MIDDLEWARE POUR ENVOYER TOUTES LES MARCHANDISES AU FRONTEND (avec filtres optionnels)
 exports.getAllProducts = (req, res, next) => {
@@ -68,15 +81,8 @@ exports.updateProduct =  (req, res, next) => {
     .catch((error) => res.status(400).json({ error }));
 }
 
-// Middleware pour preremplir les champs du formulaire de modification
-exports.getProductForEdit =  (req, res, next) => {
-  Thing.findOne({ _id: req.params.id })
-    .then(product => {
-        if (!product) return res.status(404).json({ message: "Produit non trouvé" });
-        res.status(200).json(product);
-    })
-    .catch(error => res.status(404).json({ error }));
-} 
+
+
 
 // Middleware pour supprimer un produit
 exports.deleteProduct = (req, res, next) => {
