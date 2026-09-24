@@ -189,9 +189,13 @@ function afficherProduits(produits) {
         const estEpuise = produit.stock <= 0;
         console.log("Produit complet :", produit); // DEBUG - Affiche TOUT
         console.log("VendeurId du produit :", produit.vendeurId); // DEBUG - Affiche le vendeurId
+
+        // Note moyenne du produit renvoyée par le backend sous la clé "averageRating".
+        // On garde une valeur numérique sûre pour éviter les erreurs si le champ est absent.
+        const noteMoyenne = Number(produit.averageRating || 0);
         
         container.innerHTML += `
-            <article class="carte">
+            <article class="carte" data-rating="${noteMoyenne}"><!-- un data-rating pour stocker la note moyenne et l'utiliser plus tard -->
                 <div class="produit-image">
                     <button class="heart-icon" type="button" data-product-id="${produit._id}" aria-label="Ajouter aux favoris">
                         <span class="heart-symbol"><i class="fa-regular fa-heart"></i></span>
@@ -201,6 +205,10 @@ function afficherProduits(produits) {
                 <div class="produit-info">
                     <h3 class="nom">${produit.nom}</h3>
                     <p class="prix">${produit.prix} €</p>
+                    <div class="product-rating" aria-live="polite">
+                        <span class="rating-stars" aria-label="Moyenne des notes"></span>
+                        <span class="rating-value">0.0/5</span>
+                    </div>
                     <p class="description">${produit.description}</p>
                     <button class="btn-detail" data-id="${produit._id}">
                         <i class="fa-solid fa-circle-info"></i>
@@ -225,6 +233,28 @@ function afficherProduits(produits) {
                 </div>
             </article>
         `;
+    });
+
+    // Après l'injection du HTML, on applique le rendu réutilisable à chaque carte.
+    // Cela évite de dupliquer la logique de calcul, et on garde une seule source de vérité.
+    const cartes = document.querySelectorAll('#catalogue .carte');
+    cartes.forEach(carte => {
+        const score = Number(carte.dataset.rating || 0);// On récupère la note moyenne stockée dans le data-rating de la carte
+        const ratingContainer = carte.querySelector('.product-rating');
+        const starsContainer = carte.querySelector('.rating-stars');
+        const valueContainer = carte.querySelector('.rating-value');
+
+        // Exception propre au catalogue : les notes inférieures à 3 ne sont pas affichées.
+        // On masque la div parente pour supprimer aussi son fond, sa bordure et son espace.
+        if (score < 3) {
+            if (ratingContainer) ratingContainer.style.display = 'none';
+            return;
+        }
+
+        // Pour les notes à partir de 3, on réutilise le moteur partagé de rendu des étoiles.
+        if (typeof window.renderProductRating === 'function') {// On vérifie que la fonction est bien définie avant de l'appeler
+            window.renderProductRating(score, starsContainer, valueContainer);// On appelle la fonction partagée pour afficher les étoiles et la note
+        }
     });
 
     if (typeof window.initialiserFavoris === 'function') {

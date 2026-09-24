@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <script src="../js/url.js" defer></script>
+    <!-- Moteur partagé utilisé pour afficher les étoiles avec remplissage partiel. -->
+    <script src="../js/ratings.js" defer></script>
 
     <style>
         /* ==========================================================
@@ -314,6 +316,70 @@
             -webkit-text-fill-color: transparent;
         }
 
+        /* ==========================================================
+           NOTATION PRODUIT
+           ----------------------------------------------------------
+           Ce bloc reprend le même rendu que le catalogue et la fiche
+           produit afin de conserver une expérience cohérente.
+           ========================================================== */
+        .product-rating {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: fit-content;
+            padding: 7px 10px;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            border-radius: 999px;
+            background: rgba(245, 158, 11, 0.08);
+        }
+
+        .rating-stars {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            line-height: 1;
+            font-size: 1rem;
+        }
+
+        /* Chaque étoile est remplie selon --fill, y compris pour une note décimale. */
+        .partial-star {
+            position: relative;
+            display: inline-block;
+            width: 1em;
+            height: 1em;
+            line-height: 1;
+            color: #d9d9d9;
+        }
+
+        .partial-star::before,
+        .partial-star::after {
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            content: "\f005";
+            display: block;
+            line-height: 1;
+        }
+
+        .partial-star::before {
+            color: #d9d9d9;
+        }
+
+        .partial-star::after {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            width: var(--fill, 0%);
+            color: var(--accent-500);
+            white-space: nowrap;
+        }
+
+        .rating-value {
+            color: var(--primary-700);
+            font-size: 0.82rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
         .product-description {
             margin: 0;
             color: var(--slate-700);
@@ -610,6 +676,9 @@
                 const image = produit.image || 'https://via.placeholder.com/800x800?text=Produit';
                 const nom = produit.nom || 'Produit sans nom';
                 const prix = parsePrix(produit.prix || 0);
+                // Le backend peut fournir la note sous l'un ou l'autre nom selon l'endpoint.
+                // La valeur est normalisée ici avant d'être transmise au moteur partagé.
+                const noteMoyenne = Number(produit.averageRating ?? produit.moyenne ?? 0);
                 const description = produit.description || 'Aucune description disponible pour ce produit.';
                 const vendeurLabel = produit.vendeurId && typeof produit.vendeurId === 'object'
                     ? (produit.vendeurId.boutique?.nomBoutique || produit.vendeurId.nom || 'Boutique officielle')
@@ -622,7 +691,7 @@
                 const produitId = escapeHtml(produit._id || '');
 
                 return `
-                    <article class="wishlist-card" data-id="${produitId}">
+                    <article class="wishlist-card" data-id="${produitId}" data-rating="${noteMoyenne}">
                         <div class="product-visual">
                             <button class="remove-favorite-btn" type="button" data-remove-id="${produitId}" aria-label="Retirer des favoris">
                                 <i class="fa-solid fa-heart-crack"></i>
@@ -635,6 +704,13 @@
                             <h3 class="product-name">${nomEscaped}</h3>
                             <p class="product-seller">Vendu par : ${vendeurEscaped}</p>
                             <p class="product-price">${prix.toLocaleString('fr-FR')} FC</p>
+
+                            <!-- La wishlist affiche toutes les notes, y compris celles inférieures à 3. -->
+                            <div class="product-rating" aria-live="polite">
+                                <span class="rating-stars" aria-label="Moyenne des notes"></span>
+                                <span class="rating-value">0.0/5</span>
+                            </div>
+
                             <p class="product-description">${descriptionEscaped}</p>
 
                             <p class="stock-state ${estEpuise ? 'out-of-stock' : 'in-stock'}">
@@ -670,6 +746,18 @@
                     </article>
                 `;
             }).join('');
+
+            // Le HTML des cartes étant maintenant injecté, on applique le rendu partagé
+            // à chaque notation sans filtrer selon la valeur du score.
+            container.querySelectorAll('.wishlist-card').forEach(card => {
+                const score = Number(card.dataset.rating || 0);
+                const starsContainer = card.querySelector('.rating-stars');
+                const valueContainer = card.querySelector('.rating-value');
+
+                if (typeof window.renderProductRating === 'function') {
+                    window.renderProductRating(score, starsContainer, valueContainer);
+                }
+            });
 
             const addAllButton = document.getElementById('add-all-btn');
             if (addAllButton) addAllButton.hidden = false;

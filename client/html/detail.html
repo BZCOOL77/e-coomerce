@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Détails du Produit | Shopy-Cloths</title>
     <script src="../js/url.js"></script>
+    <script src="../js/ratings.js" defer></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="../css/client.css">
     <style>
@@ -239,6 +240,71 @@
             border-left: 4px solid var(--primary);
             border-radius: 12px;
             padding: 14px 16px;
+        }
+
+        .product-rating {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            align-self: flex-start;
+            background: rgba(245, 179, 1, 0.08);
+            border: 1px solid rgba(245, 179, 1, 0.2);
+            border-radius: 999px;
+            padding: 10px 16px;
+            box-shadow: 0 8px 18px rgba(245, 179, 1, 0.08);
+            flex-wrap: wrap;
+        }
+
+        .rating-stars {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            line-height: 1;
+            font-size: clamp(1.2rem, 1.8vw, 1.8rem);
+        }
+
+        /*
+         * Étoile partielle : la couche supérieure est coupée selon un pourcentage
+         * pour reproduire le comportement des sites e-commerce professionnels.
+         */
+        .partial-star {
+            position: relative;
+            display: inline-block;
+            width: 1em;
+            height: 1em;
+            line-height: 1;
+            font-size: inherit;
+            color: #d9d9d9;
+        }
+
+        .partial-star::before,
+        .partial-star::after {
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            content: "\f005";
+            display: block;
+            font-size: inherit;
+            line-height: 1;
+        }
+
+        .partial-star::before {
+            color: #d9d9d9;
+        }
+
+        .partial-star::after {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            width: var(--fill, 0%);
+            color: #f5b301;
+            white-space: nowrap;
+        }
+
+        .rating-value {
+            font-size: clamp(1rem, 1.4vw, 1.35rem);
+            font-weight: 900;
+            color: var(--primary-dark);
+            line-height: 1;
         }
 
         .price {
@@ -614,6 +680,10 @@
 
                 <div class="detail-info">
                     <span class="badge">Produit</span>
+                    <div class="product-rating" aria-live="polite">
+                        <span class="rating-stars" id="product-rating-stars" aria-label="Moyenne des notes"></span>
+                        <span class="rating-value" id="product-rating-value">0.0/5</span>
+                    </div>
                     <h1 id="product-name">Chargement...</h1>
                     <p id="product-vendeur" class="merchant-line">Boutique Officielle</p>
                     <p class="price" id="product-price">-- FC</p>
@@ -629,7 +699,7 @@
                     <h2 id="reviews-title">Avis clients</h2>
                     <div class="rating-summary">
                         <strong id="average-score">0.0</strong>
-                        <span>/ 5</span>
+                        <span>/ 5</span><br> 
                         <span id="total-reviews-count">0</span>
                         <span>avis</span>
                     </div>
@@ -882,6 +952,35 @@
         // ============================================
         const reviewProductId = new URLSearchParams(window.location.search).get('id');
 
+        /*
+         * NOTE IMPORTANTE :
+         * Cette logique de rendu d’étoiles est désormais réutilisable via le fichier
+         * js/ratings.js. On évite ainsi la duplication et on garde un comportement
+         * identique sur toutes les pages qui affichent des notes.
+         */
+
+        // On utilise la fonction partagée pour afficher la moyenne du produit.
+        // La note vient du backend, sous la clé "moyenne".
+        // On garde un petit wrapper local pour récupérer les bons conteneurs DOM,
+        // puis on délègue le vrai rendu à la fonction partagée dans js/ratings.js.
+        function renderDetailProductRating(score) {
+            const starsContainer = document.getElementById('product-rating-stars');
+            const valueContainer = document.getElementById('product-rating-value');
+
+            // Sécurité : si le conteneur n'existe pas, on ne fait rien.
+            if (!starsContainer || !valueContainer) {
+                return;
+            }
+
+            // On garde la note dans la plage logique [0, 5].
+            const safeScore = Math.min(5, Math.max(0, Number(score) || 0));
+
+            // Appel vers la vraie fonction réutilisable, déclarée dans js/ratings.js.
+            if (typeof window.renderProductRating === 'function') {
+                window.renderProductRating(safeScore, starsContainer, valueContainer);
+            }
+        }
+
         // Fonction : afficher les avis et la moyenne du produit
         async function fetchAndDisplayReviews() {
             const averageScore = document.getElementById('average-score');
@@ -900,11 +999,15 @@
                 }
 
                 const data = await response.json();
-                const moyenne = Number(data.moyenne || 0).toFixed(1);
+                const moyenne = Number(data.moyenne || 0);
                 const totalAvis = Number(data.totalAvis || 0);
 
-                averageScore.innerText = moyenne;
+                // On affiche la moyenne globale sur la section avis.
+                averageScore.innerText = moyenne.toFixed(1);
                 totalReviewsCount.innerText = totalAvis;
+
+                // On réutilise la fonction partagée (ratings.js) pour la note du produit.
+                renderDetailProductRating(moyenne);
 
                 if (!data.reviews || data.reviews.length === 0) {
                     reviewsContainer.innerHTML = '<p>Aucun avis pour le moment sur ce produit.</p>';
