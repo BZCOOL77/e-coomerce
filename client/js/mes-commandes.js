@@ -7,13 +7,13 @@ const CLE_HISTORIQUE_LU = 'mes-commandes-historique-lu';
 // Liste locale des commandes chargées afin de pouvoir marquer l'historique comme lu au clic.
 let commandesAcheteur = [];
 // Statuts qui doivent apparaître dans l'onglet historique.
-const STATUTS_HISTORIQUES = ['annulee', 'annulee par acheteur', 'recue', 'livree'];
+const STATUTS_HISTORIQUES = ['annulee', 'annulee par acheteur', 'recue', 'livree', 'echec de livraison'];
 
 // Lancement automatique dès que la page HTML est prête
 document.addEventListener('DOMContentLoaded', chargerMesAchats);
 
 // =========================================================================
-// � FONCTIONS UTILITAIRES
+// 🛠️ FONCTIONS UTILITAIRES
 // =========================================================================
 function normaliserStatut(statut = '') {
     return (statut || '')
@@ -23,67 +23,104 @@ function normaliserStatut(statut = '') {
         .trim();
 }
 
+// Échappe les caractères spéciaux avant d’insérer une donnée utilisateur dans un template HTML.
+function echapperHTML(valeur = '') {
+    return String(valeur).replace(/[&<>"']/g, caractere => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    })[caractere]);
+}
+
 // Récupère les identifiants historiques déjà consultés sans interrompre la page si le stockage est invalide.
 function obtenirHistoriqueLu() {
-    // Protège la lecture du stockage contre une valeur JSON corrompue.
     try {
-        // Convertit la liste persistée en tableau exploitable.
         const historiqueLu = JSON.parse(localStorage.getItem(CLE_HISTORIQUE_LU) || '[]');
-        // Retourne uniquement un tableau pour garantir un traitement fiable.
         return Array.isArray(historiqueLu) ? historiqueLu : [];
-    // Utilise une liste vide si le navigateur refuse l'accès au stockage.
     } catch (err) {
-        // Signale le problème sans bloquer l'affichage des commandes.
         console.warn('Impossible de lire les commandes historiques déjà consultées.', err);
-        // Retourne une liste vide en cas d'erreur de lecture.
         return [];
     }
 }
 
-// Indique si une commande appartient à l'historique affiché par l'onglet.
-function estCommandeHistorique(commande) {
-    // Normalise le statut afin de gérer notamment « livrée » et « livree ».
-    return STATUTS_HISTORIQUES.includes(normaliserStatut(commande.statut));
+// Indique si un statut (d'article ou de colis) appartient à l'historique affiché par l'onglet.
+function estStatutHistorique(statut) {
+    return STATUTS_HISTORIQUES.includes(normaliserStatut(statut));
 }
 
-// Actualise le badge historique avec le nombre de commandes historiques non consultées.
-function mettreAJourCompteurHistorique(commandes) {
-    // Récupère les identifiants déjà marqués comme lus.
+// Actualise le badge historique avec le nombre d'éléments historiques non consultés.
+function mettreAJourCompteurHistorique() {
     const historiqueLu = obtenirHistoriqueLu();
-    // Conserve uniquement les commandes historiques qui ne sont pas encore lues.
-    const commandesNonLues = commandes.filter(commande => estCommandeHistorique(commande) && !historiqueLu.includes(commande._id));
-    // Recherche le badge de l'onglet historique.
+    let totalHistoriqueNonLu = 0;
+
+    commandesAcheteur.forEach(commande => {
+        (commande.vendorsOrders || []).forEach(sousCommande => {
+            (sousCommande.items || []).forEach(item => {
+                const statutEffectif = item.statut || sousCommande.statutVendeur;
+                const idItem = item._id || `${sousCommande._id}-${item.produitId?._id || item.produitId}`;
+
+                if (estStatutHistorique(statutEffectif) && !historiqueLu.includes(idItem)) {
+                    totalHistoriqueNonLu++;
+                }
+            });
+        });
+    });
+
     const badgeHistorique = document.getElementById('compteur-historique');
-    // Met à jour le badge uniquement s'il existe dans la page.
     if (badgeHistorique) {
-        // Affiche le nombre non lu lorsqu'il est supérieur à zéro.
-        badgeHistorique.textContent = commandesNonLues.length;
-        // Masque le badge lorsqu'il n'y a aucun élément historique non lu.
-        badgeHistorique.style.display = commandesNonLues.length > 0 ? 'inline-block' : 'none';
+        badgeHistorique.textContent = totalHistoriqueNonLu;
+        badgeHistorique.style.display = totalHistoriqueNonLu > 0 ? 'inline-block' : 'none';
     }
 }
 
-// Marque toutes les commandes historiques actuellement chargées comme consultées.
+// Marque tous les articles/colis historiques actuellement chargés comme consultés.
 function marquerHistoriqueCommeLu() {
-    // Récupère les identifiants déjà enregistrés comme lus.
     const historiqueLu = obtenirHistoriqueLu();
-    // Ajoute les identifiants des commandes historiques visibles dans les données chargées.
-    const nouveauxIdsLus = commandesAcheteur.filter(estCommandeHistorique).map(commande => commande._id);
-    // Supprime les doublons pour garder un stockage compact.
+    const nouveauxIdsLus = [];
+
+    commandesAcheteur.forEach(commande => {
+        (commande.vendorsOrders || []).forEach(sousCommande => {
+            (sousCommande.items || []).forEach(item => {
+                const statutEffectif = item.statut || sousCommande.statutVendeur;
+                if (estStatutHistorique(statutEffectif)) {
+                    const idItem = item._id || `${sousCommande._id}-${item.produitId?._id || item.produitId}`;
+                    nouveauxIdsLus.push(idItem);
+                }
+            });
+        });
+    });
+
     const historiqueMisAJour = [...new Set([...historiqueLu, ...nouveauxIdsLus])];
-    // Enregistre la nouvelle liste pour conserver l'état de lecture après rechargement.
     localStorage.setItem(CLE_HISTORIQUE_LU, JSON.stringify(historiqueMisAJour));
-    // Remet immédiatement le badge à zéro après l'ouverture de l'onglet.
-    mettreAJourCompteurHistorique(commandesAcheteur);
+    mettreAJourCompteurHistorique();
+}
+
+// Génère le message et l'icône logistique
+function obtenirMessageSuivi(statut) {
+    const statutNormalise = normaliserStatut(statut);
+
+    if (statutNormalise === 'en attente') return '⏳ En attente de validation du vendeur.';
+    if (statutNormalise === 'en cours' || statutNormalise === 'encours') return '📦 Le vendeur prépare votre colis.';
+    if (statutNormalise === 'expédiée' || statutNormalise === 'expediee') return '🚀 Colis remis au transporteur ! En chemin.';
+    if (statutNormalise === 'livrée' || statutNormalise === 'livree') return '✅ Article reçu. Merci !';
+    if (statutNormalise === 'annulée par acheteur' || statutNormalise === 'annulee par acheteur') return '❌ Vous avez annulé cet article.';
+    if (statutNormalise === 'annulée' || statutNormalise === 'annulee') return '❌ Le vendeur a annulé cet article.';
+    if (statutNormalise === 'attribuéealivreur' || statutNormalise === 'attribueealivreur') return '🚚 Article attribué à un livreur.';
+    if (statutNormalise === 'prise en charge') return '📦 Le transporteur a pris en charge votre colis.';
+    if (statutNormalise === 'reçue' || statutNormalise === 'recue') return 'Vous avez confirmé la réception du colis.';
+    if (statutNormalise === 'echec de livraison') return 'La livraison a échoué.';
+    return 'ℹ️ Statut inconnu.';
 }
 
 // =========================================================================
-// �🔄 FONCTION PRINCIPALE : CHARGEMENT DES ACHATS
+// 🔄 FONCTION PRINCIPALE : CHARGEMENT DES ACHATS
 // =========================================================================
 async function chargerMesAchats() {
     const loader = document.getElementById('loader-mes-commandes');
     if (loader) loader.style.display = 'flex';
-    
+
     try {
         const response = await fetch(`${CONFIG.API_BASE_URL}/api/orders/acheteur`, {
             method: 'GET',
@@ -95,113 +132,128 @@ async function chargerMesAchats() {
         if (!response.ok) throw new Error("Impossible de charger vos commandes");
 
         const commandes = await response.json();
-        // Conserve les commandes chargées pour le compteur et la lecture de l'historique.
         commandesAcheteur = commandes;
         const container = document.getElementById('liste-achats');
         container.innerHTML = '';
 
-        if (commandes.length === 0) {
+        if (!commandes || commandes.length === 0) {
             container.innerHTML = "<p>Vous n'avez effectué aucun achat pour le moment. 🛍️</p>";
             if (loader) loader.style.display = 'none';
             return;
         }
 
         // =========================================================================
-        // 🔮 REGROUPEMENT PAR SESSION D'ACHAT (PANIER GLOBAL)
+        // 🏗️ INJECTION DU CODE HTML (Structure Panier -> Colis Vendeurs -> Articles)
         // =========================================================================
-        const colisRegroupes = {};
+        commandes.forEach(commandeGlobale => {
+            const dateCommande = new Date(commandeGlobale.createdAt || commandeGlobale.dateCommande).toLocaleDateString('fr-FR');
+            const totalTTC = commandeGlobale.totalTTCGlobal || 0;
+            // Le nouveau backend renvoie vendorsOrders. Le fallback transforme
+            // une ancienne commande plate en colis unique pour préserver l'historique.
+            const commandeLegacy = !commandeGlobale.vendorsOrders?.length;
+            const vendorsOrders = !commandeLegacy
+                ? commandeGlobale.vendorsOrders
+                : (commandeGlobale.produitId ? [{
+                    _id: commandeGlobale._id,
+                    colisGroupId: commandeGlobale.colisGroupId || `LEGACY-${commandeGlobale._id}`,
+                    statutVendeur: commandeGlobale.statut || 'en attente',
+                    items: [{
+                        produitId: commandeGlobale.produitId,
+                        quantite: commandeGlobale.quantite || 1,
+                        prixUnitaire: commandeGlobale.prixUnitaire || 0,
+                        totalTTC: commandeGlobale.totalTTC || 0
+                    }]
+                }] : []);
 
-        commandes.forEach(commande => {
-            const idColis = commande.colisGroupId || `SANS-COLIS-${commande._id}`;
-            
-            if (!colisRegroupes[idColis]) {
-                colisRegroupes[idColis] = {
-                    colisGroupId: idColis,
-                    dateCommande: commande.dateCommande || commande.createdAt,
-                    articles: []
-                };
-            }
-            colisRegroupes[idColis].articles.push(commande);
-        });
+            let sousCommandesHtml = '';// Conteneur HTML pour les sous-commandes (colis vendeurs)
 
-        // =========================================================================
-        // 🏗️ INJECTION DU CODE HTML (Un bloc par panier, suivi par article)
-        // =========================================================================
-        Object.values(colisRegroupes).forEach(colis => {
-            let articlesHtml = '';
+            vendorsOrders.forEach((sousCommande, index) => {
+                const idColis = sousCommande.colisGroupId || sousCommande._id || `COLIS-${index + 1}`;
+                const statutColis = sousCommande.statutVendeur || 'en attente';
+                const vendeur = sousCommande.vendeurId && typeof sousCommande.vendeurId === 'object'
+                    ? sousCommande.vendeurId
+                    : null;
+                const nomBoutique = vendeur?.boutique?.nomBoutique
+                    || vendeur?.nomBoutique
+                    || [vendeur?.prenom, vendeur?.nom].filter(Boolean).join(' ')
+                    || 'Boutique inconnue';
+                const nomBoutiqueHTML = echapperHTML(nomBoutique);
 
-            // Recherche le code OTP associé à un article de ce colis pris en charge.
-            const codeOtpColis = colis.articles.find(article => normaliserStatut(article.statut) === 'prise en charge' && article.codeOtp)?.codeOtp || '';
-
-            // Prépare l'affichage unique du code OTP sous le bouton de facture.
-            const affichageOtpColis = codeOtpColis ? `<span style="display: block; margin-top: 8px; font-weight: 700; color: #2b6cb0;">Code OTP : ${codeOtpColis}</span>` : '';
-
-            colis.articles.forEach(article => {
-                const produit = article.produitId || {};
-                const statutNormalise = (article.statut || '').toLowerCase();
-
-                // 🚚 Message logistique sur-mesure pour chaque article
-                let messageSuivi = '';
-                if (statutNormalise === 'en attente') messageSuivi = '⏳ En attente de validation du vendeur.';
-                else if (statutNormalise === 'en cours') messageSuivi = '📦 Le vendeur prépare votre colis.';
-                else if (statutNormalise === 'expédiée' || statutNormalise === 'expediee') messageSuivi = '🚀 Colis remis au transporteur ! En chemin.';
-                else if (statutNormalise === 'livrée' || statutNormalise === 'livree') messageSuivi = '✅ Article reçu. Merci !';
-                else if (statutNormalise === 'annulée par acheteur' || statutNormalise === 'annulee par acheteur') messageSuivi = '❌ Vous avez annulé cet article.';
-                else if (statutNormalise === 'annulée' || statutNormalise === 'annulee') messageSuivi = '❌ Le vendeur a annulé cet article.';
-                else if (statutNormalise === 'attribuéealivreur' || statutNormalise === 'ATTRIBUÉEALIVREUR') messageSuivi = '🚚 Article attribué à un livreur.';
-                else if (statutNormalise === 'prise en charge' || statutNormalise === 'PRISE EN CHARGE') messageSuivi = '📦 Le transporteur a pris en charge votre colis.';
-                else if (statutNormalise === 'reçue' || statutNormalise === 'recue') messageSuivi = 'vous avez confimer la reception du colis.';
-               else if (statutNormalise === 'echec de livraison' || statutNormalise === 'echec de livraison') messageSuivi = 'la livraison a echouer.';
-                else messageSuivi = 'ℹ️ Statut inconnu.';
-
-                // Bouton individuel d'annulation (si l'article est toujours en attente)
-                const boutonAnnuler = statutNormalise === 'en attente' 
-                    ? `<button class="btn-annuler" onclick="annulerCommande('${article._id}')">❌ Annuler</button>` 
+                // Recherche le code OTP associé au colis (si en prise en charge)
+                const codeOtpColis = sousCommande.codeOtp || '';
+                const affichageOtpColis = (normaliserStatut(statutColis) === 'prise en charge' && codeOtpColis)
+                    ? `<span style="display: block; margin-top: 8px; font-weight: 700; color: #2b6cb0;">Code OTP : ${codeOtpColis}</span>`
                     : '';
 
-                // Génération de la rangée de l'article avec son propre Badge de Statut autonome
-                articlesHtml += `
-                    <div class="article-ligne-achat" data-statut="${article.statut}" style="display: flex; gap: 15px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px dashed #e2e8f0; align-items: center;">
-                        <img src="${produit.image || 'placeholder.jpg'}" style="width: 65px; height: 65px; object-fit: cover; border-radius: 8px;">
-                        <div style="flex-grow: 1;">
-                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-                                <h4 style="margin: 0; color: #2d3748; font-size: 1rem;">${produit.nom || 'Article'}</h4>
-                                <span class="badge statut-${statutNormalise.replace(/ /g,'-')}" style="padding: 3px 8px; font-size: 0.75rem; font-weight: 700; border-radius: 12px;">
-                                    statut : ${article.statut ? article.statut.toUpperCase() : 'N/A'}
-                                </span>
+                let articlesHtml = '';
+
+                (sousCommande.items || []).forEach(item => {
+                    const produit = item.produitId || {};
+
+                    // Statut de l'article individuel s'il existe, sinon celui de sa sous-commande
+                    const statutArticle = item.statut || statutColis;
+                    const statutArticleNorm = normaliserStatut(statutArticle);
+                    const messageSuivi = obtenirMessageSuivi(statutArticle);
+                    const produitId = produit._id || item.produitId;
+                    const boutonAnnuler = statutArticleNorm === 'en attente' && normaliserStatut(statutColis) === 'en attente'
+                        ? `<button class="btn-annuler" onclick="annulerArticleIndividuel('${commandeGlobale._id}', '${commandeLegacy ? '' : idColis}', '${item._id || ''}', '${produitId}')">❌ Annuler cet article</button>`
+                        : '';
+
+                    articlesHtml += `
+                        <div class="article-ligne-achat" data-statut="${statutArticle}" style="display: flex; gap: 15px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px dashed #e2e8f0; align-items: center;">
+                            <img src="${produit.image || 'placeholder.jpg'}" style="width: 65px; height: 65px; object-fit: cover; border-radius: 8px;">
+                            <div style="flex-grow: 1;">
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                                    <h4 style="margin: 0; color: #2d3748; font-size: 1rem;">${produit.nom || 'Article'}</h4>
+                                    <span class="badge statut-${statutArticleNorm.replace(/ /g, '-')}" style="padding: 3px 8px; font-size: 0.75rem; font-weight: 700; border-radius: 12px;">
+                                        statut : ${statutArticle.toUpperCase()}
+                                    </span>
+                                </div>
+                                <p style="margin: 0 0 4px 0; font-size: 0.85rem; color: #718096;">Quantité : ${item.quantite || 1} | Prix : ${item.prixUnitaire || produit.prix || 0} €</p>
+                                <span style="font-size: 0.85rem; font-weight: 500; color: #4a5568;">${messageSuivi}</span>
                             </div>
-                            <p style="margin: 0 0 4px 0; font-size: 0.85rem; color: #718096;">Quantité : ${article.quantite || 1} | Prix : ${produit.prix || 0} €</p>
-                            <span style="font-size: 0.85rem; font-weight: 500; color: #4a5568;">${messageSuivi}</span>
+                            <div class="article-actions" style="display: flex; flex-direction: column; gap: 5px;">
+                                ${boutonAnnuler}
+                            </div>
                         </div>
-                        <div class="article-actions" style="display: flex; flex-direction: column; gap: 5px;">
-                            ${boutonAnnuler}
+                    `;
+                });
+
+                // Bloc du Colis Vendeur
+                sousCommandesHtml += `
+                    <div class="colis-vendeur-block" data-colis-id="${idColis}" style="margin-bottom: 15px; background: #faf5ff; border: 1px solid #e9d8fd; border-radius: 8px; padding: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e9d8fd;">
+                            <div>
+                                <span style="font-size: 0.75rem; text-transform: uppercase; color: #805ad5; font-weight: bold;">Colis boutique </span>
+                                <p style="margin: 2px 0; color: #4a5568; font-size: 0.85rem;">Boutique : ${nomBoutiqueHTML}</p>
+                                <h4 style="margin: 0; color: #2d3748; font-size: 0.95rem;">📦 N° Colis : #${idColis.toString().substring(0, 15)}</h4>
+                            </div>
+                            <div>
+                                <button onclick="telechargerFacturePDF('${idColis}')" class="btn-pdf">
+                                    📥 Facture de ce colis (PDF)
+                                </button>
+                                ${affichageOtpColis}
+                            </div>
+                        </div>
+                        <div class="colis-articles-list">
+                            ${articlesHtml}
                         </div>
                     </div>
                 `;
             });
 
-            // Bouton de facture PDF lié à l'ID de commande globale
-            let boutonFacture = `<button onclick="telechargerFacturePDF('${colis.colisGroupId}')" class="btn-pdf">
-                📥 Facture (PDF)
-            </button>`;
-
-            // Injection du container général de la session d'achat
+            // Container principal du panier d'achat
             container.innerHTML += `
                 <div class="commande-card-wrapper" style="margin-bottom: 25px; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
                     <div class="commande-header" style="background: #f8fafc; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #edf2f7;">
                         <div>
                             <span style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: #a0aec0; font-weight: bold;">Commande Groupée</span>
-                            <h3 style="margin: 2px 0 5px 0; color: #1a202c; font-size: 1.15rem;">🛒 N° : #${colis.colisGroupId.substring(0, 15)}</h3>
-                            <p class="date-commande" style="margin: 0; font-size: 0.85rem; color: #718096;">Passée le : ${new Date(colis.dateCommande).toLocaleDateString('fr-FR')}</p>
-                        </div>
-                        <div>
-                            ${boutonFacture}
-                            <!-- Affiche une seule fois le code OTP du colis sous le bouton de facture. -->
-                            ${affichageOtpColis}
+                            <h3 style="margin: 2px 0 5px 0; color: #1a202c; font-size: 1.15rem;">🛒 Total Panier : ${totalTTC.toFixed(2)} €</h3>
+                            <p class="date-commande" style="margin: 0; font-size: 0.85rem; color: #718096;">Passée le : ${dateCommande}</p>
                         </div>
                     </div>
-                    <div class="colis-articles-list" style="padding: 20px 20px 5px 20px;">
-                        ${articlesHtml}
+                    <div style="padding: 20px 20px 5px 20px;">
+                        ${sousCommandesHtml}
                     </div>
                 </div>
             `;
@@ -210,32 +262,33 @@ async function chargerMesAchats() {
         // =========================================================================
         // 🟢 COMPTEUR DE NOTIFICATIONS DES ACHATS EN COURS
         // =========================================================================
-        let totalAchatsEnCours = 0;
-        const statutsHistoriquesAcheteur = ['annulee', 'annulee par acheteur', 'recue', 'livree'];
+        let totalArticlesEnCours = 0;
 
         commandes.forEach(commande => {
-            const statutNormalise = normaliserStatut(commande.statut);
-            if (!statutsHistoriquesAcheteur.includes(statutNormalise)) {
-                totalAchatsEnCours++;
-            }
+            (commande.vendorsOrders || []).forEach(sousCommande => {
+                (sousCommande.items || []).forEach(item => {
+                    const st = item.statut || sousCommande.statutVendeur;
+                    if (!estStatutHistorique(st)) {
+                        totalArticlesEnCours++;
+                    }
+                });
+            });
         });
 
         const badgeAcheteur = document.getElementById('compteur-acheteur');
         if (badgeAcheteur) {
-            if (totalAchatsEnCours > 0) {
-                badgeAcheteur.textContent = totalAchatsEnCours;
+            if (totalArticlesEnCours > 0) {
+                badgeAcheteur.textContent = totalArticlesEnCours;
                 badgeAcheteur.style.display = 'inline-block';
             } else {
                 badgeAcheteur.style.display = 'none';
             }
         }
 
-        // Met à jour le badge historique avec les commandes historiques encore non lues.
-        mettreAJourCompteurHistorique(commandes);
-        // Marque automatiquement l'historique comme lu si la page a été ouverte sur cet onglet.
+        // Mise à jour du compteur historique & filtres
+        mettreAJourCompteurHistorique();
         if (filtreActuel === 'historique') marquerHistoriqueCommeLu();
 
-        // Application immédiate des filtres d'onglets ("En cours" / "Historique")
         appliquerFiltrageAcheteur();
 
     } catch (err) {
@@ -258,7 +311,6 @@ function basculerOnglet(typeOnglet) {
         document.getElementById('onglet-en-cours').classList.add('active');
     } else {
         document.getElementById('onglet-historique').classList.add('active');
-        // Considère les commandes historiques comme lues dès que l'onglet est ouvert.
         marquerHistoriqueCommeLu();
     }
     appliquerFiltrageAcheteur();
@@ -266,44 +318,50 @@ function basculerOnglet(typeOnglet) {
 
 function appliquerFiltrageAcheteur() {
     const lignesArticles = document.querySelectorAll('.article-ligne-achat');
-    // Réutilise la liste commune afin que les commandes « livrée » soient bien historiques.
-    const statutsHistoriques = STATUTS_HISTORIQUES;
 
+    // 1. Filtrer chaque ligne d'article de façon autonome selon son statut
     lignesArticles.forEach(ligne => {
         const statutRaw = ligne.getAttribute('data-statut') || '';
-        const statutNorm = normaliserStatut(statutRaw);
-
-        const estDansLhistorique = statutsHistoriques.includes(statutNorm);
+        const estHistorique = estStatutHistorique(statutRaw);
 
         if (filtreActuel === 'en-cours') {
-            ligne.style.display = estDansLhistorique ? 'none' : 'flex';
+            ligne.style.display = estHistorique ? 'none' : 'flex';
         } else if (filtreActuel === 'historique') {
-            ligne.style.display = estDansLhistorique ? 'flex' : 'none';
+            ligne.style.display = estHistorique ? 'flex' : 'none';
         }
     });
 
-    // Masquage ou affichage dynamique de la carte entière si elle est vide sous le filtre actuel
+    // 2. Masquer les blocs "Colis Vendeur" si tous leurs articles sont masqués
+    document.querySelectorAll('.colis-vendeur-block').forEach(colisBlock => {
+        const aDesArticlesVisibles = Array.from(colisBlock.querySelectorAll('.article-ligne-achat'))
+            .some(l => l.style.display !== 'none');
+        colisBlock.style.display = aDesArticlesVisibles ? 'block' : 'none';
+    });
+
+    // 3. Masquer la carte de commande globale si tous ses colis sont masqués
     document.querySelectorAll('.commande-card-wrapper').forEach(wrapper => {
-        const articlesVisibles = Array.from(wrapper.querySelectorAll('.article-ligne-achat')).some(l => l.style.display !== 'none');
-        wrapper.style.display = articlesVisibles ? 'block' : 'none';
+        const aDesColisVisibles = Array.from(wrapper.querySelectorAll('.colis-vendeur-block'))
+            .some(c => c.style.display !== 'none');
+        wrapper.style.display = aDesColisVisibles ? 'block' : 'none';
     });
 }
 
 // =========================================================================
-// 🛫 INTERACTION BACKEND (Annulation)
+// 🛫 INTERACTION BACKEND (Annulation d'un article)
 // =========================================================================
-async function annulerCommande(commandeId) {
-    if (!confirm('⚠️ Êtes-vous sûr de vouloir annuler cette commande ? Cette action est irréversible.')) {
+async function annulerArticleIndividuel(orderId, colisGroupId, itemId, produitId) {
+    if (!confirm('⚠️ Êtes-vous sûr de vouloir annuler cet article ? Cette action est irréversible.')) {
         return;
     }
 
     try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}/api/orders/${commandeId}/annuler-acheteur`, {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/orders/${orderId}/annuler-acheteur`, {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({ colisGroupId, itemId, produitId })
         });
 
         const contentType = response.headers.get('content-type');
@@ -322,6 +380,7 @@ async function annulerCommande(commandeId) {
         }
 
         alert('✅ ' + data.message);
+        // Rechargement immédiat des données depuis la BD pour actualiser l'IHM
         chargerMesAchats();
 
     } catch (err) {

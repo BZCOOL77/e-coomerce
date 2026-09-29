@@ -1,11 +1,23 @@
-//MODELE POUR GERER LE WORKLLOW DES LIVRAISONS
-
-
+// =============================================================
+// MODELE : Expedition
+// =============================================================
+// Ce fichier représente le suivi logistique d’un colis d’un vendeur.
+//
+// Il ne décrit pas toute la commande du client, mais seulement un colis spécifique
+// pour un vendeur donné.
+//
+// Exemple :
+// - la commande parent a 2 vendeurs
+// - donc il y a 2 Expedition documents distincts
+// - chaque Expedition correspond à un colis vendeur unique
+//
+// C’est ce qui permet au livreur de travailler sur un colis précis,
+// sans mélanger les produits de plusieurs vendeurs.
 const mongoose = require('mongoose');
-const { quadraticCurveTo } = require('pdfkit');
 
 const expeditionSchema = new mongoose.Schema({
-    // 1. IDENTIFIANTS UNIQUE & RELATIONS
+    // Identifiant unique de ce colis.
+    // Il correspond à un colis d’un vendeur donné, pas à toute la commande.
     colisGroupId: { 
         type: String, 
         required: true, 
@@ -17,7 +29,14 @@ const expeditionSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'Order', 
         required: true 
-    }, // Lien vers le reçu/panier global du client
+    }, // Reference a la commande parent qui porte acheteur, adresse et totaux.
+
+    // Identifiant exact de la sous-commande dans Order.vendorsOrders.
+    // Utile pour faire le lien entre la commande parent et le colis voyageur.
+    sousCommandeId: {
+        type: mongoose.Schema.Types.ObjectId,
+        default: null
+    },
     
     vendeur: { 
         type: mongoose.Schema.Types.ObjectId, 
@@ -37,15 +56,17 @@ const expeditionSchema = new mongoose.Schema({
         default: null 
     }, // Livreur qui prend en charge le colis
 
-    // 2. CONTENU DU PAQUET
+    // Liste des produits inclus dans ce colis vendeur.
+    // Ces produits sont ceux qui appartiennent au vendeur de cette expedition.
     produits: [
         {
-            produit: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+            produit: { type: mongoose.Schema.Types.ObjectId, ref: 'Thing' },
             quantite: { type: Number, default: 1 }
         }
     ],
 
-    // 3. ADRESSE DE LIVRAISON
+    // Adresse de livraison copiée depuis la commande parent pour que le suivi logistique
+    // reste indépendant et exploitable sans devoir faire des jointures constantes.
     adresseLivraison: {
         commune: String,
         quartier: String,
@@ -57,35 +78,37 @@ const expeditionSchema = new mongoose.Schema({
         telephone: String
     },
 
-    // 4. WORKFLOW & STATUTS
+    // Statut logistique du colis pour le livreur.
+    // Le vendeur garde aussi son propre statut dans Order.vendorsOrders[].statutVendeur.
     statut: {
         type: String,
         enum: [
-            
-            'prise en charge',   // Livreur a récupéré le colis chez le vendeur
-            'livrée',             // Remis en main propre au client
-            'échec de livraison'              // Client absent, refus, adresse introuvable
+            'attribuéeAlivreur', // Colis reserve/attribue a un livreur
+            'prise en charge',   // Livreur a recupere le colis chez le vendeur
+            'livrée',            // Colis remis au client
+            'échec de livraison' // Absence, refus ou adresse introuvable
         ],
         default: 'prise en charge'
     },
 
-   
-    
-
-    // 6. DÉTAILS D'ÉCHEC / REMARQUES
+    // Note du livreur pour expliquer un problème de livraison.
+    // Exemple : client absent, mauvais numéro, colis endommagé, adresse difficile.
     notesLivreur: { 
         type: String, 
         default: null 
-    }, // Ex: "Client absent au 1er passage", "Colis endommagé"
+    },
 
-    // 7. TRAÇABILITÉ / HORODATAGE (Audit Log)
-    // C'est ICI qu'on enregistre l'heure exacte de chaque action du livreur !
+    // Horodatage du cycle de vie du colis.
+    // Ces dates permettent de savoir quand le colis a été préparé, pris en charge puis livré.
     horodatage: {
         datePreparation: { type: Date, default: Date.now },
-        datePriseEnCharge: { type: Date, default: null }, // Rempli lors du passage à "PRISE_EN_CHARGE"
-        dateLivraison: { type: Date, default: null }       // Rempli lors du passage à "LIVRE"
+        datePriseEnCharge: { type: Date, default: null },
+        dateLivraison: { type: Date, default: null }
     }
 
 }, { timestamps: true });
+
+// Les recherches du livreur et la synchronisation commande/expedition utilisent ce lien.
+expeditionSchema.index({ commandeId: 1, sousCommandeId: 1 });
 
 module.exports = mongoose.model('Expedition', expeditionSchema);
