@@ -129,7 +129,7 @@ const synchroniserExpeditionDepuisColis = async ({ colisGroupId, statutCommande,
             return null;
         }
 
-        const queryOptions = session ? { session } : {};
+        const queryOptions = session ? { session } : {};//ici On prépare les options de requête pour inclure la session si elle est fournie, afin de garantir que toutes les opérations MongoDB se déroulent dans le même contexte transactionnel.
 
         // 1. Récupérer toutes les commandes du groupe de colis pour reconstruire l'expédition.
         const commandes = await Order.find({ colisGroupId }).sort({ createdAt: 1 }).lean(queryOptions);// On trie par date de création pour avoir un ordre cohérent des articles dans le colis.
@@ -221,10 +221,11 @@ const synchroniserExpeditionDepuisColis = async ({ colisGroupId, statutCommande,
 // =========================================================================
 const createOrder = async (req, res, next) => {
     try {
+       
         // Préparer la liste d'articles à traiter
-        const articlesToProcess = (Array.isArray(req.body.articles) && req.body.articles.length)
+        const articlesToProcess = (Array.isArray(req.body.articles) && req.body.articles.length)//ici on vérifie si req.body.articles est un tableau non vide. Si c'est le cas, on l'utilise tel quel. Sinon, on vérifie si req.body.produitId est défini et on crée un tableau avec un seul objet représentant le produit et sa quantité (par défaut 1). Si aucun des deux n'est présent, on retourne un tableau vide.
             ? req.body.articles
-            : (req.body.produitId ? [{ produitId: req.body.produitId, quantite: req.body.quantite || 1 }] : []);
+            : (req.body.produitId ? [{ produitId: req.body.produitId, quantite: req.body.quantite || 1 }] : []);//ici on vérifie si req.body.produitId est défini. Si c'est le cas, on crée un tableau avec un seul objet représentant le produit et sa quantité (par défaut 1). Sinon, on retourne un tableau vide.
 
         if (articlesToProcess.length === 0) {
             return res.status(400).json({ error: 'Aucun article à traiter.' });
@@ -258,7 +259,7 @@ const createOrder = async (req, res, next) => {
             }
             return typeof vendeurId === 'string' ? vendeurId : vendeurId.toString();
         };
-
+        // On récupère ou crée un colisGroupId unique pour chaque vendeur.
         const getOrCreateColisGroupId = (vendeurId) => {
             const clefVendeur = normaliserIdVendeur(vendeurId);
             if (!colisGroupIdsParVendeur.has(clefVendeur)) {
@@ -293,7 +294,7 @@ const createOrder = async (req, res, next) => {
             const prixUnitaireTTC = produit.price || produit.prix || 0;
             const tauxTVA = 0.16; // 16%
             const vendeurIdPourColis = normaliserIdVendeur(produit.vendeurId || produit.userId);
-            const colisGroupId = getOrCreateColisGroupId(vendeurIdPourColis);
+            const colisGroupId = getOrCreateColisGroupId(vendeurIdPourColis);// On récupère ou crée un colisGroupId unique pour le vendeur du produit actuel.
 
             // 🧮 1. Les calculs de base basés sur la quantité
             const totalTTC = prixUnitaireTTC * quantite;
@@ -308,6 +309,7 @@ const createOrder = async (req, res, next) => {
 
             // 💎 3. Construire les données de la commande parfaitement formatées
             const orderData = {
+               // On attache la clé d'idempotence à chaque commande pour éviter les doublons réseau.
                 produitId: produit._id,
                 quantite: quantite,
                 
@@ -338,7 +340,7 @@ const createOrder = async (req, res, next) => {
             const newOrder = new Order(orderData);
             try {
                 const saved = await newOrder.save();
-                createdOrders.push({ _id: saved._id, produitId: saved.produitId, quantite: saved.quantite });
+                createdOrders.push({ _id: saved._id, produitId: saved.produitId, quantite: saved.quantite });// On garde une trace des commandes créées pour restaurer le stock en cas d'erreur ultérieure.
             } catch (err) {
                 // En cas d'erreur de sauvegarde, restaurer le stock pour cet article
                 await Thing.findByIdAndUpdate(produit._id, { $inc: { stock: quantite } });
