@@ -2,8 +2,10 @@
 <html>
     <head>
         <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <script src="../../client/js/url.js"></script>
         <link rel="stylesheet" href="../css/nav.css">
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
         <script src="../js/header-auth.js" ></script>
         <script src="../js/nav.js" defer></script>
          
@@ -19,13 +21,15 @@
         <header>
             <h1>shopy-cloths</h1>
             <h2>meilleur experience shopping en ligne</h2>
+            <div class="infos-boutique"></div>
         </header>
+
         <section id="main">
             <nav>
-                <button id="menu">Accueille</button>
+                <button id="menu"><i class="fa-solid fa-house" aria-hidden="true"></i><span>Accueil</span></button>
                 
-                <button id="commande">mes commandes</button>
-                <a href="ajouter-produit.html"><button id="compte">mettre en vente</button></a>
+                <button id="commande"><i class="fa-solid fa-bag-shopping" aria-hidden="true"></i><span>Mes commandes</span></button>
+                <a href="ajouter-produit.html"><button id="compte"><i class="fa-solid fa-circle-plus" aria-hidden="true"></i><span>Mettre en vente</span></button></a>
 
             </nav>
         </section>

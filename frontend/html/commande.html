@@ -65,10 +65,35 @@
 
     <!--javascript de la page commande.html-->
     <script>
-        // Variable globale qui mémorise l'onglet ou le filtre actuellement sélectionné.
+// ============================================================================
+// GUIDE DE LECTURE RAPIDE POUR UN DEVELOPPEUR JUNIOR
+// ============================================================================
+// Cette page fonctionne en trois étapes principales :
+//
+// 1. Au chargement de la page, chargerMesVentes() appelle l'API backend.
+// 2. La réponse de l'API est transformée en HTML puis ajoutée dans
+//    l'élément <div id="liste-commandes">.
+// 3. Les fonctions appliquerFiltrage() et basculerOnglet() masquent ou
+//    affichent les colis selon l'onglet choisi et la recherche saisie.
+//
+// Le backend regroupe déjà les articles par colisGroupId. Un colis peut donc
+// contenir plusieurs articles, mais il possède un seul statut global et un
+// seul bouton de progression.
+//
+// Les actions importantes repartent ensuite vers le backend :
+// - changerStatutColis() fait avancer un colis complet ;
+// - annulerCommande() demande l'annulation d'une vente ;
+// - telechargerFacturePDF() récupère le PDF de la facture.
+//
+// Les règles de sécurité ne doivent pas être considérées comme garanties par
+// cette page : le backend doit toujours revérifier le rôle de l'utilisateur,
+// le propriétaire du colis et la validité du changement demandé.
+
+// Variable globale qui mémorise l'onglet ou le filtre actuellement sélectionné.
 // L'onglet affiché par défaut correspond aux commandes qui attendent un traitement.
 let filtreActuel = 'en-attente';
-let termeRecherche = '';//le terme de recherche saisi par l'utilisateur dans la barre de recherche
+// Texte actuellement saisi dans la barre de recherche.
+let termeRecherche = '';
 
 // Conserve les commandes chargées afin de pouvoir marquer les colis historiques
 // comme lus lorsque l'utilisateur ouvre l'onglet Historique.
@@ -109,8 +134,13 @@ function getStatusRank(statut) {
     return 2;
 }
 
-// Détermine quel statut doit apparaître ensuite dans le parcours du colis.
-// Cela permet d’afficher le bon bouton d’action au vendeur selon l’état actuel.
+// Retourne le prochain statut proposé au vendeur.
+//
+// Parcours normal d'un colis :
+//   en attente -> En cours -> expédiée -> attribuéeAlivreur
+//
+// Après "attribuéeAlivreur", le colis est pris en charge par le livreur.
+// Le vendeur ne doit donc plus pouvoir le faire progresser depuis cette page.
 function nextStatusFor(statut) {
     const rank = getStatusRank(statut);
 
@@ -169,8 +199,12 @@ function peutAfficherBoutonProgression(statutActuel, prochainStatut) {
 }
 
 // Initialise la recherche locale de la page.
-// On écoute les frappes dans l'input et le clic sur le bouton,
-// puis on relance le filtrage des commandes affichées.
+//
+// La recherche ne rappelle pas l'API. Elle travaille uniquement sur les
+// colis déjà chargés dans le DOM. Elle est déclenchée :
+// - à chaque modification du champ ;
+// - lorsque l'utilisateur appuie sur Entrée ;
+// - lorsqu'il clique sur le bouton de recherche.
 function initialiserRecherche() {
     const input = document.getElementById('recherche-commande');
     const btn = document.getElementById('btn-recherche-commande');
@@ -192,7 +226,19 @@ function initialiserRecherche() {
     btn.addEventListener('click', lancerRecherche);
 }
 
-// Charge et affiche les ventes du vendeur, groupées par colisGroupId
+// Charge et affiche les ventes du vendeur.
+//
+// L'API appelée est GET /api/orders/vendeur. Le backend renvoie normalement
+// un tableau de colis ayant notamment cette forme :
+// {
+//   colisGroupId: '...',
+//   statutGlobal: 'en attente',
+//   acheteur: { nom, email },
+//   articles: [ ... ]
+// }
+//
+// Cette fonction ne fait pas la sécurité métier : elle affiche les données
+// reçues et demande au backend de valider chaque action sensible.
 async function chargerMesVentes() {
     document.getElementById('overlay').classList.add('active');
     document.getElementById('loader').classList.add('active');
@@ -203,6 +249,8 @@ async function chargerMesVentes() {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         });
 
+        // response.json() convertit le corps JSON de la réponse HTTP en
+        // objet JavaScript utilisable par la page.
         const commandes = await response.json();
         console.log("Données des commandes :", commandes);
 
@@ -219,7 +267,9 @@ async function chargerMesVentes() {
         
 
         commandes.forEach(colis => {
-            // Si la réponse est déjà groupée par colis
+            // Le backend renvoie normalement un colis déjà regroupé.
+            // Le fallback [colis] permet toutefois d'éviter une erreur si une
+            // ancienne réponse ne contient pas encore le tableau articles.
             
             const articles = Array.isArray(colis.articles) ? colis.articles : [colis];
             const statutGlobal = colis.statutGlobal || colis.statut || 'N/A';
@@ -228,6 +278,8 @@ async function chargerMesVentes() {
             const idColis = colis.colisGroupId || colis._id;
             const prochainStatutColis = nextStatusFor(statutGlobal);
 
+            // On construit d'abord le HTML de chaque article. Il sera ensuite
+            // placé à l'intérieur du bloc HTML correspondant au colis.
             let articlesHtml = '';
             articles.forEach(article => {
                 const produit = article.produitInfo || article.produitId;
@@ -243,11 +295,16 @@ async function chargerMesVentes() {
                 const prixProduit = article.prixUnitaire || (produit ? (produit.prix || produit.price) : 'Prix indisponible');
                 const statutArticle = article.statutIndividuel || article.statut || 'N/A';
                 const orderId = article.orderId || article._id;
+                // L'API renvoie l'identifiant du sous-document article. Il est
+                // indispensable pour annuler le bon article dans un colis.
+                const itemId = article.itemId || article._id;
                  
 
 
                 
 
+                // Le statut brut sert à l'affichage, tandis que le statut
+                // classé sert aux comparaisons métier (livré, annulé, etc.).
                 const statutArticleClasse = classerStatut(statutArticle);
                 const estLivree = statutArticleClasse === 'livree';
                 const estAnnulee = ['annulee', 'annulee par vendeur'].includes(statutArticleClasse);
@@ -272,7 +329,7 @@ async function chargerMesVentes() {
                         </div>
                         <div class="actions-statut">
                             ${peutAnnuler ? `
-                                <button class="btn-action btn-annuler" onclick="annulerCommande('${orderId}')">
+                                <button class="btn-action btn-annuler" onclick="annulerCommande('${orderId}', '${idColis}', '${itemId || ''}')">
                                     <i class="fa-solid fa-xmark" aria-hidden="true"></i> Annuler
                                 </button>
                             ` : (estAnnuleeParAcheteur ? '<span class="annulee-acheteur"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Annulée par l\'acheteur</span>' : (estAnnulee ? '<span><i class="fa-solid fa-xmark" aria-hidden="true"></i> Vente annulée</span>' : (estLivree ? '<span><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Vente terminée</span>' : '')))}
@@ -282,7 +339,9 @@ async function chargerMesVentes() {
                 `;
             });
 
-            // Bouton pour télécharger la facture PDF du colis concerné.
+            // La facture est liée au colis, et non à chaque article séparément.
+            // Le vendeur télécharge donc une seule facture pour tous les
+            // articles de ce colis.
                 let boutonFacture = `<button onclick="telechargerFacturePDF('${idColis}')" class="btn-pdf">
                                         <i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> Télécharger ma facture (PDF)
                                         </button>`;
@@ -363,8 +422,9 @@ async function chargerMesVentes() {
     }
 }
 
-// Normalise un statut pour le rendre comparable, même si la base contient
-// des accents, des majuscules, des tirets ou des underscores.
+// Normalise un statut pour le rendre comparable.
+// Exemple : "Expédiée", "expediee" et "expediee" deviennent une valeur
+// comparable malgré les accents, les majuscules, les tirets ou les underscores.
 function normaliserStatut(statut) {
     return (statut || '')
         .toString()
@@ -377,6 +437,13 @@ function normaliserStatut(statut) {
 }
 
 // Classe un statut dans une famille métier simple pour l'interface.
+//
+// Pourquoi cette étape est nécessaire ?
+// La base peut contenir plusieurs écritures équivalentes d'un même statut.
+// L'interface a besoin d'une valeur stable pour décider :
+// - dans quel onglet placer le colis ;
+// - quel bouton afficher ;
+// - si le vendeur peut annuler ou continuer le traitement.
 // Cette version est plus robuste que les tests simples sur des mots-clés,
 // car elle gère les statuts réels présents en base et laisse une marge
 // pour des nouveaux statuts ajoutés plus tard.
@@ -506,7 +573,9 @@ function determinerOngletStatut(statut) {
 }
 
 // Met à jour le statut global d'un colis complet via l'API.
-// Cette fonction sert à faire avancer le colis dans son parcours de livraison.
+//
+// Important : la page envoie uniquement une demande. Le backend doit encore
+// vérifier que le vendeur est autorisé à modifier ce colis et ce statut.
 async function changerStatutColis(colisGroupId, nouveauStatut) {
     if (!confirm(`Confirmer passage du colis ${colisGroupId} au statut "${nouveauStatut}" ?`)) return;
     document.getElementById('overlay').classList.add('active');
@@ -520,6 +589,7 @@ async function changerStatutColis(colisGroupId, nouveauStatut) {
             },
             body: JSON.stringify({ statut: nouveauStatut })
         });
+        // response.ok vaut true pour les réponses HTTP réussies (2xx).
         if (response.ok) {
             alert('Statut du colis mis à jour.');
             chargerMesVentes();
@@ -565,7 +635,8 @@ function appliquerFiltrage() {
         }
     });
 
-    // Applique la combinaison des deux filtres aux lignes internes (articles).
+    // Un article est visible seulement si son statut appartient à l'onglet
+    // actif ET si ses informations correspondent à la recherche.
     document.querySelectorAll('.commande-card').forEach(carte => {
         const statutRaw = carte.getAttribute('data-statut') || '';
         const visibleParStatut = filtreAffiche(statutRaw);
@@ -573,7 +644,9 @@ function appliquerFiltrage() {
         carte.style.display = visibleParStatut && visibleParRecherche ? 'block' : 'none';
     });
 
-    // Applique aussi le même filtrage au bloc principal du colis.
+    // Le même raisonnement est appliqué au bloc principal du colis.
+    // Cela évite d'afficher l'en-tête d'un colis dont toutes les lignes sont
+    // masquées par les filtres.
     document.querySelectorAll('.colis-block').forEach(bloc => {
         const statutRaw = bloc.getAttribute('data-statut') || '';
         const visibleParStatut = filtreAffiche(statutRaw);
@@ -600,9 +673,12 @@ function basculerOnglet(mode) {
 }
 
 // Annule une commande côté vendeur via l'API.
-// Cette action est réservée aux commandes qui ne sont pas déjà livrées
-// ou déjà annulées.
-async function annulerCommande(commandeId) {
+//
+// Le vendeur envoie l'identifiant de la commande. Le backend doit vérifier
+// que cette commande appartient bien au vendeur connecté et qu'elle peut
+// encore être annulée. En cas de succès, la liste est rechargée afin de
+// refléter immédiatement le nouveau statut et les nouveaux compteurs.
+async function annulerCommande(commandeId, colisGroupId = '', itemId = '') {
     if (!confirm('Êtes-vous sûr de vouloir annuler cette commande ? Cette action est irréversible.')) return;
 
     document.getElementById('overlay').classList.add('active');
@@ -613,7 +689,10 @@ async function annulerCommande(commandeId) {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+            },
+            // Pour une commande moderne, le backend utilise ces deux valeurs
+            // pour cibler l'article exact dans le colis du vendeur.
+            body: JSON.stringify({ colisGroupId, itemId })
         });
 
         if (response.ok) {
@@ -666,7 +745,10 @@ async function changerStatut(commandeId, nouveauStatut) {
 
 
 // Télécharge la facture PDF d'un colis via l'API backend.
-// Le fichier est récupéré en tant que blob puis proposé en téléchargement.
+//
+// Un PDF est une donnée binaire. C'est pourquoi la réponse n'est pas lue
+// avec response.json(), mais avec response.blob(). Le Blob est ensuite relié
+// temporairement à un lien invisible afin de déclencher le téléchargement.
 async function telechargerFacturePDF(colisGroupId) {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -709,7 +791,9 @@ async function telechargerFacturePDF(colisGroupId) {
 }
 //=============================================================
 
-// Lancement initial
+// Point d'entrée de la page.
+// DOMContentLoaded garantit que les éléments HTML (input, boutons et
+// conteneur de commandes) existent avant que le JavaScript ne les utilise.
 document.addEventListener('DOMContentLoaded', () => {
     initialiserRecherche();
     chargerMesVentes();

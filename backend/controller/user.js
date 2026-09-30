@@ -83,7 +83,7 @@ exports.getAllVendeurs = (req, res, next) => {
 // 🟢 Fonction pour récupérer le profil de l'utilisateur connecté pour affichage en cliquant sur le bouton "profile"
 exports.getProfile = async (req, res, next) => {
     try {
-        // req.auth.userId a été injecté au préalable par ton middleware "auth" !
+        // req.auth.userId a été injecté au préalable par le middleware "auth" !
         // Le ".select('-password')" permet de ne JAMAIS renvoyer le mot de passe sur le réseau.
         const user = await User.findById(req.auth.userId).select('-password');
         

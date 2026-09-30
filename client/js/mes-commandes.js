@@ -129,9 +129,15 @@ async function chargerMesAchats() {
             }
         });
 
-        if (!response.ok) throw new Error("Impossible de charger vos commandes");
+        if (!response.ok) {
+            const erreurApi = await response.json().catch(() => ({}));
+            throw new Error(erreurApi.error || `Impossible de charger vos commandes (${response.status})`);
+        }
 
         const commandes = await response.json();
+        if (!Array.isArray(commandes)) {
+            throw new Error('Le serveur a renvoyé un format de commandes inattendu.');
+        }
         commandesAcheteur = commandes;
         const container = document.getElementById('liste-achats');
         container.innerHTML = '';
@@ -147,7 +153,9 @@ async function chargerMesAchats() {
         // =========================================================================
         commandes.forEach(commandeGlobale => {
             const dateCommande = new Date(commandeGlobale.createdAt || commandeGlobale.dateCommande).toLocaleDateString('fr-FR');
-            const totalTTC = commandeGlobale.totalTTCGlobal || 0;
+            // Une valeur reçue par JSON peut venir d'une ancienne donnée
+            // stockée comme texte. Number() garantit que toFixed() fonctionne.
+            const totalTTC = Number(commandeGlobale.totalTTCGlobal) || 0;
             // Le nouveau backend renvoie vendorsOrders. Le fallback transforme
             // une ancienne commande plate en colis unique pour préserver l'historique.
             const commandeLegacy = !commandeGlobale.vendorsOrders?.length;
@@ -155,6 +163,10 @@ async function chargerMesAchats() {
                 ? commandeGlobale.vendorsOrders
                 : (commandeGlobale.produitId ? [{
                     _id: commandeGlobale._id,
+                    // Les anciennes commandes possèdent le vendeur à la
+                    // racine. On le transmet au colis reconstruit afin que
+                    // le nom de la boutique puisse être affiché.
+                    vendeurId: commandeGlobale.vendeurId || null,
                     colisGroupId: commandeGlobale.colisGroupId || `LEGACY-${commandeGlobale._id}`,
                     statutVendeur: commandeGlobale.statut || 'en attente',
                     items: [{
@@ -292,8 +304,8 @@ async function chargerMesAchats() {
         appliquerFiltrageAcheteur();
 
     } catch (err) {
-        console.error(err);
-        document.getElementById('liste-achats').innerHTML = "<p style='color:red;'>Erreur lors de la récupération des données.</p>";
+        console.error('Erreur détaillée lors du chargement des achats :', err);
+        document.getElementById('liste-achats').innerHTML = `<p style='color:red;'>${echapperHTML(err.message || 'Erreur lors de la récupération des données.')}</p>`;
     } finally {
         if (loader) loader.style.display = 'none';
     }

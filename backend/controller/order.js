@@ -547,6 +547,9 @@ const createOrder = async (req, res, next) => {
 const getVendeurOrders = async (req, res) => {
     try {
         const orders = await Order.find({ 'vendorsOrders.vendeurId': req.auth.userId })
+            // La page vendeur utilise le nom, l'image et la description du
+            // produit. Sans ce populate, produitInfo ne contient qu'un ObjectId.
+            .populate('vendorsOrders.items.produitId')
             .populate('acheteurId', 'nom email prenom')
             .sort({ createdAt: -1 });
 
@@ -571,6 +574,10 @@ const getVendeurOrders = async (req, res) => {
                 for (const item of sousCommande.items || []) {
                     colisRegroupes[idGroupe].articles.push({
                         orderId: parentOrder._id,
+                        // Ces deux identifiants permettent au frontend de
+                        // cibler précisément un article lors d'une annulation.
+                        itemId: item._id,
+                        colisGroupId: idGroupe,
                         produitInfo: item.produitId,
                         quantite: item.quantite,
                         prixUnitaire: item.prixUnitaire,
@@ -661,6 +668,15 @@ const updateColisStatut = async (req, res, next) => {
             await session.abortTransaction();
             session.endSession();
             return res.status(404).json({ error: "Sous-commande introuvable pour ce colis." });
+        }
+
+        // Le rôle vendeur ne suffit pas à autoriser la modification : il faut
+        // aussi que le vendeur connecté soit propriétaire de ce colis précis.
+        if (roleUtilisateur === 'vendeur'
+            && sousCommande.vendeurId?.toString() !== idUtilisateurConnecteString) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(403).json({ error: "Vous n'êtes pas autorisé à modifier ce colis." });
         }
 
         const expedition = await Expedition.findOne({ colisGroupId }).session(session);
@@ -881,14 +897,22 @@ const getAcheteurOrders = async (req, res) => {
             // Le frontend affiche les produits de chaque sous-commande vendeur.
             .populate('vendorsOrders.items.produitId')
             // Le nom de boutique est affiché dans l’en-tête de chaque colis vendeur.
-            .populate('vendorsOrders.vendeurId', 'nom prenom boutique')
+            .populate({
+                path: 'vendorsOrders.vendeurId',
+                select: 'nom prenom boutique.nomBoutique'
+            })
             // Conserver le populate du champ plat pour les anciennes commandes.
             .populate('produitId')
+            .populate({
+                path: 'vendeurId',
+                select: 'nom prenom boutique.nomBoutique'
+            })
             .populate('acheteurId', 'nom prenom email')
             .sort({ createdAt: -1 });
 
         return res.status(200).json(orders);
     } catch (error) {
+        console.error('Erreur lors de la récupération des commandes acheteur :', error);
         return res.status(400).json({ error: error.message });
     }
 };
@@ -912,6 +936,124 @@ const annulerCommandeParVendeur = async (req, res, next) => {
         
         if (!commande) {
             return res.status(404).json({ error: "Commande introuvable !" });
+        }
+
+        // -----------------------------------------------------------------
+        // FORMAT MODERNE : commande parent avec vendorsOrders
+        // -----------------------------------------------------------------
+        // La page vendeur affiche un article à la fois. Elle doit donc
+        // pouvoir annuler uniquement l'article cliqué, sans annuler les
+        // autres articles du même colis ou les colis des autres vendeurs.
+        const vendeurIdConnecte = req.auth.userId?.toString();
+        const colisGroupId = req.body?.colisGroupId;
+        const itemId = req.body?.itemId;
+        const produitId = req.body?.produitId;
+
+        if (Array.isArray(commande.vendorsOrders) && commande.vendorsOrders.length > 0) {
+            const sousCommandesDuVendeur = commande.vendorsOrders.filter(sousCommande =>
+                sousCommande.vendeurId?.toString() === vendeurIdConnecte
+            );
+
+            if (sousCommandesDuVendeur.length === 0) {
+                return res.status(403).json({ error: "Vous n'êtes pas le vendeur de cette commande." });
+            }
+
+            // Le frontend envoie normalement le colis. Le fallback ne choisit
+            // automatiquement une sous-commande que s'il n'y en a qu'une,
+            // afin d'éviter d'annuler le mauvais colis.
+            const sousCommandesCiblees = colisGroupId
+                ? sousCommandesDuVendeur.filter(sousCommande => sousCommande.colisGroupId === colisGroupId)
+                : sousCommandesDuVendeur;
+
+            if (sousCommandesCiblees.length !== 1) {
+                return res.status(400).json({
+                    error: 'Le colisGroupId est obligatoire pour identifier la sous-commande à annuler.'
+                });
+            }
+
+            const sousCommande = sousCommandesCiblees[0];
+            let article = itemId ? sousCommande.items.id(itemId) : null;
+
+            // produitId reste accepté pour les anciennes versions du frontend.
+            if (!article && produitId) {
+                article = sousCommande.items.find(item =>
+                    item.produitId?.toString() === produitId.toString()
+                    && !['annulée', 'annulée par acheteur'].includes(item.statut)
+                );
+            }
+
+            // S'il n'y a qu'un seul article dans le colis, il est possible de
+            // le cibler sans itemId. Sinon, refuser plutôt que choisir au hasard.
+            if (!article && sousCommande.items.length === 1) {
+                article = sousCommande.items[0];
+            }
+
+            if (!article) {
+                return res.status(400).json({
+                    error: "L'identifiant de l'article est obligatoire pour ce colis."
+                });
+            }
+
+            const statutArticle = (article.statut || sousCommande.statutVendeur || '').toString()
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[-_]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+            const statutsAnnulables = ['en attente', 'en cours', 'expediee', 'expedie'];
+
+            if (!statutsAnnulables.includes(statutArticle)) {
+                return res.status(400).json({
+                    error: "Impossible d'annuler cet article après sa prise en charge par le livreur."
+                });
+            }
+
+            article.statut = 'annulée';
+            await Thing.findByIdAndUpdate(article.produitId, {
+                $inc: { stock: article.quantite || 1 }
+            });
+
+            // Les montants de la sous-commande et de la commande parent sont
+            // recalculés à partir des articles qui ne sont pas annulés.
+            const articlesActifsSousCommande = sousCommande.items.filter(item =>
+                !['annulée', 'annulée par acheteur'].includes(item.statut)
+            );
+            sousCommande.subTotalHT = articlesActifsSousCommande.reduce((total, item) => total + (Number(item.totalHT) || 0), 0);
+            sousCommande.subTotalTVA = articlesActifsSousCommande.reduce((total, item) => total + (Number(item.montantTVA) || 0), 0);
+            sousCommande.subTotalTTC = articlesActifsSousCommande.reduce((total, item) => total + (Number(item.totalTTC) || 0), 0);
+
+            if (articlesActifsSousCommande.length === 0) {
+                sousCommande.statutVendeur = 'annulée';
+                sousCommande.codeOtp = null;
+            }
+
+            const articlesActifsCommande = commande.vendorsOrders.flatMap(sousCommandeVendeur =>
+                (sousCommandeVendeur.items || []).filter(item =>
+                    !['annulée', 'annulée par acheteur'].includes(item.statut)
+                )
+            );
+            commande.totalHTGlobal = articlesActifsCommande.reduce((total, item) => total + (Number(item.totalHT) || 0), 0);
+            commande.totalTVAGlobal = articlesActifsCommande.reduce((total, item) => total + (Number(item.montantTVA) || 0), 0);
+            commande.totalTTCGlobal = articlesActifsCommande.reduce((total, item) => total + (Number(item.totalTTC) || 0), 0);
+
+            await commande.save();
+
+            if (colisGroupId) {
+                await Expedition.updateOne(
+                    { colisGroupId },
+                    {
+                        $set: {
+                            produits: articlesActifsSousCommande.map(item => ({
+                                produit: item.produitId,
+                                quantite: item.quantite || 1
+                            }))
+                        }
+                    }
+                );
+            }
+
+            return res.status(200).json({ message: 'Article annulé et stock restitué.' });
         }
 
         const statutNettoye = (commande.statut || '').toLowerCase();

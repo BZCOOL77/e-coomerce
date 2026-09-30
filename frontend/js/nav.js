@@ -2,6 +2,7 @@
 // On déclare les variables globales pour le loader et l'overlay
 // Elles seront initialisées plus tard une fois que le DOM sera prêt
 let loader, overlay;
+const infosBoutique = document.querySelector('.infos-boutique');
 
 // Fonction pour initialiser tous les éléments du DOM quand il est complètement chargé
 function initDOM() {
@@ -85,11 +86,11 @@ async function chargerproduit() {
     // 🎨 On crée un petit affichage intelligent selon le stock disponible
     let badgeStock = '';
     if (stock === 0) {
-        badgeStock = `<span style="color: red; font-weight: bold;">❌ Rupture de stock</span>`;
+           badgeStock = `<span class="stock-badge stock-badge--out"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i><span>Rupture de stock</span></span>`;
     } else if (stock <= 5) {
-        badgeStock = `<span style="color: orange; font-weight: bold;">⚠️ Stock critique : ${stock} restants</span>`;
+           badgeStock = `<span class="stock-badge stock-badge--low"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><span>Stock critique : ${stock} restants</span></span>`;
     } else {
-        badgeStock = `<span style="color: green;">📦 En stock : ${stock} unités</span>`;
+           badgeStock = `<span class="stock-badge stock-badge--available"><i class="fa-solid fa-box" aria-hidden="true"></i><span>En stock : ${stock} unités</span></span>`;
     }
 
         container.innerHTML += `
@@ -104,8 +105,8 @@ async function chargerproduit() {
             <div class="stock-status">
                 ${badgeStock}
             </div>
-            <a href="modifier.html?id=${produit._id}"><button class="modifier">Modifier</button></a>
-            <button onclick="deleteProduct('${produit._id}')" class="supprimer">Supprimer</button>
+            <a href="modifier.html?id=${produit._id}"><button class="modifier"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i><span>Modifier</span></button></a>
+                <button onclick="deleteProduct('${produit._id}')" class="supprimer"><i class="fa-solid fa-trash-can" aria-hidden="true"></i><span>Supprimer</span></button>
             </div>
         </article>
     `;
@@ -122,39 +123,40 @@ async function chargerproduit() {
 
 //========== VÉRIFICATION DE SÉCURITÉ DE ACCÈS À LA PAGE VENDEUR ==========
 // 1. CONTRÔLE IMMÉDIAT (Pas d'attente du DOM pour bloquer les intrus rapidement)
+(function () {
+    // On récupère le rôle de l'utilisateur depuis le localStorage
+    const role = localStorage.getItem('role');
+    // On récupère le token d'authentification depuis le localStorage
+    const token = localStorage.getItem('token');
 
-// On récupère le rôle de l'utilisateur depuis le localStorage
-const role = localStorage.getItem('role');
-// On récupère le token d'authentification depuis le localStorage
-const token = localStorage.getItem('token');
+    // Logs de debug pour voir la valeur du rôle et si le token existe
+    console.log("🔍 DEBUG - Role:", role);
+    console.log("🔍 DEBUG - Token présent:", !!token);
 
-// Logs de debug pour voir la valeur du rôle et si le token existe
-console.log("🔍 DEBUG - Role:", role);
-console.log("🔍 DEBUG - Token présent:", !!token);
+    // ========== VÉRIFICATION 1 : Token manquant ==========
+    if (!token) {
+        // Le token n'existe pas, donc l'utilisateur n'est pas connecté
+        console.error("❌ Token manquant ! Redirection vers login...");
+        alert("Vous devez d'abord vous connecter !");
+        // Redirection vers la page de login
+        window.location.replace('login.html');
+        return;
+    }
+    // ========== VÉRIFICATION 2 : Rôle non-vendeur ==========
+    if (!role || role !== 'vendeur') {
+        // Le rôle n'existe pas OU le rôle n'est pas 'vendeur'
+        console.error("❌ Accès refusé ! Rôle requis: 'vendeur', rôle actuel:", role);
+        // On arrête l'exécution du script
+        window.stop();
+        alert("Accès refusé ! Vous n'êtes pas vendeur.");
+        // Redirection vers la page client
+        window.location.replace('../client/html/client.html');
+        return;
+    }
 
-// ========== VÉRIFICATION 1 : Token manquant ==========
-if (!token) {
-    // Le token n'existe pas, donc l'utilisateur n'est pas connecté
-    console.error("❌ Token manquant ! Redirection vers login...");
-    alert("Vous devez d'abord vous connecter !");
-    // Redirection vers la page de login
-    window.location.replace('login.html');
-}
-// ========== VÉRIFICATION 2 : Rôle non-vendeur ==========
-else if (!role || role !== 'vendeur') {
-    // Le rôle n'existe pas OU le rôle n'est pas 'vendeur'
-    console.error("❌ Accès refusé ! Rôle requis: 'vendeur', rôle actuel:", role);
-    // On arrête l'exécution du script
-    window.stop();
-    alert("Accès refusé ! Vous n'êtes pas vendeur.");
-    // Redirection vers la page client
-    window.location.replace('../client/html/client.html'); 
-}
-// ========== VÉRIFICATION 3 : Accès autorisé (l'utilisateur est vendeur) ==========
-else {
-    // Toutes les vérifications sont passées !
+    // ========== VÉRIFICATION 3 : Accès autorisé (l'utilisateur est vendeur) ==========
     console.log("✅ Accès vendeur autorisé !");
-    
+
     // Fonction qui affiche la page et charge les produits
     function displayAndLoad() {
         // On affiche la page en mettant display à 'block' (elle était cachée par défaut dans le CSS)
@@ -164,15 +166,19 @@ else {
         initDOM();
         // On charge les produits du vendeur depuis l'API
         chargerproduit();
+        // On charge les infos boutique seulement après la déclaration de infosBoutique
+        if (typeof fetchInfosBoutique === 'function') {
+            fetchInfosBoutique();
+        }
     }
-    
+
     // CORRECTION DU BUG PRINCIPAL : Vérification du statut du DOM
     // =========================================================================
     // Le problème : Si le script s'exécutait APRÈS que DOMContentLoaded soit déclenché,
     // l'écouteur addEventListener('DOMContentLoaded') ne s'exécutait JAMAIS
     // car cet événement ne se déclenche qu'une seule fois au démarrage de la page.
     // Résultat : document.body.style.display restait à 'none' et la page restait cachée !
-    // 
+    //
     // La solution : On utilise 'document.readyState' pour vérifier l'état actuel du DOM :
     // - 'loading' : Le DOM est encore en cours de chargement
     // - 'interactive' ou 'complete' : Le DOM est déjà entièrement chargé
@@ -190,7 +196,7 @@ else {
         // Dans ce cas, on appelle displayAndLoad() IMMÉDIATEMENT sans attendre
         displayAndLoad();
     }
-}
+})();
 
 
 
@@ -227,3 +233,37 @@ function deleteProduct(id) {
     }
 };
 
+
+// ========== RÉCUPÉRATION DES INFOS DE LA BOUTIQUE ==========
+async function fetchInfosBoutique() {
+    if (!infosBoutique) {
+        console.warn("⚠️ .infos-boutique introuvable, la récupération est ignorée.");
+        return;
+    }
+
+    try {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/auth/me`, {
+            method: 'GET',
+            headers: getHeaders() // le token est ajouté automatiquement !
+        });
+        const data = await response.json();
+        const boutique = data?.boutique ?? {};
+        const ville = "ville : " + (boutique.villeBoutique || boutique.ville?.Boutique || boutique.ville || "");
+        const commune = "commune : " + (boutique.communeBoutique || boutique.commune || "");
+        const quartier = "quartier : " + (boutique.quartierBoutique || boutique.quartier?.boutique || boutique.quartier || "");
+        const avenue = "avenue : " + (boutique.avenueBoutique || boutique.avenue || "");
+        const numero = "numéro : " + (boutique.numeroadresseBoutique || boutique.numeroAdresse || "");
+        const telephone = "téléphone : " + (boutique.telephoneBoutique || boutique.telephone || "");
+
+        // Afficher les informations de la boutique dans le DOM
+        infosBoutique.innerHTML = `
+            <img src="${boutique.photoBoutique || 'default-logo.png'}" alt="Logo de la boutique" class="logo-boutique">
+            <h3>${boutique.nomBoutique || "Boutique"}</h3>
+            <p>${boutique.descriptionBoutique || "Aucune description"}</p>
+            <p class="boutique-categorie"><i class="fa-solid fa-tag" aria-hidden="true"></i><span>${boutique.categorieBoutique || "Catégorie non renseignée"}</span></p>
+            <p>${[ville, commune, quartier, avenue, numero, telephone].filter(Boolean).join(", ") || "Adresse non renseignée"}</p>
+        `;
+    } catch (error) {
+        console.error("Erreur lors de la récupération des informations de la boutique :", error);
+    }
+}
