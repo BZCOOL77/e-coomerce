@@ -32,6 +32,7 @@ const mongoose = require('mongoose');
 const orderItemSchema = new mongoose.Schema({
     produitId: { type: mongoose.Schema.Types.ObjectId, ref: 'Thing', required: true },
     quantite: { type: Number, default: 1, min: 1 },
+    taille: { type: String, default: null }, // Variante sélectionnée côté client (ex: "M", "42", "XL").
     prixUnitaire: { type: Number, required: true },
     prixUnitaireHT: { type: Number, required: true },
     totalHT: { type: Number, required: true },
@@ -169,6 +170,7 @@ const orderSchema = new mongoose.Schema({
         required: false,
         get: v => v ? v.toString() : v
     },
+    taille: { type: String, default: null },
     quantite: { type: Number, default: 1 },
     statut: {
         type: String,

@@ -23,6 +23,19 @@
         <input type="text" id="image2" placeholder="Lien de l'image" ><br>
         <input type="text" id="image3" placeholder="Lien de l'image" ><br>
         <input type="number" id="stock" name="stock" min="1" value="10" placeholder="quantité en stock" required class="form-input"><br>
+        <!-- GESTION DE TAILLE -->
+         <label>Gestion des Tailles et Pointures :</label>
+        <div id="container-tailles">
+            <!-- Ligne de variante type -->
+            <div class="ligne-taille" style="display: flex; gap: 10px; margin-bottom: 8px;">
+                <input type="text" placeholder="Taille (ex: M, 41, XL)" class="input-taille" required style="flex: 2;">
+                <input type="number" placeholder="Stock" class="input-stock-taille" min="0" required style="flex: 1;">
+                <button type="button" onclick="supprimerLigneTaille(this)" style="background: red; color: white; border: none; padding: 5px 10px; cursor: pointer;">❌</button>
+            </div>
+        </div>
+        <button type="button" onclick="ajouterLigneTaille()" style="background: #3182ce; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-top: 5px;">+ Ajouter une autre taille</button>
+         
+        <!-- GESTION DE CATEGORIE -->
         <div class="categorie">
             <input type="radio" id="categorie1" name="categorie" value="Électronique" required>
             <label for="categorie1">Électronique</label>
@@ -54,25 +67,43 @@
     overlay.style.display = 'none';
     }
 
-        const form = document.getElementById('productForm');
+    const form = document.getElementById('productForm');
 
-        const envoyerproduit = async (event) => {
-            event.preventDefault(); // On stop le rechargement de la page
+    const envoyerproduit = async (event) => {
+        event.preventDefault(); // On stop le rechargement de la page
 
-            showLoading(); // On affiche le loader
+        showLoading(); // On affiche le loader
 
-            // 1. On récupère les valeurs AU MOMENT du clic
-            const nouveauProduit = {
-                nom: document.getElementById('nom').value,
-                prix: Number(document.getElementById('prix').value),
-                description: document.getElementById('description').value,
-                image: document.getElementById('image').value,
-                image1: document.getElementById('image1').value,
-                image2: document.getElementById('image2').value,
-                image3: document.getElementById('image3').value,
-                stock: Number(document.getElementById('stock').value),
-                categorie: document.querySelector('input[name="categorie"]:checked').value
-            };
+    //gestion des tailles et pointures
+        const lignesTailles = document.querySelectorAll('.ligne-taille');
+        const variantes = [];
+        let stockTotalGlobal = 0;
+
+        lignesTailles.forEach(ligne => {
+        const taille = ligne.querySelector('.input-taille').value.trim();
+        const stock = Number(ligne.querySelector('.input-stock-taille').value);
+    
+        if (taille) {
+            variantes.push({ taille, stock });
+            stockTotalGlobal += stock;// On additionne le stock de chaque variante pour obtenir le stock total global
+     }
+    });
+
+
+
+        // 1. On récupère les valeurs AU MOMENT du clic
+        const nouveauProduit = {
+            nom: document.getElementById('nom').value,
+            prix: Number(document.getElementById('prix').value),
+            description: document.getElementById('description').value,
+            image: document.getElementById('image').value,
+            image1: document.getElementById('image1').value,
+            image2: document.getElementById('image2').value,
+            image3: document.getElementById('image3').value,
+            variantes: variantes, // On envoie le tableau de variantes
+            stock: Number(document.getElementById('stock').value),
+            categorie: document.querySelector('input[name="categorie"]:checked').value
+        };
 
             try {
                 // 2. On utilise POST pour envoyer des données
@@ -105,6 +136,28 @@
         // On écoute le "submit" du formulaire, c'est plus propre que le "click"
         form.addEventListener('submit', envoyerproduit);
 
+
+//bouton pour ajouter une nouvelle ligne de taille
+function ajouterLigneTaille() {
+    const container = document.getElementById('container-tailles');
+    const div = document.createElement('div');
+    div.className = 'ligne-taille';
+    div.style.cssText = "display: flex; gap: 10px; margin-bottom: 8px;";
+    div.innerHTML = `
+        <input type="text" placeholder="Taille (ex: L, 42)" class="input-taille" required style="flex: 2;">
+        <input type="number" placeholder="Stock" class="input-stock-taille" min="0" required style="flex: 1;">
+        <button type="button" onclick="supprimerLigneTaille(this)" style="background: red; color: white; border: none; padding: 5px 10px; cursor: pointer;">❌</button>
+    `;
+    container.appendChild(div);
+}
+
+function supprimerLigneTaille(btn) {
+    if (document.querySelectorAll('.ligne-taille').length > 1) {
+        btn.parentElement.remove();
+    } else {
+        alert("Vous devez laisser au moins une taille/pointure.");
+    }
+}
 
  
 

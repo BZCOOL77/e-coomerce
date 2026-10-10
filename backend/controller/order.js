@@ -82,6 +82,103 @@ const normaliserStatutWorkflow = (statut) => {
         .replace(/\s+/g, ' ');
 };
 
+// Normalise une variante de taille afin de comparer des valeurs comme
+// "XL", "xl", "XL " ou "x l" sans se battre sur les espaces/accents.
+const normaliserVarianteTaille = (valeur) => {
+    if (valeur === null || valeur === undefined) return '';
+    return valeur
+        .toString()
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, '');
+};
+
+// Décrémente le stock d’un produit selon son modèle de données :
+// - si le produit a des variantes (ex: tailles S/M/L), on réduit le stock de la variante demandée
+// - si le produit n’a pas de variantes, on réduit le stock global du produit
+// - s’il n’y a pas de variante précise fournie, on applique un fallback sur la première variante disponible
+const decrementerStockProduit = async (produit, quantite, tailleSelectionnee = null) => {
+    if (!produit) {
+        throw new Error('Produit introuvable pour la mise à jour du stock.');
+    }
+
+    // Cas A : le produit utilise des variantes de taille (Thing.variantes).
+    if (Array.isArray(produit.variantes) && produit.variantes.length > 0) {
+        const tailleNorm = normaliserVarianteTaille(tailleSelectionnee);
+
+        // 1) On essaie d’abord la variante demandée explicitement par le client.
+        let varianteCible = null;// null sert de fallback si la taille n’est pas fournie ou si elle n’existe pas.
+        if (tailleNorm) {
+            varianteCible = produit.variantes.find(variante =>
+                normaliserVarianteTaille(variante?.taille) === tailleNorm
+            );
+
+            if (!varianteCible) {
+                throw new Error(`La taille ${tailleSelectionnee} n'est plus disponible pour ce produit.`);
+            }
+        }
+
+        // 2) Fallback : si la taille n’est pas fournie, on utilise la première variante
+        // qui a assez de stock pour couvrir la commande.
+        if (!varianteCible) {
+            varianteCible = produit.variantes.find(variante => Number(variante?.stock || 0) >= Number(quantite));
+        }
+
+        if (!varianteCible) {
+            throw new Error('Stock insuffisant pour la variante demandée.');
+        }
+
+        if (Number(varianteCible.stock || 0) < Number(quantite)) {
+            throw new Error(`Stock insuffisant pour la taille ${varianteCible.taille || 'sélectionnée'}.`);
+        }
+
+        varianteCible.stock = Number(varianteCible.stock || 0) - Number(quantite);
+        await produit.save();
+        return;
+    }
+
+    // Cas B : produit simple sans variantes. On utilise le stock global du produit.
+    if (Number(produit.stock || 0) < Number(quantite)) {
+        throw new Error('Stock insuffisant pour ce produit.');
+    }
+
+    produit.stock = Number(produit.stock || 0) - Number(quantite);
+    await produit.save();
+};
+
+// Restaure le stock si une commande est rejetée après un début de traitement.
+// Le comportement est identique à la déduction, mais dans l’autre sens.
+const restaurerStockProduit = async (produit, quantite, tailleSelectionnee = null) => {
+    if (!produit) return;
+
+    if (Array.isArray(produit.variantes) && produit.variantes.length > 0) {
+        const tailleNorm = normaliserVarianteTaille(tailleSelectionnee);
+        let varianteCible = null;
+
+        if (tailleNorm) {
+            varianteCible = produit.variantes.find(variante =>
+                normaliserVarianteTaille(variante?.taille) === tailleNorm
+            );
+        }
+
+        if (!varianteCible) {
+            varianteCible = produit.variantes.find(variante => Number(variante?.stock || 0) >= 0) || produit.variantes[0];
+        }
+
+        if (varianteCible) {
+            varianteCible.stock = Number(varianteCible.stock || 0) + Number(quantite);
+        }
+
+        await produit.save();
+        return;
+    }
+
+    produit.stock = Number(produit.stock || 0) + Number(quantite);
+    await produit.save();
+};
+
 // Définit une priorité métier pour chaque statut afin de calculer
 // un statut global du colis sans sauter les étapes intermédiaires.
 const prioriteStatutGlobal = (statut) => {
@@ -424,51 +521,68 @@ const createOrder = async (req, res, next) => {
         let totalTTCGlobal = 0;
 
         // 5) Pour chaque article, on vérifie le stock puis on le place dans le bon groupe vendeur.
+        // Ici on gère deux cas :
+        // - les produits simples : le stock est un nombre global sur le produit
+        // - les produits avec variantes (ex: S/M/L) : le stock est dans Thing.variantes[].stock
+        // Le client peut envoyer la taille dans plusieurs clés pour rester compatible :
+        // taille, variante, size ou tailleProduit.
         for (const art of articlesToProcess) {
             const quantite = art.quantite && Number(art.quantite) > 0 ? Number(art.quantite) : 1;
+            const tailleSelectionnee = art.taille || art.variante?.taille || art.variante?.size || art.variante || art.size || art.tailleProduit || null;
 
-            const produit = await Thing.findOneAndUpdate(
-                { _id: art.produitId, stock: { $gte: quantite } },
-                { $inc: { stock: -quantite } },
-                { returnDocument: 'after' }
-            );
+            try {
+                const produit = await Thing.findById(art.produitId);
 
-            if (!produit) {
+                if (!produit) {
+                    throw new Error(`Produit introuvable : ${art.produitId}`);
+                }
+
+                await decrementerStockProduit(produit, quantite, tailleSelectionnee);
+
+                const vendeurId = produit.vendeurId || produit.userId;
+                const groupeVendeur = getOrCreateGroupeVendeur(vendeurId);
+                const prixUnitaireTTC = produit.price || produit.prix || 0;
+                const tauxTVA = 0.16;
+                const totalTTC = prixUnitaireTTC * quantite;
+                const totalHT = totalTTC / (1 + tauxTVA);
+                const montantTVA = totalTTC - totalHT;
+                const prixUnitaireHT = prixUnitaireTTC / (1 + tauxTVA);
+
+                const itemCommande = {
+                    produitId: produit._id,
+                    quantite,
+                    taille: tailleSelectionnee,
+                    prixUnitaire: prixUnitaireTTC,
+                    prixUnitaireHT: Number(prixUnitaireHT.toFixed(2)),
+                    totalHT: Number(totalHT.toFixed(2)),
+                    montantTVA: Number(montantTVA.toFixed(2)),
+                    totalTTC: Number(totalTTC.toFixed(2))
+                };
+
+                groupeVendeur.items.push(itemCommande);
+                groupeVendeur.sousTotalHT += itemCommande.totalHT;
+                groupeVendeur.sousTotalTVA += itemCommande.montantTVA;
+                groupeVendeur.sousTotalTTC += itemCommande.totalTTC;
+
+                totalHTGlobal += itemCommande.totalHT;
+                totalTVAGlobal += itemCommande.montantTVA;
+                totalTTCGlobal += itemCommande.totalTTC;
+            } catch (error) {
+                // Rollback ciblé : si un article ne peut pas être traité, on remet
+                // les stocks déjà déduits pour les produits déjà validés dans cette commande.
                 for (const [vendorKey, groupe] of groupesParVendeur.entries()) {
                     for (const item of groupe.items) {
-                        await Thing.findByIdAndUpdate(item.produitId, { $inc: { stock: item.quantite } });
+                        const produitEnCours = await Thing.findById(item.produitId);
+                        if (produitEnCours) {
+                            await restaurerStockProduit(produitEnCours, item.quantite || 1, item.taille || null);
+                        }
                     }
                 }
-                return res.status(400).json({ error: `Produit introuvable ou stock insuffisant pour ${art.produitId}.` });
+
+                return res.status(400).json({
+                    error: error.message || `Produit introuvable ou stock insuffisant pour ${art.produitId}.`
+                });
             }
-
-            const vendeurId = produit.vendeurId || produit.userId;
-            const groupeVendeur = getOrCreateGroupeVendeur(vendeurId);
-            const prixUnitaireTTC = produit.price || produit.prix || 0;
-            const tauxTVA = 0.16;
-            const totalTTC = prixUnitaireTTC * quantite;
-            const totalHT = totalTTC / (1 + tauxTVA);
-            const montantTVA = totalTTC - totalHT;
-            const prixUnitaireHT = prixUnitaireTTC / (1 + tauxTVA);
-
-            const itemCommande = {
-                produitId: produit._id,
-                quantite,
-                prixUnitaire: prixUnitaireTTC,
-                prixUnitaireHT: Number(prixUnitaireHT.toFixed(2)),
-                totalHT: Number(totalHT.toFixed(2)),
-                montantTVA: Number(montantTVA.toFixed(2)),
-                totalTTC: Number(totalTTC.toFixed(2))
-            };
-
-            groupeVendeur.items.push(itemCommande);
-            groupeVendeur.sousTotalHT += itemCommande.totalHT;
-            groupeVendeur.sousTotalTVA += itemCommande.montantTVA;
-            groupeVendeur.sousTotalTTC += itemCommande.totalTTC;
-
-            totalHTGlobal += itemCommande.totalHT;
-            totalTVAGlobal += itemCommande.montantTVA;
-            totalTTCGlobal += itemCommande.totalTTC;
         }
 
         // 6) Création de la commande parent.
@@ -1010,9 +1124,10 @@ const annulerCommandeParVendeur = async (req, res, next) => {
             }
 
             article.statut = 'annulée';
-            await Thing.findByIdAndUpdate(article.produitId, {
-                $inc: { stock: article.quantite || 1 }
-            });
+            const produitAnnulation = await Thing.findById(article.produitId);
+            if (produitAnnulation) {
+                await restaurerStockProduit(produitAnnulation, article.quantite || 1, article.taille || null);
+            }
 
             // Les montants de la sous-commande et de la commande parent sont
             // recalculés à partir des articles qui ne sont pas annulés.
@@ -1077,11 +1192,12 @@ const annulerCommandeParVendeur = async (req, res, next) => {
         await commande.save();
 
         // 📈 Restitution physique au stock
+        // On restaure le stock de la variante demandée si le produit est en mode variante ;
+        // sinon on revient au stock global du produit.
         const produit = await Thing.findOne({ _id: commande.produitId });
         if (produit) {
             const quantiteA_Restituer = commande.quantite || 1;
-            produit.stock += quantiteA_Restituer; 
-            await produit.save();
+            await restaurerStockProduit(produit, quantiteA_Restituer, commande.taille || null);
         }
 
         res.status(200).json({ message: "Commande annulée avec succès et stock restitué !" });
@@ -1152,9 +1268,10 @@ const annulerCommandeParAcheteur = async (req, res, next) => {
             }
 
             article.statut = 'annulée par acheteur';
-            await Thing.findByIdAndUpdate(article.produitId, {
-                $inc: { stock: article.quantite || 1 }
-            });
+            const produitAnnulationClient = await Thing.findById(article.produitId);
+            if (produitAnnulationClient) {
+                await restaurerStockProduit(produitAnnulationClient, article.quantite || 1, article.taille || null);
+            }
 
             const articlesActifs = sousCommande.items.filter(item =>
                 !['annulée', 'annulée par acheteur'].includes(item.statut)
@@ -1202,10 +1319,11 @@ const annulerCommandeParAcheteur = async (req, res, next) => {
         await commande.save();
 
         // 📈 Restitution physique au stock
+        // Même en mode legacy, on rétablit la variante sélectionnée si elle existe ;
+        // sinon on revient au stock global du produit.
         const produit = await Thing.findOne({ _id: commande.produitId });
         if (produit) {
-            produit.stock += (commande.quantite || 1);
-            await produit.save();
+            await restaurerStockProduit(produit, commande.quantite || 1, commande.taille || null);
         }
 
         res.status(200).json({ message: "Votre commande a été annulée avec succès." });

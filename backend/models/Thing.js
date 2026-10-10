@@ -2,6 +2,13 @@
 
 const mongoose = require('mongoose');
 
+
+//VARIANTES DES TAILLES POUR LES VÊTEMENTS
+const varianteSchema = new mongoose.Schema({
+    taille: { type: String, required: true }, // Ex: "M", "42", "XL"
+    stock: { type: Number, required: true, min: 0, default: 0 }
+});
+
 const thingSchema = mongoose.Schema({
     nom : { type: String, required: true },
     description : { type: String, required: true },
@@ -11,6 +18,9 @@ const thingSchema = mongoose.Schema({
     image3: { type: String, },
     prix : { type: Number, required: true },
     vendeurId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+
+    variantes: [varianteSchema], // Liste des variantes de taille
+    
     stock: { type: Number, required: true, default: 10 },
     categorie: { 
         type: String, 
