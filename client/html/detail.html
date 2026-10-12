@@ -374,6 +374,18 @@
             flex-wrap: wrap;
         }
 
+        .erreur-taille {
+            display: block;
+            margin-top: 8px;
+            padding: 10px 12px;
+            border: 1px solid #feb2b2;
+            border-radius: 10px;
+            background: #fff5f5;
+            color: #c53030;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
         .taille-radio-input {
             position: absolute;
             opacity: 0;
@@ -749,7 +761,7 @@
             </div>
         
             <!-- Message d'erreur si l'utilisateur oublie de cliquer -->
-            <span id="erreur-taille" style="color: #e53e3e; font-size: 0.85rem; display: none; margin-top: 5px;">Veuillez sélectionner une taille.</span>
+            <span id="erreur-taille" class="erreur-taille" role="alert" aria-live="assertive" style="display: none;">Veuillez sélectionner une taille avant l’ajout au panier.</span>
         </div>
 
             <section class="reviews-section" aria-labelledby="reviews-title">
@@ -814,9 +826,12 @@
             mettreAJourCompteurPanier();
         }
 
-        function ajouterAuPanier(id, nom, prix, image, vendeurId) {
+        function ajouterAuPanier(id, nom, prix, image, vendeurId, taille) {
             let panier = obtenirPanier();
-            const produitExistant = panier.find(item => item.id === id);
+            // Une même référence avec deux tailles différentes doit rester sur deux lignes distinctes.
+            const produitExistant = panier.find(item =>
+                String(item.id) === String(id) && (item.taille || 'Unique') === taille
+            );
 
             if (produitExistant) {
                 produitExistant.quantite += 1;
@@ -827,7 +842,8 @@
                     prix: parseFloat(String(prix).replace(/[^\d.]/g, '').replace(',', '.')) || 0,
                     image: image,
                     quantite: 1,
-                    vendeurId: vendeurId
+                    vendeurId: vendeurId,
+                    taille: taille
                 });
             }
 
@@ -958,6 +974,10 @@
                 const productSeller = document.getElementById('product-vendeur');
                 const addToCartButton = document.getElementById('add-to-cart-btn');
                 const stockDisponible = Number(product.stock);
+                const aDesVariantes = Array.isArray(product.variantes) && product.variantes.length > 0;
+                const varianteDisponible = aDesVariantes && product.variantes.some(variante =>
+                    Number.isFinite(Number(variante.stock)) && Number(variante.stock) > 0
+                );
 
                 // Affiche les tailles disponibles et désactive celles qui sont épuisées.
                 const tailleOptionsContainer = document.getElementById('taille-options-container');
@@ -1007,7 +1027,7 @@
                 }
 
                 // Un stock nul ou négatif rend l'ajout au panier impossible.
-                if (stockDisponible <= 0) {
+                if (aDesVariantes ? !varianteDisponible : stockDisponible <= 0) {
                     addToCartButton.disabled = true;
                     addToCartButton.setAttribute('aria-disabled', 'true');
                     addToCartButton.innerText = 'Rupture de stock';
@@ -1015,20 +1035,48 @@
                     addToCartButton.disabled = false;
                     addToCartButton.removeAttribute('aria-disabled');
                     addToCartButton.onclick = () => {
-                    const prix = parseFloat(String(product.prix || '0').replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
-                    ajouterAuPanier(
-                        product._id,
-                        product.nom,
-                        prix,
-                        galleryImages[currentImageIndex] || product.image,
-                        product.vendeurId
-                    );
+                        // Pour un produit à variantes, une taille doit être choisie avant l'ajout.
+                        const tailleSelectionnee = document.querySelector('input[name="tailleProduit"]:checked');
+                        const messageErreurTaille = document.getElementById('erreur-taille');
 
-                    const btn = document.getElementById('add-to-cart-btn');
-                    btn.innerText = 'Ajouté ! ✅';
-                    setTimeout(() => btn.innerText = 'Ajouter au panier', 2000);
+                        if (aDesVariantes && !tailleSelectionnee) {
+                            if (messageErreurTaille) {
+                                messageErreurTaille.style.display = 'block';
+                                messageErreurTaille.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                            return;
+                        }
+
+                        if (messageErreurTaille) {
+                            messageErreurTaille.style.display = 'none';
+                        }
+
+                        // Les produits sans variantes sont ajoutés avec la taille conventionnelle "Unique".
+                        const tailleChoisie = tailleSelectionnee ? tailleSelectionnee.value : 'Unique';
+                        const prix = parseFloat(String(product.prix || '0').replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+                        ajouterAuPanier(
+                            product._id,
+                            product.nom,
+                            prix,
+                            galleryImages[currentImageIndex] || product.image,
+                            product.vendeurId,
+                            tailleChoisie
+                        );
+
+                        addToCartButton.innerText = 'Ajouté ! ✅';
+                        setTimeout(() => addToCartButton.innerText = 'Ajouter au panier', 2000);
                     };
                 }
+
+                // Efface immédiatement l'erreur dès que le client choisit une taille.
+                tailleOptionsContainer.addEventListener('change', event => {
+                    if (event.target.matches('input[name="tailleProduit"]')) {
+                        const messageErreurTaille = document.getElementById('erreur-taille');
+                        if (messageErreurTaille) {
+                            messageErreurTaille.style.display = 'none';
+                        }
+                    }
+                });
 
                 
 

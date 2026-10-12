@@ -23,6 +23,12 @@
         <input type="text" id="image2" placeholder="Lien de l'image" ><br>
         <input type="text" id="image3" placeholder="Lien de l'image" ><br>
         <input type="number" id="stock" name="stock" min="1" value="10" placeholder="quantité en stock" required class="form-input"><br>
+        <!-- Les variantes sont chargées depuis le produit et modifiables individuellement. -->
+        <label for="container-tailles">Gestion des tailles et pointures :</label>
+        <div id="container-tailles"></div>
+        <button type="button" id="ajouter-taille" style="background: #3182ce; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin: 5px 0 12px;">
+            + Ajouter une autre taille
+        </button>
         <div class="categorie">
             <input type="radio" id="categorie1" name="categorie" value="Électronique" required>
             <label for="categorie1">Électronique</label>
@@ -54,6 +60,50 @@ function hideLoading() {
     overlay.style.display = 'none';
 }
 
+const taillesContainer = document.getElementById('container-tailles');
+
+// Ajoute une ligne de variante et préremplit ses champs lorsqu'elle existe déjà.
+function ajouterLigneTaille(variante = {}) {
+    const ligne = document.createElement('div');
+    ligne.className = 'ligne-taille';
+    ligne.style.cssText = 'display: flex; gap: 10px; margin-bottom: 8px;';
+
+    const tailleInput = document.createElement('input');
+    tailleInput.type = 'text';
+    tailleInput.className = 'input-taille';
+    tailleInput.placeholder = 'Taille (ex: M, 41, XL)';
+    tailleInput.value = variante.taille ?? '';
+    tailleInput.style.flex = '2';
+    tailleInput.setAttribute('aria-label', 'Taille ou pointure');
+
+    const stockInput = document.createElement('input');
+    stockInput.type = 'number';
+    stockInput.className = 'input-stock-taille';
+    stockInput.placeholder = 'Stock';
+    stockInput.min = '0';
+    stockInput.value = variante.stock ?? '';
+    stockInput.style.flex = '1';
+    stockInput.setAttribute('aria-label', 'Stock de cette taille');
+
+    const supprimerButton = document.createElement('button');
+    supprimerButton.type = 'button';
+    supprimerButton.textContent = 'Supprimer';
+    supprimerButton.setAttribute('aria-label', 'Supprimer cette taille');
+    supprimerButton.style.cssText = 'background: red; color: white; border: none; padding: 5px 10px; cursor: pointer;';
+    supprimerButton.addEventListener('click', () => {
+        // Garde une ligne disponible, notamment pour pouvoir saisir une première variante.
+        if (taillesContainer.children.length > 1) {
+            ligne.remove();
+        } else {
+            tailleInput.value = '';
+            stockInput.value = '';
+        }
+    });
+
+    ligne.append(tailleInput, stockInput, supprimerButton);
+    taillesContainer.appendChild(ligne);
+}
+
 
 // script pour modifier un produit
 
@@ -62,17 +112,25 @@ function hideLoading() {
     // 1. On récupère l'ID du produit dans l'URL (ex: modifier.html?id=12345)
     const urlParams = new URLSearchParams(window.location.search);
     const productId = urlParams.get('id');
+    const boutonEnregistrer = form.querySelector('button[type="submit"]');
+    boutonEnregistrer.disabled = true;
 
     // 2. Dès que la page charge, on va chercher les infos du produit pour remplir les champs
     window.addEventListener('load', async () => {
-        if (!productId) return alert("Aucun ID de produit trouvé !");
+        if (!productId) {
+            alert("Aucun ID de produit trouvé !");
+            form.querySelector('button[type="submit"]').disabled = true;
+            return;
+        }
 
         showLoading(); // On lance le spinner pendant qu'on cherche les infos
 
         try {
-            const reponse = await fetch(`${CONFIG.API_BASE_URL}/api/products/${productId}`
-                
-            );
+            const reponse = await fetch(`${CONFIG.API_BASE_URL}/api/products/${productId}`);
+            if (!reponse.ok) {
+                throw new Error(`Impossible de charger le produit (HTTP ${reponse.status}).`);
+            }
+
             const produit = await reponse.json();
             console.log("Données reçues du serveur :", produit);
 
@@ -85,17 +143,53 @@ function hideLoading() {
             document.getElementById('image2').value = produit.image2;
             document.getElementById('image3').value = produit.image3;
             document.getElementById('stock').value = produit.stock;
-            document.querySelector(`input[name="categorie"][value="${produit.categorie}"]`).checked = true;
+            const categorieInput = Array.from(document.querySelectorAll('input[name="categorie"]'))
+                .find(input => input.value === produit.categorie);
+            if (categorieInput) categorieInput.checked = true;
+
+            // Recrée toutes les variantes existantes avec leur taille et leur stock.
+            const variantes = Array.isArray(produit.variantes) ? produit.variantes : [];
+            if (variantes.length > 0) {
+                variantes.forEach(ajouterLigneTaille);
+            } else {
+                ajouterLigneTaille();
+            }
+            boutonEnregistrer.disabled = false;
         } catch (error) {
             console.error("Erreur lors du chargement :", error);
+            alert(error.message || "Impossible de charger les informations du produit.");
         }finally {
         hideLoading(); // On cache le spinner une fois le formulaire rempli
     }
     });
 
+    document.getElementById('ajouter-taille').addEventListener('click', () => ajouterLigneTaille());
+
     // 3. On gère l'envoi des modifications avec PUT
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
+
+        if (!productId) {
+            alert("Aucun ID de produit trouvé !");
+            return;
+        }
+
+        // Construit les variantes au même format que le formulaire d'ajout : { taille, stock }.
+        const variantes = [];
+        for (const ligne of taillesContainer.querySelectorAll('.ligne-taille')) {
+            const taille = ligne.querySelector('.input-taille').value.trim();
+            const stockValeur = ligne.querySelector('.input-stock-taille').value;
+
+            // Une ligne vide est ignorée pour permettre les produits sans variante.
+            if (!taille && stockValeur === '') continue;
+            if (!taille || stockValeur === '' || !Number.isFinite(Number(stockValeur)) || Number(stockValeur) < 0) {
+                alert("Pour chaque variante, renseignez une taille et un stock égal ou supérieur à zéro.");
+                ligne.querySelector(!taille ? '.input-taille' : '.input-stock-taille').focus();
+                return;
+            }
+
+            variantes.push({ taille, stock: Number(stockValeur) });
+        }
 
         showLoading(); // On affiche le loader dès que l'utilisateur clique sur "Enregistrer"
 
@@ -107,6 +201,7 @@ function hideLoading() {
             image1: document.getElementById('image1').value,
             image2: document.getElementById('image2').value,
             image3: document.getElementById('image3').value,
+            variantes: variantes,
             stock: Number(document.getElementById('stock').value),
             categorie: document.querySelector('input[name="categorie"]:checked').value
         };
@@ -122,10 +217,12 @@ function hideLoading() {
                 alert('Produit mis à jour ! 🔥');
                 window.location.href = 'nav.html'; // Retour à l'accueil
             } else {
-                alert('Erreur lors de la mise à jour');
+                const errorData = await reponse.json().catch(() => null);
+                alert(`Erreur lors de la mise à jour : ${errorData?.error || errorData?.message || reponse.statusText}`);
             }
         } catch (error) {
             console.error('Erreur Fetch :', error);
+            alert('Impossible de contacter le serveur pour mettre à jour le produit.');
         }
         finally {
         hideLoading(); // On cache le loader, même s'il y a eu une erreur

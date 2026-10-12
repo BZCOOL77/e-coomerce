@@ -116,6 +116,17 @@ function normaliserTexteRecherche(value) {
         .replace(/\s+/g, ' ');
 }
 
+// Échappe le texte de taille avant son insertion dans le HTML d'une commande.
+function echapperHTMLCommande(value) {
+    return String(value ?? '').replace(/[&<>"']/g, caractere => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    })[caractere]);
+}
+
 // Assigne un rang à chaque statut pour guider la progression du colis
 // dans l’interface vendeur sans ignorer les étapes intermédiaires.
 function getStatusRank(statut) {
@@ -251,16 +262,19 @@ async function chargerMesVentes() {
 
         // response.json() convertit le corps JSON de la réponse HTTP en
         // objet JavaScript utilisable par la page.
-        const commandes = await response.json();
+        const commandes = await response.json().catch(() => null);
+        if (!response.ok) {
+            throw new Error(commandes?.error || commandes?.message || `Erreur HTTP ${response.status}`);
+        }
         console.log("Données des commandes :", commandes);
 
         const container = document.getElementById('liste-commandes');
-        container.innerHTML = '';
 
         if (!Array.isArray(commandes)) {// Vérification de la structure attendue (tableau d'objets)
-            throw new Error('Format inattendu des commandes');
+            throw new Error('Le serveur n’a pas renvoyé une liste de commandes valide.');
         }
 
+        container.innerHTML = '';
         // On conserve la réponse courante afin de gérer le badge des historiques.
         commandesChargees = commandes;
 
@@ -282,22 +296,30 @@ async function chargerMesVentes() {
             // placé à l'intérieur du bloc HTML correspondant au colis.
             let articlesHtml = '';
             articles.forEach(article => {
-                const produit = article.produitInfo || article.produitId;
-                const imageProduit = produit ? (produit.image || produit.imageUrl || produit.photo || produit.picture) : '';
-                const imageSrc = imageProduit
+                const articleCommande = article && typeof article === 'object' ? article : {};
+                const produitSource = articleCommande.produitInfo || articleCommande.produitId;
+                const produit = produitSource && typeof produitSource === 'object' ? produitSource : null;
+                const imageProduit = produit
+                    ? (produit.image || produit.imageUrl || produit.photo || produit.picture)
+                    : '';
+                const imageSrc = typeof imageProduit === 'string' && imageProduit
                     ? (imageProduit.startsWith('http://') || imageProduit.startsWith('https://') || imageProduit.startsWith('/')
                         ? imageProduit
                         : imageProduit)//toutes ses acrobatie parce que les données peuvent être très variées, on tente de deviner l'url de l'image, sinon on met une image par défaut
                     : 'chemin/vers/image-par-defaut.jpg';
                 const nomProduit = produit ? (produit.nom || produit.title || 'Produit supprimé') : 'Produit supprimé';
                 const descriptionProduit = produit ? (produit.description || '') : '';
-                const quantite = article.quantite || article.quantite === 0 ? article.quantite : 'N/A';
-                const prixProduit = article.prixUnitaire || (produit ? (produit.prix || produit.price) : 'Prix indisponible');
-                const statutArticle = article.statutIndividuel || article.statut || 'N/A';
-                const orderId = article.orderId || article._id;
+                const tailleArticle = articleCommande.taille ?? articleCommande.variante?.taille;
+                const tailleSelectionnee = typeof tailleArticle === 'string'
+                    ? tailleArticle.trim()
+                    : '';
+                const quantite = articleCommande.quantite || articleCommande.quantite === 0 ? articleCommande.quantite : 'N/A';
+                const prixProduit = articleCommande.prixUnitaire || (produit ? (produit.prix || produit.price) : 'Prix indisponible');
+                const statutArticle = articleCommande.statutIndividuel || articleCommande.statut || 'N/A';
+                const orderId = articleCommande.orderId || articleCommande._id;
                 // L'API renvoie l'identifiant du sous-document article. Il est
                 // indispensable pour annuler le bon article dans un colis.
-                const itemId = article.itemId || article._id;
+                const itemId = articleCommande.itemId || articleCommande._id;
                  
 
 
@@ -325,6 +347,7 @@ async function chargerMesVentes() {
                                 <span class="info-item"><span class="info-label">Description :</span> <span class="info-value">${descriptionProduit || 'Pas de description'}</span></span>
                                 <span class="info-item"><span class="info-label">Prix :</span> <span class="info-value">${prixProduit} €</span></span>
                                 <span class="info-item"><span class="info-label">Qté :</span> <span class="info-value">${quantite}</span></span>
+                                ${tailleSelectionnee && tailleSelectionnee !== 'Unique' ? `<span class="info-item"><span class="info-label">Taille choisie :</span> <span class="info-value">${echapperHTMLCommande(tailleSelectionnee)}</span></span>` : ''}
                             </div>
                         </div>
                         <div class="actions-statut">
@@ -415,7 +438,7 @@ async function chargerMesVentes() {
         appliquerFiltrage();
     } catch (err) {
         console.error(err);
-        alert('Erreur lors du chargement des ventes.');
+        alert(`Erreur lors du chargement des ventes : ${err.message || err}`);
     } finally {
         document.getElementById('overlay').classList.remove('active');
         document.getElementById('loader').classList.remove('active');

@@ -109,9 +109,19 @@
 
     <script>
         // 1. Initialisation : Charger le panier au démarrage
-function chargerPanier() {
-    const panier = JSON.parse(localStorage.getItem('panier_shopy')) || [];
-    const container = document.getElementById('liste-panier');
+        function echapperHTML(valeur) {
+            return String(valeur).replace(/[&<>"']/g, caractere => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[caractere]);
+        }
+
+        function chargerPanier() {
+            const panier = JSON.parse(localStorage.getItem('panier_shopy')) || [];
+            const container = document.getElementById('liste-panier');
     
     if (panier.length === 0) {
         container.innerHTML = "<p style='text-align:center; padding: 20px;'>Votre panier est vide. Il est temps de faire chauffer la carte ! 💳</p>";
@@ -120,18 +130,19 @@ function chargerPanier() {
     }
 
     // 2. On génère le HTML pour chaque produit
-    container.innerHTML = panier.map(item => `
+    container.innerHTML = panier.map((item, index) => `
         <div class="panier-item" data-id="${item.id}" data-vendeur="${item.vendeurId}">
             <img src="${item.image}" alt="${item.nom}">
             <div class="item-infos">
                 <h3>${item.nom}</h3>
+                ${item.taille && item.taille !== 'Unique' ? `<p class="taille-article">Taille : ${echapperHTML(item.taille)}</p>` : ''}
                 <p class="prix">${item.prix.toFixed(2)} €</p>
                 <div class="item-quantite">
-                    <button class="btn-qty" onclick="modifierQuantite('${item.id}', -1)">-</button>
+                    <button class="btn-qty" onclick="modifierQuantite(${index}, -1)">-</button>
                     <span>${item.quantite}</span>
-                    <button class="btn-qty" onclick="modifierQuantite('${item.id}', 1)">+</button>
+                    <button class="btn-qty" onclick="modifierQuantite(${index}, 1)">+</button>
                 </div>
-                <button class="btn-supprimer" onclick="supprimerArticle('${item.id}')">Supprimer</button>
+                <button class="btn-supprimer" onclick="supprimerArticle(${index})">Supprimer</button>
             </div>
             <div style="font-weight: bold;">
                 ${(item.prix * item.quantite).toFixed(2)} €
@@ -143,15 +154,15 @@ function chargerPanier() {
 }
 
 // 3. Fonction pour modifier la quantité (+ ou -)
-function modifierQuantite(id, delta) {
+function modifierQuantite(index, delta) {
     let panier = JSON.parse(localStorage.getItem('panier_shopy'));
-    const produit = panier.find(item => item.id === id);
+    const produit = panier[index];
 
     if (produit) {
         produit.quantite += delta;
         // Si la quantité tombe à 0, on supprime l'article
         if (produit.quantite <= 0) {
-            return supprimerArticle(id);
+            return supprimerArticle(index);
         }
         localStorage.setItem('panier_shopy', JSON.stringify(panier));
         chargerPanier(); // On rafraîchit l'affichage
@@ -159,9 +170,9 @@ function modifierQuantite(id, delta) {
 }
 
 // 4. Fonction pour supprimer un article
-function supprimerArticle(id) {
+function supprimerArticle(index) {
     let panier = JSON.parse(localStorage.getItem('panier_shopy'));
-    panier = panier.filter(item => item.id !== id);
+    panier.splice(index, 1);
     localStorage.setItem('panier_shopy', JSON.stringify(panier));
     chargerPanier();
 }
@@ -247,7 +258,9 @@ async function validerPanierEtCommander() {
 
         articlesToProcess.push({
             produitId: produitId,
-            quantite: Number(item.quantite) > 0 ? Number(item.quantite) : 1
+            quantite: Number(item.quantite) > 0 ? Number(item.quantite) : 1,
+            // Le backend utilise cette taille pour vérifier puis décrémenter le stock de la variante.
+            taille: item.taille && item.taille !== 'Unique' ? item.taille : null
         });
     }
 

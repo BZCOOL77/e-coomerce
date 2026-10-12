@@ -61,6 +61,16 @@ function hideLoading() {
     if (overlay) overlay.style.display = 'none';
 }
 
+// Échappe les tailles avant de les insérer dans le HTML généré.
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    })[character]);
+}
 
 // on automatise le placement des produits sur le site
 async function chargerproduit() {
@@ -81,7 +91,40 @@ async function chargerproduit() {
     produits.forEach(produit => {//html pour chaque produit dans la liste des produits
 
         // 🔍 On récupère la quantité (adapte le nom du champ s'il s'appelle 'quantity' ou 'stock')
-    const stock = produit.stock; 
+    const stock = produit.stock;
+
+    // Affiche le stock de chaque taille sur la carte vendeur, ou la taille unique.
+    const variantes = Array.isArray(produit.variantes)
+        ? produit.variantes.filter(variante => variante && typeof variante === 'object')
+        : [];
+    const variantesMarkup = variantes.length > 0
+        ? `
+            <div class="variantes-stock" aria-label="Tailles et stocks">
+                <p class="variantes-stock__titre">Tailles et stocks</p>
+                <ul class="variantes-stock__liste">
+                    ${variantes.map(variante => {
+                        const stockVariante = Number(variante.stock);
+                        const stockValide = variante.stock !== null
+                            && variante.stock !== ''
+                            && Number.isFinite(stockVariante);
+                        const stockClasse = !stockValide
+                            ? 'inconnu'
+                            : stockVariante <= 0 ? 'epuise' : 'disponible';
+                        const stockTexte = !stockValide
+                            ? 'Stock indisponible'
+                            : stockVariante <= 0 ? 'Épuisé' : `${stockVariante} en stock`;
+
+                        return `
+                            <li class="variante-stock">
+                                <span class="variante-stock__taille">${escapeHtml(variante.taille || 'Taille')}</span>
+                                <span class="variante-stock__quantite variante-stock__quantite--${stockClasse}">${stockTexte}</span>
+                            </li>
+                        `;
+                    }).join('')}
+                </ul>
+            </div>
+        `
+        : '<p class="variantes-stock variantes-stock--unique">Taille unique</p>';
     
     // 🎨 On crée un petit affichage intelligent selon le stock disponible
     let badgeStock = '';
@@ -105,6 +148,7 @@ async function chargerproduit() {
             <div class="stock-status">
                 ${badgeStock}
             </div>
+            ${variantesMarkup}
             <a href="modifier.html?id=${produit._id}"><button class="modifier"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i><span>Modifier</span></button></a>
                 <button onclick="deleteProduct('${produit._id}')" class="supprimer"><i class="fa-solid fa-trash-can" aria-hidden="true"></i><span>Supprimer</span></button>
             </div>

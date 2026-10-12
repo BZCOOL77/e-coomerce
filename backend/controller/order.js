@@ -694,6 +694,7 @@ const getVendeurOrders = async (req, res) => {
                         colisGroupId: idGroupe,
                         produitInfo: item.produitId,
                         quantite: item.quantite,
+                        taille: item.taille,
                         prixUnitaire: item.prixUnitaire,
                         statutIndividuel: item.statut || sousCommande.statutVendeur,
                         totalTTC: item.totalTTC,

@@ -392,6 +392,59 @@ header h2 {
     background: #eaf8f0;
 }
 
+.variantes-stock {
+    margin: 0 0 8px;
+}
+
+.variantes-stock__titre {
+    margin: 0 0 4px;
+    color: var(--ink);
+    font-size: .64rem;
+    font-weight: 700;
+}
+
+.variantes-stock__liste {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.variante-stock {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    padding: 3px 5px;
+    border-radius: 6px;
+    background: var(--blue-50);
+    font-size: .58rem;
+    line-height: 1.3;
+}
+
+.variante-stock__taille {
+    color: var(--ink);
+    font-weight: 700;
+}
+
+.variante-stock__quantite--disponible {
+    color: var(--green);
+}
+
+.variante-stock__quantite--epuise {
+    color: var(--red);
+}
+
+.variante-stock__quantite--inconnu {
+    color: var(--muted);
+}
+
+.variantes-stock--unique {
+    color: var(--muted);
+    font-size: .62rem;
+}
+
 .produit-info > a {
     display: block;
     text-decoration: none;
