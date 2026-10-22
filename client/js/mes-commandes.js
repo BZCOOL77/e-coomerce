@@ -207,6 +207,9 @@ async function chargerMesAchats() {
                     const statutArticleNorm = normaliserStatut(statutArticle);
                     const messageSuivi = obtenirMessageSuivi(statutArticle);
                     const produitId = produit._id || item.produitId;
+                    const affichageTaille = item.taille !== undefined && item.taille !== null && item.taille !== ''
+                        ? ` | Taille : ${echapperHTML(item.taille)}`
+                        : '';
                     const boutonAnnuler = statutArticleNorm === 'en attente' && normaliserStatut(statutColis) === 'en attente'
                         ? `<button class="btn-annuler" onclick="annulerArticleIndividuel('${commandeGlobale._id}', '${commandeLegacy ? '' : idColis}', '${item._id || ''}', '${produitId}')">❌ Annuler cet article</button>`
                         : '';
@@ -221,7 +224,7 @@ async function chargerMesAchats() {
                                         statut : ${statutArticle.toUpperCase()}
                                     </span>
                                 </div>
-                                <p style="margin: 0 0 4px 0; font-size: 0.85rem; color: #718096;">Quantité : ${item.quantite || 1} | Prix : ${item.prixUnitaire || produit.prix || 0} €</p>
+                                <p style="margin: 0 0 4px 0; font-size: 0.85rem; color: #718096;">Quantité : ${item.quantite || 1}${affichageTaille} | Prix : ${item.prixUnitaire || produit.prix || 0} €</p>
                                 <span style="font-size: 0.85rem; font-weight: 500; color: #4a5568;">${messageSuivi}</span>
                             </div>
                             <div class="article-actions" style="display: flex; flex-direction: column; gap: 5px;">

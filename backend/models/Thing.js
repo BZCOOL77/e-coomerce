@@ -20,6 +20,9 @@ const thingSchema = mongoose.Schema({
     vendeurId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 
     variantes: [varianteSchema], // Liste des variantes de taille
+    devise: { type: String, required: true, trim: true, default: 'FC',
+        enum: ['FC', 'USD'] // Ex: 'FC' (Franc congolais), 'USD' (Dollar US)
+    },
     
     stock: { type: Number, required: true, default: 10 },
     categorie: { 

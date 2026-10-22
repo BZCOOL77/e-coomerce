@@ -35,6 +35,16 @@
         </div>
         <button type="button" onclick="ajouterLigneTaille()" style="background: #3182ce; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-top: 5px;">+ Ajouter une autre taille</button>
          
+        <! -- selection de la devise -->
+        <div class="devise">
+            <label for="devise">Devise :</label>
+            <select id="devise" name="devise" required>
+                <option value="FC">Franc congolais (FC)</option>
+                <option value="USD">USD ($)</option>
+                
+            </select>
+
+
         <!-- GESTION DE CATEGORIE -->
         <div class="categorie">
             <input type="radio" id="categorie1" name="categorie" value="Électronique" required>
@@ -102,6 +112,7 @@
             image3: document.getElementById('image3').value,
             variantes: variantes, // On envoie le tableau de variantes
             stock: Number(document.getElementById('stock').value),
+            devise: document.getElementById('devise').value,
             categorie: document.querySelector('input[name="categorie"]:checked').value
         };
 
