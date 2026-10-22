@@ -14,6 +14,12 @@ module.exports = async (req, res, next) => {
     const existingOrder = await Order.findOne({ idempotencyKey });
 
     if (existingOrder) {
+      // Une clé connue ne doit jamais permettre à un autre acheteur de lire
+      // la commande qui lui est associée.
+      if (existingOrder.acheteurId.toString() !== req.auth.userId.toString()) {
+        return res.status(409).json({ error: 'Cette clé d’idempotence est déjà utilisée.' });
+      }
+
       // Doublon détecté ! On renvoie directement la commande déjà créée avec un statut 200
       return res.status(200).json({
         message: 'Commande déjà enregistrée (doublon réseau évité).',

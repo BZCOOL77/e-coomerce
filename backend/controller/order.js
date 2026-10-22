@@ -5,6 +5,7 @@ const User = require('../models/user'); // Import du modèle User pour récupér
 const Expedition = require('../models/expedition'); // Import du modèle d'expédition pour suivre le workflow livraison
 const { genererCodeColisPro } = require('../utilitaire/generercodecolis'); // Importation de la fonction de génération d'ID de colis
 const PDFDocument = require('pdfkit');// Importation de PDFKit pour la génération de factures PDF
+const { TAUX_USD_EN_CDF } = require('../utilitaire/tauxdechange'); // Taux de conversion d’un dollar en francs congolais
 
 // =============================================================
 // ARCHITECTURE DU FICHIER
@@ -537,26 +538,47 @@ const createOrder = async (req, res, next) => {
                     throw new Error(`Produit introuvable : ${art.produitId}`);
                 }
 
+                // Le prix envoyé par le client n’est jamais utilisé : le serveur
+                // relit le prix et la devise enregistrés sur le produit.
+                const deviseProduit = (produit.devise || 'FC').toString().trim().toUpperCase();
+                if (!['FC', 'USD'].includes(deviseProduit)) {
+                    throw new Error(`Devise non prise en charge pour le produit ${produit._id}.`);
+                }
+
+                const prixUnitaire = Number(produit.price ?? produit.prix ?? 0);
+                if (!Number.isFinite(prixUnitaire) || prixUnitaire < 0) {
+                    throw new Error(`Prix invalide pour le produit ${produit._id}.`);
+                }
+
+                // Tous les calculs de TVA et les totaux d’une commande sont en FC.
+                // Un produit en USD est donc converti avant de séparer le HT et la TVA.
+                const prixUnitaireFC = deviseProduit === 'USD'
+                    ? prixUnitaire * TAUX_USD_EN_CDF
+                    : prixUnitaire;
+                const prixUnitaireTTCFC = Number(prixUnitaireFC.toFixed(2));
+                const tauxTVA = 0.16;
+                const totalTTC = Number((prixUnitaireTTCFC * quantite).toFixed(2));
+                const totalHT = Number((totalTTC / (1 + tauxTVA)).toFixed(2));
+                const montantTVA = Number((totalTTC - totalHT).toFixed(2));
+                const prixUnitaireHT = Number((prixUnitaireTTCFC / (1 + tauxTVA)).toFixed(2));
+
                 await decrementerStockProduit(produit, quantite, tailleSelectionnee);
 
                 const vendeurId = produit.vendeurId || produit.userId;
                 const groupeVendeur = getOrCreateGroupeVendeur(vendeurId);
-                const prixUnitaireTTC = produit.price || produit.prix || 0;
-                const tauxTVA = 0.16;
-                const totalTTC = prixUnitaireTTC * quantite;
-                const totalHT = totalTTC / (1 + tauxTVA);
-                const montantTVA = totalTTC - totalHT;
-                const prixUnitaireHT = prixUnitaireTTC / (1 + tauxTVA);
 
                 const itemCommande = {
                     produitId: produit._id,
                     quantite,
                     taille: tailleSelectionnee,
-                    prixUnitaire: prixUnitaireTTC,
-                    prixUnitaireHT: Number(prixUnitaireHT.toFixed(2)),
-                    totalHT: Number(totalHT.toFixed(2)),
-                    montantTVA: Number(montantTVA.toFixed(2)),
-                    totalTTC: Number(totalTTC.toFixed(2))
+                    devise: deviseProduit,
+                    prixUnitaire,
+                    prixUnitaireFC: prixUnitaireTTCFC,
+                    deviseCalcul: 'FC',
+                    prixUnitaireHT,
+                    totalHT,
+                    montantTVA,
+                    totalTTC
                 };
 
                 groupeVendeur.items.push(itemCommande);
@@ -593,7 +615,9 @@ const createOrder = async (req, res, next) => {
         // Commande parent = facture globale + achat global
         // vendorsOrders = détail fournisseur par fournisseur
         const parentOrder = new Order({
-            idempotencyKey: req.headers.idempotencyKey || `CMD-${Date.now()}-${req.auth.userId}`,
+            // La clé est validée et récupérée depuis l’en-tête X-Idempotency-Key
+            // par le middleware. La valeur du corps de la requête est ignorée.
+            idempotencyKey: req.idempotencyKey,
             acheteurId: req.auth.userId,
             vendorsOrders: Array.from(groupesParVendeur.values()).map(groupe => ({
                 vendeurId: groupe.vendeurId,
@@ -695,7 +719,10 @@ const getVendeurOrders = async (req, res) => {
                         produitInfo: item.produitId,
                         quantite: item.quantite,
                         taille: item.taille,
+                        devise: item.devise || 'FC',
                         prixUnitaire: item.prixUnitaire,
+                        prixUnitaireFC: item.prixUnitaireFC,
+                        deviseCalcul: item.deviseCalcul || 'FC',
                         statutIndividuel: item.statut || sousCommande.statutVendeur,
                         totalTTC: item.totalTTC,
                         totalHT: item.totalHT,
@@ -1455,8 +1482,8 @@ const downloadInvoice = async (req, res) => {
             doc.fillColor('#718096').fontSize(8, { bold: true });
             doc.text('Désignation de l\'article', 50, moveY);
             doc.text('Qté', 300, moveY, { width: 30, align: 'center' });
-            doc.text('Prix U. TTC', 350, moveY, { width: 90, align: 'right' });
-            doc.text('Total TTC', 460, moveY, { width: 90, align: 'right' });
+            doc.text('Prix U. (origine)', 350, moveY, { width: 90, align: 'right' });
+            doc.text('Total TTC (FC)', 460, moveY, { width: 90, align: 'right' });
             doc.moveTo(50, moveY + 11).lineTo(550, moveY + 11).strokeColor('#edf2f7').lineWidth(0.5).stroke();
             moveY += 18;
 
@@ -1472,14 +1499,15 @@ const downloadInvoice = async (req, res) => {
                     const nomDuProduit = produit.nom || `Produit ${produitId.slice(-6)}`;
                     const quantite = Number(article.quantite) || 1;
                     const prixU = Number(article.prixUnitaire) || 0;
+                    const deviseOrigine = article.devise || 'FC';
                     const totalTTC = Number(article.totalTTC) || 0;
                     const totalHT = Number(article.totalHT) || 0;
                     const montantTVA = Number(article.montantTVA) || 0;
 
                     doc.text(nomDuProduit.substring(0, 38), 50, moveY);
                     doc.text(`${quantite}`, 300, moveY, { width: 30, align: 'center' });
-                    doc.text(`${prixU.toFixed(2)} €`, 350, moveY, { width: 90, align: 'right' });
-                    doc.text(`${totalTTC.toFixed(2)} €`, 460, moveY, { width: 90, align: 'right' });
+                    doc.text(`${prixU.toFixed(2)} ${deviseOrigine}`, 350, moveY, { width: 90, align: 'right' });
+                    doc.text(`${totalTTC.toFixed(2)} FC`, 460, moveY, { width: 90, align: 'right' });
 
                     cumulHT += totalHT;
                     cumulTVA += montantTVA;
@@ -1496,17 +1524,17 @@ const downloadInvoice = async (req, res) => {
 
         doc.fillColor('#4a5568').fontSize(10, { bold: false });
         doc.text('Total Hors Taxes (HT) :', 320, moveY, { width: 130, align: 'right' });
-        doc.text(`${cumulHT.toFixed(2)} €`, 460, moveY, { width: 90, align: 'right' });
+        doc.text(`${cumulHT.toFixed(2)} FC`, 460, moveY, { width: 90, align: 'right' });
         moveY += 15;
 
         doc.text('TVA (16%) :', 320, moveY, { width: 130, align: 'right' });
-        doc.text(`${cumulTVA.toFixed(2)} €`, 460, moveY, { width: 90, align: 'right' });
+        doc.text(`${cumulTVA.toFixed(2)} FC`, 460, moveY, { width: 90, align: 'right' });
         moveY += 20;
 
         doc.rect(310, moveY - 5, 240, 25).fill('#ebf8ff');
         doc.fillColor('#1a365d').fontSize(11, { bold: true });
         doc.text('Total à payer (TTC) :', 320, moveY, { width: 130, align: 'right' });
-        doc.text(`${cumulTTC.toFixed(2)} €`, 460, moveY, { width: 90, align: 'right' });
+        doc.text(`${cumulTTC.toFixed(2)} FC`, 460, moveY, { width: 90, align: 'right' });
 
         doc.fillColor('#a0aec0').fontSize(8)
             .text('ShopyCloth SA -- TVA Intracommunautaire FR999999999', 50, 720, { align: 'center' })

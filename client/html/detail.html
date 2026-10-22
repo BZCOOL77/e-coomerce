@@ -744,7 +744,7 @@
                     </div>
                     <h1 id="product-name">Chargement...</h1>
                     <p id="product-vendeur" class="merchant-line">Boutique Officielle</p>
-                    <p class="price" id="product-price">-- FC</p>
+                    <p class="price" id="product-price">--</p>
                     <div class="description" id="product-desc">
                         Veuillez patienter pendant que nous récupérons les détails du produit...
                     </div>
@@ -826,7 +826,7 @@
             mettreAJourCompteurPanier();
         }
 
-        function ajouterAuPanier(id, nom, prix, image, vendeurId, taille) {
+        function ajouterAuPanier(id, nom, prix, image, vendeurId, taille, devise) {
             let panier = obtenirPanier();
             // Une même référence avec deux tailles différentes doit rester sur deux lignes distinctes.
             const produitExistant = panier.find(item =>
@@ -835,6 +835,7 @@
 
             if (produitExistant) {
                 produitExistant.quantite += 1;
+                produitExistant.devise = devise || produitExistant.devise || 'FC';
             } else {
                 panier.push({
                     id: id,
@@ -843,7 +844,8 @@
                     image: image,
                     quantite: 1,
                     vendeurId: vendeurId,
-                    taille: taille
+                    taille: taille,
+                    devise: devise || 'FC'
                 });
             }
 
@@ -1016,7 +1018,7 @@
                 }
 
                 productName.innerText = product.nom || 'Produit';
-                productPrice.innerText = `${Number(parseFloat(String(product.prix || '0').replace(/[^\d,.-]/g, '').replace(',', '.')) || 0).toLocaleString('fr-FR')} FC`;
+                productPrice.innerText = `${Number(parseFloat(String(product.prix || '0').replace(/[^\d,.-]/g, '').replace(',', '.')) || 0).toLocaleString('fr-FR')} ${product.devise || 'FC'}`;
                 productDescription.innerText = product.description || 'Aucune description disponible pour ce produit.';
 
                 const vendeur = product?.vendeurId?.boutique?.nomBoutique || product?.vendeurId?.name || product?.vendeur || 'Boutique Officielle';
@@ -1060,7 +1062,8 @@
                             prix,
                             galleryImages[currentImageIndex] || product.image,
                             product.vendeurId,
-                            tailleChoisie
+                            tailleChoisie,
+                            product.devise
                         );
 
                         addToCartButton.innerText = 'Ajouté ! ✅';

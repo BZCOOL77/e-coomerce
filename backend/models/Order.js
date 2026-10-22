@@ -33,7 +33,12 @@ const orderItemSchema = new mongoose.Schema({
     produitId: { type: mongoose.Schema.Types.ObjectId, ref: 'Thing', required: true },
     quantite: { type: Number, default: 1, min: 1 },
     taille: { type: String, default: null }, // Variante sélectionnée côté client (ex: "M", "42", "XL").
+    // Devise et prix d’origine du produit, conservés pour l’historique de la commande.
+    devise: { type: String, enum: ['FC', 'USD'], default: 'FC' },
     prixUnitaire: { type: Number, required: true },
+    // Le prix unitaire converti et tous les montants de calcul sont exprimés en FC.
+    prixUnitaireFC: { type: Number, required: false },
+    deviseCalcul: { type: String, enum: ['FC'], default: 'FC' },
     prixUnitaireHT: { type: Number, required: true },
     totalHT: { type: Number, required: true },
     montantTVA: { type: Number, required: true },

@@ -53,7 +53,7 @@
                     <h3>${vendeur.boutique?.nomBoutique || 'Boutique non renseignée'}</h3>
                     <h3>${vendeur.nom}</h3>
                     <p style="color: #666; font-size: 0.9rem;">${vendeur.email}</p>
-                    <a href="client.html?vendeurId=${vendeur._id}" class="btn-voir-boutique">
+                    <a href="page-du-vendeur.html?vendeurId=${encodeURIComponent(vendeur._id)}" class="btn-voir-boutique">
                         Visiter la boutique
                     </a>
                 </div>

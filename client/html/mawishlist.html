@@ -404,6 +404,67 @@
             color: var(--rose-500);
         }
 
+        .variant-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.55rem;
+            margin: 0;
+            padding: 0;
+            border: 0;
+        }
+
+        .variant-selector legend {
+            margin-bottom: 0.5rem;
+            font-weight: 800;
+            color: var(--slate-700);
+        }
+
+        .variant-option input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .variant-option label {
+            display: inline-flex;
+            min-height: 40px;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 0.8rem;
+            border: 1px solid var(--slate-200);
+            border-radius: 10px;
+            background: var(--white);
+            color: var(--slate-700);
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .variant-option input:checked + label {
+            border-color: var(--primary-500);
+            background: rgba(102, 126, 234, 0.1);
+            color: var(--primary-700);
+        }
+
+        .variant-option input:focus-visible + label {
+            outline: 3px solid rgba(102, 126, 234, 0.3);
+            outline-offset: 2px;
+        }
+
+        .variant-option input:disabled + label {
+            background: #f1f3f7;
+            color: #8b93a5;
+            cursor: not-allowed;
+            text-decoration: line-through;
+        }
+
+        .variant-error {
+            flex-basis: 100%;
+            margin: 0;
+            color: var(--rose-500);
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
         .card-actions {
             display: flex;
             flex-wrap: wrap;
@@ -611,13 +672,17 @@
                 .replace(/'/g, '&#039;');
         }
 
-        function ajouterAuPanier(id, nom, prix, image, vendeurId) {
+        function ajouterAuPanier(id, nom, prix, image, vendeurId, devise, taille = 'Unique') {
             const panier = getPanier();
             const idStr = String(id);
-            const produitExistant = panier.find(item => String(item.id) === idStr);
+            // Chaque taille constitue une variante distincte dans le panier.
+            const produitExistant = panier.find(item =>
+                String(item.id) === idStr && (item.taille || 'Unique') === taille
+            );
 
             if (produitExistant) {
                 produitExistant.quantite += 1;
+                produitExistant.devise = devise || produitExistant.devise || 'FC';
             } else {
                 panier.push({
                     id: idStr,
@@ -625,7 +690,9 @@
                     prix: parsePrix(prix),
                     image: image,
                     quantite: 1,
-                    vendeurId: vendeurId
+                    vendeurId: vendeurId,
+                    devise: devise || 'FC',
+                    taille: taille
                 });
             }
 
@@ -672,7 +739,15 @@
             if (countBadge) countBadge.textContent = String(products.length);
 
             container.innerHTML = products.map((produit) => {
-                const estEpuise = Number(produit.stock) <= 0;
+                // Les produits avec variantes utilisent le stock propre à chaque taille.
+                const variantes = Array.isArray(produit.variantes) ? produit.variantes : [];
+                const aDesVariantes = variantes.length > 0;
+                const varianteDisponible = variantes.some(variante =>
+                    Number.isFinite(Number(variante.stock)) && Number(variante.stock) > 0
+                );
+                const estEpuise = aDesVariantes
+                    ? !varianteDisponible
+                    : Number(produit.stock) <= 0;
                 const image = produit.image || 'https://via.placeholder.com/800x800?text=Produit';
                 const nom = produit.nom || 'Produit sans nom';
                 const prix = parsePrix(produit.prix || 0);
@@ -689,6 +764,37 @@
                 const imageEscaped = escapeHtml(image);
                 const vendeurEscaped = escapeHtml(vendeurLabel);
                 const produitId = escapeHtml(produit._id || '');
+                const devise = escapeHtml(produit.devise || 'FC');
+                const groupeTailles = aDesVariantes ? `
+                    <fieldset class="variant-selector" data-variant-selector>
+                        <legend>Choisissez votre taille :</legend>
+                        ${variantes.map((variante, index) => {
+                            const taille = String(variante.taille ?? '');
+                            const stock = Number(variante.stock);
+                            const tailleEpuisee = !Number.isFinite(stock) || stock <= 0;
+                            const optionId = `wishlist-taille-${produitId}-${index}`;
+
+                            return `
+                                <div class="variant-option">
+                                    <input
+                                        type="radio"
+                                        id="${optionId}"
+                                        name="taille-${produitId}"
+                                        value="${escapeHtml(taille)}"
+                                        data-variant-size
+                                        ${tailleEpuisee ? 'disabled' : ''}
+                                    >
+                                    <label for="${optionId}" title="${tailleEpuisee ? 'Épuisé' : `Stock : ${stock}`}">
+                                        ${escapeHtml(taille || 'Taille')}
+                                    </label>
+                                </div>
+                            `;
+                        }).join('')}
+                        <p class="variant-error" data-variant-error role="alert" aria-live="assertive" hidden>
+                            Veuillez sélectionner une taille disponible avant l’ajout au panier.
+                        </p>
+                    </fieldset>
+                ` : '';
 
                 return `
                     <article class="wishlist-card" data-id="${produitId}" data-rating="${noteMoyenne}">
@@ -703,7 +809,7 @@
                             <span class="product-badge">Produit</span>
                             <h3 class="product-name">${nomEscaped}</h3>
                             <p class="product-seller">Vendu par : ${vendeurEscaped}</p>
-                            <p class="product-price">${prix.toLocaleString('fr-FR')} FC</p>
+                            <p class="product-price">${prix.toLocaleString('fr-FR')} ${devise}</p>
 
                             <!-- La wishlist affiche toutes les notes, y compris celles inférieures à 3. -->
                             <div class="product-rating" aria-live="polite">
@@ -716,6 +822,7 @@
                             <p class="stock-state ${estEpuise ? 'out-of-stock' : 'in-stock'}">
                                 ${estEpuise ? '❌ Rupture de stock' : '✅ En stock'}
                             </p>
+                            ${groupeTailles}
 
                             <div class="card-actions">
                                 <button type="button" class="btn-detail" data-detail-id="${produitId}">
@@ -730,7 +837,9 @@
                                     data-cart-name="${nomEscaped}"
                                     data-cart-price="${prix}"
                                     data-cart-image="${imageEscaped}"
+                                    data-cart-devise="${devise}"
                                     data-cart-vendeur="${escapeHtml(produit.vendeurId && typeof produit.vendeurId === 'object' ? (produit.vendeurId._id || '') : (produit.vendeurId || ''))}"
+                                    data-has-variants="${aDesVariantes}"
                                     ${estEpuise ? 'disabled' : ''}
                                 >
                                     <i class="fa-solid fa-cart-plus"></i>
@@ -832,16 +941,32 @@
         function ajouterTousLesProduitsDisponibles() {
             const buttons = document.querySelectorAll('[data-cart-id]:not(:disabled)');
             const addAllButton = document.getElementById('add-all-btn');
+            const taillesManquantes = [];
 
             buttons.forEach(button => {
+                const carte = button.closest('.wishlist-card');
+                const tailleSelectionnee = carte.querySelector('[data-variant-size]:checked');
+
+                // Ne jamais choisir automatiquement une taille à la place du client.
+                if (button.dataset.hasVariants === 'true' && !tailleSelectionnee) {
+                    taillesManquantes.push(button.dataset.cartName);
+                    return;
+                }
+
                 ajouterAuPanier(
                     button.dataset.cartId,
                     button.dataset.cartName,
                     button.dataset.cartPrice,
                     button.dataset.cartImage,
-                    button.dataset.cartVendeur
+                    button.dataset.cartVendeur,
+                    button.dataset.cartDevise,
+                    tailleSelectionnee ? tailleSelectionnee.value : 'Unique'
                 );
             });
+
+            if (taillesManquantes.length > 0) {
+                alert(`Sélectionnez une taille pour ces produits avant de les ajouter : ${taillesManquantes.join(', ')}`);
+            }
 
             if (addAllButton) {
                 const originalText = addAllButton.innerHTML;
@@ -876,13 +1001,36 @@
 
             const btnCart = event.target.closest('[data-cart-id]');
             if (btnCart && !btnCart.disabled) {
+                const carte = btnCart.closest('.wishlist-card');
+                const tailleSelectionnee = carte.querySelector('[data-variant-size]:checked');
+
+                // La sélection est obligatoire uniquement pour les produits à variantes.
+                if (btnCart.dataset.hasVariants === 'true' && !tailleSelectionnee) {
+                    const messageErreur = carte.querySelector('[data-variant-error]');
+                    const premiereTailleDisponible = carte.querySelector('[data-variant-size]:not(:disabled)');
+                    if (messageErreur) messageErreur.hidden = false;
+                    if (premiereTailleDisponible) premiereTailleDisponible.focus();
+                    return;
+                }
+
+                const messageErreur = carte.querySelector('[data-variant-error]');
+                if (messageErreur) messageErreur.hidden = true;
                 const id = btnCart.dataset.cartId;
                 const nom = btnCart.dataset.cartName;
                 const prix = btnCart.dataset.cartPrice;
                 const image = btnCart.dataset.cartImage;
                 const vendeurId = btnCart.dataset.cartVendeur;
+                const devise = btnCart.dataset.cartDevise;
 
-                ajouterAuPanier(id, nom, prix, image, vendeurId);
+                ajouterAuPanier(
+                    id,
+                    nom,
+                    prix,
+                    image,
+                    vendeurId,
+                    devise,
+                    tailleSelectionnee ? tailleSelectionnee.value : 'Unique'
+                );
 
                 const oldText = btnCart.innerHTML;
                 btnCart.innerHTML = '<i class="fa-solid fa-check"></i><span>Ajouté !</span>';
@@ -898,6 +1046,15 @@
                 if (id) {
                     await retirerDesFavoris(id);
                 }
+            }
+        });
+
+        // Dès qu’une taille est choisie, on retire l’erreur affichée sur cette carte.
+        document.addEventListener('change', event => {
+            if (event.target.matches('[data-variant-size]')) {
+                const carte = event.target.closest('.wishlist-card');
+                const messageErreur = carte && carte.querySelector('[data-variant-error]');
+                if (messageErreur) messageErreur.hidden = true;
             }
         });
 

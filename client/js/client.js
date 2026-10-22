@@ -83,7 +83,7 @@ if (catalogue) {
             const prix = prixTexte.replace(/[^\d.]/g, '');
             const image = carte.querySelector('img').src;
 
-            ajouterAuPanier(id, nom, prix, image, vendeurId);
+            ajouterAuPanier(id, nom, prix, image, vendeurId, btnPanier.dataset.devise);
             btnPanier.innerHTML = '<i class="fa-solid fa-check"></i><span>Ajouté !</span>';
             setTimeout(() => {
                 btnPanier.innerHTML = '<i class="fa-solid fa-cart-plus"></i><span>Ajouter au panier</span>';
@@ -187,12 +187,16 @@ function afficherProduits(produits) {
     produits.forEach(produit => {
         // On vérifie si le produit est épuisé
         const estEpuise = produit.stock <= 0;
+        // Les produits à variantes doivent être ajoutés depuis leur fiche détail,
+        // où le client peut choisir la taille et la quantité correspondantes.
+        const aDesVariantes = Array.isArray(produit.variantes) && produit.variantes.length > 0;
         console.log("Produit complet :", produit); // DEBUG - Affiche TOUT
         console.log("VendeurId du produit :", produit.vendeurId); // DEBUG - Affiche le vendeurId
 
         // Note moyenne du produit renvoyée par le backend sous la clé "averageRating".
         // On garde une valeur numérique sûre pour éviter les erreurs si le champ est absent.
         const noteMoyenne = Number(produit.averageRating || 0);
+        const devise = echapperHTML(produit.devise || 'FC');
         
         container.innerHTML += `
             <article class="carte" data-rating="${noteMoyenne}"><!-- un data-rating pour stocker la note moyenne et l'utiliser plus tard -->
@@ -204,7 +208,7 @@ function afficherProduits(produits) {
                 </div>
                 <div class="produit-info">
                     <h3 class="nom">${produit.nom}</h3>
-                    <p class="prix">${produit.prix} €</p>
+                    <p class="prix">${produit.prix} ${devise}</p>
                     <div class="product-rating" aria-live="polite">
                         <span class="rating-stars" aria-label="Moyenne des notes"></span>
                         <span class="rating-value">0.0/5</span>
@@ -218,13 +222,13 @@ function afficherProduits(produits) {
                         ${estEpuise ? '❌ Rupture de stock' : ` disponibles`}
                     </p>
 
-            ${estEpuise ? `
-                <button class="ajouter-panier btn-disabled" disabled style="background-color: #cbd5e0; cursor: not-allowed;" data-id="${produit._id}" data-vendeur="${produit.vendeurId}">
+            ${aDesVariantes ? '' : estEpuise ? `
+                <button class="ajouter-panier btn-disabled" disabled style="background-color: #cbd5e0; cursor: not-allowed;" data-id="${produit._id}" data-vendeur="${produit.vendeurId}" data-devise="${devise}">
                     <i class="fa-solid fa-ban"></i>
                     <span>Indisponible</span>
                 </button>
             ` : `
-                <button class="ajouter-panier" data-id="${produit._id}" data-vendeur="${produit.vendeurId}">
+                <button class="ajouter-panier" data-id="${produit._id}" data-vendeur="${produit.vendeurId}" data-devise="${devise}">
                     <i class="fa-solid fa-cart-plus"></i>
                     <span>Ajouter au panier</span>
                 </button>
@@ -262,6 +266,16 @@ function afficherProduits(produits) {
     }
 }
 
+function echapperHTML(valeur = '') {
+    return String(valeur).replace(/[&<>"']/g, caractere => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    })[caractere]);
+}
+
 // Charge automatiquement tous les produits au démarrage de la page.
 document.addEventListener('DOMContentLoaded', () => chargerProduits());
 
@@ -289,7 +303,7 @@ function sauvegarderPanier(panier) {
 }
 
 // 3. ACTION : Ajouter un produit ou augmenter sa quantité
-function ajouterAuPanier(id, nom, prix, image, vendeurId) {
+function ajouterAuPanier(id, nom, prix, image, vendeurId, devise) {
     console.log("Ajout au panier - ID:", id, "VendeurID:", vendeurId); // DEBUG
     let panier = obtenirPanier();
     // Toujours comparer les IDs comme des chaînes
@@ -298,6 +312,7 @@ function ajouterAuPanier(id, nom, prix, image, vendeurId) {
 
     if (produitExistant) {
         produitExistant.quantite += 1;
+        produitExistant.devise = devise || produitExistant.devise || 'FC';
         console.log(`+1 pour ${nom} (Nouvelle qté: ${produitExistant.quantite})`);
     } else {
         const nouveauProduit = {
@@ -306,7 +321,8 @@ function ajouterAuPanier(id, nom, prix, image, vendeurId) {
             prix: parseFloat(prix),
             image: image,
             quantite: 1,
-            vendeurId: vendeurId
+            vendeurId: vendeurId,
+            devise: devise || 'FC'
         };
         panier.push(nouveauProduit);
         console.log(`${nom} ajouté au panier !`);
@@ -412,8 +428,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Impossible de synchroniser le rôle utilisateur :', error);
     }
 });
-
-
 
 
 

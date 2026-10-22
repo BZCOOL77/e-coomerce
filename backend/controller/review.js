@@ -38,11 +38,44 @@ exports.addReview = async (req, res) => {
       return res.status(404).json({ error: 'Produit introuvable.' });
     }
 
-    // --- C. Vérification de l'achat (Acheteur vérifié) ---
-    const userHasBoughtProduct = await Order.findOne({
+    // --- C. Vérification de l'achat et de la réception (Acheteur vérifié) ---
+    // Les commandes récentes stockent les articles dans vendorsOrders.items ;
+    // les anciennes commandes utilisent encore produitId/statut à la racine.
+    // Un article sans statut propre hérite du statut de livraison du colis vendeur.
+    const statutsLivres = ['livrée', 'livree', 'livré', 'livre'];
+    const userHasBoughtProduct = await Order.exists({
       acheteurId: parsedUserId,
-      produitId: parsedProductId,
-      statut: 'livrée'
+      $or: [
+        {
+          produitId: parsedProductId,
+          statut: { $in: statutsLivres }
+        },
+        {
+          vendorsOrders: {
+            $elemMatch: {
+              statutVendeur: { $in: statutsLivres },
+              items: {
+                $elemMatch: {
+                  produitId: parsedProductId,
+                  statut: { $in: [null, ''] }
+                }
+              }
+            }
+          }
+        },
+        {
+          vendorsOrders: {
+            $elemMatch: {
+              items: {
+                $elemMatch: {
+                  produitId: parsedProductId,
+                  statut: { $in: statutsLivres }
+                }
+              }
+            }
+          }
+        }
+      ]
     });
 
     if (!userHasBoughtProduct) {

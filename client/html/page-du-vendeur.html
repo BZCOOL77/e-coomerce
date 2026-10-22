@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#111827">
+    <title>Boutique | Shopy-Cloths</title>
+    <link rel="stylesheet" href="../css/page-du-vendeur.css">
+    <script src="../js/url.js" defer></script>
+    <script src="../js/ratings.js" defer></script>
+    <script src="../js/page-du-vendeur.js" defer></script>
+</head>
+<body>
+    <header class="site-header">
+        <a class="brand" href="client.html" aria-label="Retour à l'accueil Shopy-Cloths">
+            <span class="brand-mark" aria-hidden="true">S</span>
+            <span>Shopy-Cloths</span>
+        </a>
+        <a class="header-link" href="parvendeur.html">Découvrir les boutiques</a>
+    </header>
+
+    <main>
+        <section id="profil-vendeur" class="seller-profile" aria-labelledby="nom-boutique">
+            <div class="profile-cover" aria-hidden="true">
+                <img id="photo-couverture" class="profile-cover-image" alt="" hidden>
+            </div>
+            <div class="profile-content">
+                <div class="profile-avatar-wrap">
+                    <img id="photo-boutique" class="profile-avatar" alt="" hidden>
+                    <div id="avatar-placeholder" class="profile-avatar avatar-placeholder" aria-hidden="true">S</div>
+                </div>
+                <div class="profile-details">
+                    <p class="profile-eyebrow">LA BOUTIQUE À DÉCOUVRIR</p>
+                    <h1 id="nom-boutique">Chargement de la boutique…</h1>
+                    <p id="nom-vendeur" class="seller-name"></p>
+                    <p id="description-boutique" class="seller-description"></p>
+                    <div class="profile-tags">
+                        <span id="categorie-boutique" class="profile-tag" hidden></span>
+                        <span id="localisation-boutique" class="profile-tag" hidden></span>
+                    </div>
+                </div>
+                <a id="contact-boutique" class="contact-button" hidden>
+                    Contacter la boutique
+                </a>
+            </div>
+        </section>
+
+        <section class="products-section" aria-labelledby="products-title">
+            <div class="section-heading">
+                <div>
+                    <p class="section-eyebrow">LA SÉLECTION DU VENDEUR</p>
+                    <h2 id="products-title">Ses produits</h2>
+                </div>
+                <span id="product-count" class="product-count" aria-live="polite"></span>
+            </div>
+            <div id="products-state" class="products-state" role="status" aria-live="polite">
+                Chargement des produits…
+            </div>
+            <div id="products-grid" class="products-grid"></div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <a href="parvendeur.html">← Retour à toutes les boutiques</a>
+        <span>Shopy-Cloths · La mode se découvre ici</span>
+    </footer>
+</body>
+</html>

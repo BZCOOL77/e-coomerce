@@ -29,6 +29,16 @@
         <button type="button" id="ajouter-taille" style="background: #3182ce; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin: 5px 0 12px;">
             + Ajouter une autre taille
         </button>
+
+        <!-- selection de la devise -->
+        <div class="devise">
+            <label for="devise">Devise :</label>
+            <select id="devise" name="devise" required>
+                <option value="FC">Franc congolais (FC)</option>
+                <option value="USD">USD ($)</option>
+            </select>
+        </div>
+
         <div class="categorie">
             <input type="radio" id="categorie1" name="categorie" value="Électronique" required>
             <label for="categorie1">Électronique</label>
@@ -143,6 +153,7 @@ function ajouterLigneTaille(variante = {}) {
             document.getElementById('image2').value = produit.image2;
             document.getElementById('image3').value = produit.image3;
             document.getElementById('stock').value = produit.stock;
+            document.getElementById('devise').value = produit.devise;
             const categorieInput = Array.from(document.querySelectorAll('input[name="categorie"]'))
                 .find(input => input.value === produit.categorie);
             if (categorieInput) categorieInput.checked = true;
@@ -202,6 +213,7 @@ function ajouterLigneTaille(variante = {}) {
             image2: document.getElementById('image2').value,
             image3: document.getElementById('image3').value,
             variantes: variantes,
+            devise: document.getElementById('devise').value,
             stock: Number(document.getElementById('stock').value),
             categorie: document.querySelector('input[name="categorie"]:checked').value
         };

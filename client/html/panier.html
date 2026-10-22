@@ -30,7 +30,7 @@
                 <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
                 <div class="resume-ligne">
                     <span>Sous-total (la tva est deja incluse)</span>
-                    <span id="sous-total">0.00 €</span>
+                    <span id="sous-total">0.00</span>
                 </div>
                 <div class="resume-ligne">
                     <span>Livraison</span>
@@ -38,7 +38,7 @@
                 </div>
                 <div class="resume-ligne total-final">
                     <span>Total TTC</span>
-                    <span id="total-global">0.00 €</span>
+                    <span id="total-global">0.00</span>
                 </div>
 
                 <div class="adresse-livraison">
@@ -136,7 +136,7 @@
             <div class="item-infos">
                 <h3>${item.nom}</h3>
                 ${item.taille && item.taille !== 'Unique' ? `<p class="taille-article">Taille : ${echapperHTML(item.taille)}</p>` : ''}
-                <p class="prix">${item.prix.toFixed(2)} €</p>
+                <p class="prix">${item.prix.toFixed(2)} ${echapperHTML(item.devise || 'FC')}</p>
                 <div class="item-quantite">
                     <button class="btn-qty" onclick="modifierQuantite(${index}, -1)">-</button>
                     <span>${item.quantite}</span>
@@ -145,7 +145,7 @@
                 <button class="btn-supprimer" onclick="supprimerArticle(${index})">Supprimer</button>
             </div>
             <div style="font-weight: bold;">
-                ${(item.prix * item.quantite).toFixed(2)} €
+                ${(item.prix * item.quantite).toFixed(2)} ${echapperHTML(item.devise || 'FC')}
             </div>
         </div>
     `).join('');
@@ -179,9 +179,18 @@ function supprimerArticle(index) {
 
 // 5. Calculer le total final
 function calculerTotal(panier) {
-    const total = panier.reduce((acc, item) => acc + (item.prix * item.quantite), 0);
-    document.getElementById('sous-total').innerText = `${total.toFixed(2)} €`;
-    document.getElementById('total-global').innerText = `${total.toFixed(2)} €`;
+    const totauxParDevise = new Map();
+    panier.forEach(item => {
+        const devise = item.devise || 'FC';
+        const totalDevise = totauxParDevise.get(devise) || 0;
+        totauxParDevise.set(devise, totalDevise + (item.prix * item.quantite));
+    });
+
+    const totalFormate = Array.from(totauxParDevise, ([devise, total]) =>
+        `${total.toFixed(2)} ${devise}`
+    ).join(' | ') || '0.00';
+    document.getElementById('sous-total').innerText = totalFormate;
+    document.getElementById('total-global').innerText = totalFormate;
 }
 
 // Coordonnées GPS conservées entre le clic sur le bouton GPS et la validation de la commande.
@@ -306,7 +315,11 @@ async function validerPanierEtCommander() {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ articles: articlesToProcess, adresseLivraison })
+            body: JSON.stringify({
+                idempotencyKey,
+                articles: articlesToProcess,
+                adresseLivraison
+            })
         });
 
         const data = await response.json().catch(() => ({}));

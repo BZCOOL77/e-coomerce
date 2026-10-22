@@ -17,6 +17,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const vendeurOnly = require('../middleware/vendeuronly');
+const idempotency = require('../middleware/indempotancy');
 const orderCtrl = require('../controller/order');
 
 // -------------------------------------------------------------
@@ -31,7 +32,7 @@ const orderCtrl = require('../controller/order');
 // Exemple métier :
 //   un client achète deux produits chez deux vendeurs différents
 //   -> on crée une commande globale + 2 sous-commandes vendeur
-router.post('/', auth, orderCtrl.createOrder);
+router.post('/', auth, idempotency, orderCtrl.createOrder);
 
 // -------------------------------------------------------------
 // 2. VOIR LES VENTES D’UN VENDEUR
@@ -112,4 +113,3 @@ router.get('/:colisGroupId/invoice', auth, orderCtrl.downloadInvoice);
 
 
 module.exports = router;
-

@@ -143,7 +143,7 @@ async function chargerproduit() {
             </div>
             <div class="produit-info">
             <h3 class="nom">${produit.nom}</h3>
-            <p class="prix">${produit.prix} €</p>
+            <p class="prix">${produit.prix} ${produit.devise}</p>
             <p class="description">${produit.description}</p>
             <div class="stock-status">
                 ${badgeStock}

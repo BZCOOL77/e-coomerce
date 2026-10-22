@@ -315,6 +315,7 @@ async function chargerMesVentes() {
                     : '';
                 const quantite = articleCommande.quantite || articleCommande.quantite === 0 ? articleCommande.quantite : 'N/A';
                 const prixProduit = articleCommande.prixUnitaire || (produit ? (produit.prix || produit.price) : 'Prix indisponible');
+                const deviseProduit = articleCommande.devise || (produit && produit.devise) || 'FC';
                 const statutArticle = articleCommande.statutIndividuel || articleCommande.statut || 'N/A';
                 const orderId = articleCommande.orderId || articleCommande._id;
                 // L'API renvoie l'identifiant du sous-document article. Il est
@@ -345,7 +346,7 @@ async function chargerMesVentes() {
                             </div>
                             <div class="info-secondary">
                                 <span class="info-item"><span class="info-label">Description :</span> <span class="info-value">${descriptionProduit || 'Pas de description'}</span></span>
-                                <span class="info-item"><span class="info-label">Prix :</span> <span class="info-value">${prixProduit} €</span></span>
+                                <span class="info-item"><span class="info-label">Prix :</span> <span class="info-value">${prixProduit} ${deviseProduit}</span></span>
                                 <span class="info-item"><span class="info-label">Qté :</span> <span class="info-value">${quantite}</span></span>
                                 ${tailleSelectionnee && tailleSelectionnee !== 'Unique' ? `<span class="info-item"><span class="info-label">Taille choisie :</span> <span class="info-value">${echapperHTMLCommande(tailleSelectionnee)}</span></span>` : ''}
                             </div>

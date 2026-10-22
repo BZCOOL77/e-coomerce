@@ -176,6 +176,14 @@ async function chargerMesAchats() {
                         totalTTC: commandeGlobale.totalTTC || 0
                     }]
                 }] : []);
+            const deviseParDefaut = vendorsOrders[0]?.items?.[0]?.devise
+                || vendorsOrders[0]?.items?.[0]?.produitId?.devise
+                || commandeGlobale.produitId?.devise
+                || commandeGlobale.devise
+                || 'FC';
+            // Les totaux TTC sont convertis et enregistrés en FC par le backend,
+            // même si certains produits de la commande sont affichés en USD.
+            const affichageTotalCommande = `${totalTTC.toFixed(2)} FC`;
 
             let sousCommandesHtml = '';// Conteneur HTML pour les sous-commandes (colis vendeurs)
 
@@ -207,6 +215,10 @@ async function chargerMesAchats() {
                     const statutArticleNorm = normaliserStatut(statutArticle);
                     const messageSuivi = obtenirMessageSuivi(statutArticle);
                     const produitId = produit._id || item.produitId;
+                    const deviseArticle = echapperHTML(item.devise || produit.devise || deviseParDefaut);
+                    const deviseCalcul = echapperHTML(item.deviseCalcul || 'FC');
+                    const prixOriginal = Number(item.prixUnitaire ?? produit.prix ?? 0) || 0;
+                    const totalTTCArticle = Number(item.totalTTC) || 0;
                     const affichageTaille = item.taille !== undefined && item.taille !== null && item.taille !== ''
                         ? ` | Taille : ${echapperHTML(item.taille)}`
                         : '';
@@ -224,7 +236,7 @@ async function chargerMesAchats() {
                                         statut : ${statutArticle.toUpperCase()}
                                     </span>
                                 </div>
-                                <p style="margin: 0 0 4px 0; font-size: 0.85rem; color: #718096;">Quantité : ${item.quantite || 1}${affichageTaille} | Prix : ${item.prixUnitaire || produit.prix || 0} €</p>
+                                <p style="margin: 0 0 4px 0; font-size: 0.85rem; color: #718096;">Quantité : ${item.quantite || 1}${affichageTaille} | Prix unitaire : ${prixOriginal.toFixed(2)} ${deviseArticle} | Total TTC : ${totalTTCArticle.toFixed(2)} ${deviseCalcul}</p>
                                 <span style="font-size: 0.85rem; font-weight: 500; color: #4a5568;">${messageSuivi}</span>
                             </div>
                             <div class="article-actions" style="display: flex; flex-direction: column; gap: 5px;">
@@ -263,7 +275,7 @@ async function chargerMesAchats() {
                     <div class="commande-header" style="background: #f8fafc; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #edf2f7;">
                         <div>
                             <span style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: #a0aec0; font-weight: bold;">Commande Groupée</span>
-                            <h3 style="margin: 2px 0 5px 0; color: #1a202c; font-size: 1.15rem;">🛒 Total Panier : ${totalTTC.toFixed(2)} €</h3>
+                            <h3 style="margin: 2px 0 5px 0; color: #1a202c; font-size: 1.15rem;">🛒 Total Panier : ${affichageTotalCommande}</h3>
                             <p class="date-commande" style="margin: 0; font-size: 0.85rem; color: #718096;">Passée le : ${dateCommande}</p>
                         </div>
                     </div>
