@@ -30,7 +30,7 @@ async function fetchAndDisplayReviews() {
     container.innerHTML = data.reviews.map(review => {
       // Génère les étoiles visuelles (Ex: 4 étoiles = ★★★★☆)
       const stars = '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
-      const authorName = review.userId ? `${review.userId.prenom} ${review.userId.nom}` : 'Client ShopyCloth';
+      const authorName = review.userId ? `${review.userId.prenom} ${review.userId.nom}` : 'Client NSOKO';
 
       return `
         <div class="review-card" style="border-bottom: 1px solid #ccc; padding: 10px 0;">

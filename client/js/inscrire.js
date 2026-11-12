@@ -35,7 +35,7 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
             localStorage.setItem('role', data.role); // C'est ça qui permet de s'en souvenir au prochain refresh
 
             // Succès !
-            alert("Compte créé avec succès ! Bienvenue chez shopycloth.");
+            alert("Compte créé avec succès ! Bienvenue chez NSOKO.");
             // On redirige vers la page de la boutique
             window.location.href = 'client.html';
         } else {

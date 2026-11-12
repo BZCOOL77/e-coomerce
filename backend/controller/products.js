@@ -75,21 +75,65 @@ exports.getAllProducts = (req, res, next) => {
 };
 
 // Middleware pour modifier une marchandise
-exports.updateProduct =  (req, res, next) => {
-  Thing.updateOne({ _id: req.params.id }, { ...req.body, _id: req.params.id })
-    .then(() => res.status(200).json({ message: 'Objet mis à jour !' }))
-    .catch((error) => res.status(400).json({ error }));
-}
+exports.updateProduct = async (req, res, next) => {
+  // Refuser les identifiants mal formés avant toute requête MongoDB.
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ message: 'Format d’identifiant produit invalide.' });
+  }
+
+  // Copier les données pour empêcher le client de changer l’ID ou le propriétaire du produit.
+  const productData = { ...req.body };
+  delete productData._id;
+  delete productData.vendeurId;
+
+  try {
+    // Limiter la mise à jour au produit appartenant au vendeur connecté et valider les champs.
+    const result = await Thing.updateOne(
+      { _id: req.params.id, vendeurId: req.auth.userId },
+      { $set: productData },
+      { runValidators: true }
+    );
+
+    // Répondre 404 si le produit n’existe pas ou appartient à un autre vendeur.
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: 'Produit non trouvé !' });
+    }
+
+    return res.status(200).json({ message: 'Objet mis à jour !' });
+  } catch (error) {
+    // Signaler explicitement une erreur survenue pendant la mise à jour.
+    return res.status(400).json({ error: error.message || error });
+  }
+};
 
 
 
 
 // Middleware pour supprimer un produit
-exports.deleteProduct = (req, res, next) => {
-  Thing.deleteOne({ _id: req.params.id })
-    .then(() => res.status(200).json({ message: 'Objet supprimé ! 🗑️' }))
-    .catch(error => res.status(400).json({ error }));
-}
+exports.deleteProduct = async (req, res, next) => {
+  // Refuser les identifiants mal formés avant toute requête MongoDB.
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ message: 'Format d’identifiant produit invalide.' });
+  }
+
+  try {
+    // Ne supprimer que le produit appartenant au vendeur connecté.
+    const result = await Thing.deleteOne({
+      _id: req.params.id,
+      vendeurId: req.auth.userId
+    });
+
+    // Répondre 404 si le produit n’existe pas ou appartient à un autre vendeur.
+    if (result.deletedCount === 0) {//deletedCount est une propriété de l'objet result qui indique combien de documents ont été supprimés. Si aucun document n'a été supprimé, cela signifie que le produit n'existait pas ou n'appartenait pas au vendeur connecté.
+      return res.status(404).json({ message: 'Produit non trouvé !' });
+    }
+
+    return res.status(200).json({ message: 'Objet supprimé ! 🗑️' });
+  } catch (error) {
+    // Signaler explicitement une erreur survenue pendant la suppression.
+    return res.status(400).json({ error: error.message || error });
+  }
+};
 
 // Middleware pour la barre de recherche
 exports.searchProducts =  async (req, res, next) => {

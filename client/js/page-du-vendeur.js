@@ -28,7 +28,7 @@ function afficherProfil(vendeur) {
     const nomBoutique = boutique.nomBoutique || 'Boutique sans nom';
     const photo = obtenirImageSecurisee(boutique.photoBoutique);
 
-    document.title = `${nomBoutique} | Shopy-Cloths`;
+    document.title = `${nomBoutique} | NSOKO`;
     document.getElementById('nom-boutique').textContent = nomBoutique;
     document.getElementById('nom-vendeur').textContent = [vendeur.prenom, vendeur.nom]
         .filter(Boolean)

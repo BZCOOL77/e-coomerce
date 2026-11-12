@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ma wishlist | Shopy-Cloths</title>
+    <title>Ma wishlist | NSOKO</title>
 
     <!-- Police / icônes utilitaires globales -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -608,7 +608,7 @@
                     <i class="fa-solid fa-heart-circle-check"></i>
                 </div>
                 <div>
-                    <h1 class="brand-title">Shopy-Cloths</h1>
+                    <h1 class="brand-title">NSOKO</h1>
                     <p class="brand-subtitle">Ma wishlist</p>
                 </div>
             </div>
@@ -649,12 +649,12 @@
         }
 
         function getPanier() {
-            const panierData = localStorage.getItem('panier_shopy');
+            const panierData = localStorage.getItem('panier_NSOKO');
             return panierData ? JSON.parse(panierData) : [];
         }
 
         function sauverPanier(panier) {
-            localStorage.setItem('panier_shopy', JSON.stringify(panier));
+            localStorage.setItem('panier_NSOKO', JSON.stringify(panier));
         }
 
         function parsePrix(value) {

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Panier | Shopy-Cloths</title>
+    <title>Mon Panier | NSOKO</title>
 
     <script src="../js/url.js"></script>
     <link rel="stylesheet" href="../css/panier.css">
@@ -11,7 +11,7 @@
 <body>
 
     <header>
-        <h1>shopy-cloths</h1>
+        <h1>NSOKO</h1>
         <h2>Votre Panier</h2>
     </header>
 
@@ -120,7 +120,7 @@
         }
 
         function chargerPanier() {
-            const panier = JSON.parse(localStorage.getItem('panier_shopy')) || [];
+            const panier = JSON.parse(localStorage.getItem('panier_NSOKO')) || [];
             const container = document.getElementById('liste-panier');
     
     if (panier.length === 0) {
@@ -155,7 +155,7 @@
 
 // 3. Fonction pour modifier la quantité (+ ou -)
 function modifierQuantite(index, delta) {
-    let panier = JSON.parse(localStorage.getItem('panier_shopy'));
+    let panier = JSON.parse(localStorage.getItem('panier_NSOKO'));
     const produit = panier[index];
 
     if (produit) {
@@ -164,16 +164,16 @@ function modifierQuantite(index, delta) {
         if (produit.quantite <= 0) {
             return supprimerArticle(index);
         }
-        localStorage.setItem('panier_shopy', JSON.stringify(panier));
+        localStorage.setItem('panier_NSOKO', JSON.stringify(panier));
         chargerPanier(); // On rafraîchit l'affichage
     }
 }
 
 // 4. Fonction pour supprimer un article
 function supprimerArticle(index) {
-    let panier = JSON.parse(localStorage.getItem('panier_shopy'));
+    let panier = JSON.parse(localStorage.getItem('panier_NSOKO'));
     panier.splice(index, 1);
-    localStorage.setItem('panier_shopy', JSON.stringify(panier));
+    localStorage.setItem('panier_NSOKO', JSON.stringify(panier));
     chargerPanier();
 }
 
@@ -250,7 +250,7 @@ async function validerPanierEtCommander() {
 
     if (isSubmittingOrder) return;
 
-    let panier = JSON.parse(localStorage.getItem('panier_shopy')) || [];
+    let panier = JSON.parse(localStorage.getItem('panier_NSOKO')) || [];
     if (panier.length === 0) {
         alert("Votre panier est vide ! 🛒");
         return;
@@ -325,7 +325,7 @@ async function validerPanierEtCommander() {
         const data = await response.json().catch(() => ({}));
 
         if (response.ok) {
-            localStorage.setItem('panier_shopy', JSON.stringify([]));
+            localStorage.setItem('panier_NSOKO', JSON.stringify([]));
             alert("🎉 Toutes vos commandes ont été validées avec succès !");
             window.location.href = 'mes-commandes.html';
         } else {

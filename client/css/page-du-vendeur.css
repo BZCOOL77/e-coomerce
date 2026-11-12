@@ -1,19 +1,39 @@
+/* =========================================================
+   NSOKO - page-du-vendeur.css  (MOBILE FIRST)
+   Style "profil créateur TikTok" pour une boutique vendeur
+   Mobile (320px+) -> tablette (600/768) -> PC (1024/1400)
+   ========================================================= */
+
+/* ---------- Variables ---------- */
 :root {
     color-scheme: light;
-    font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-    color: #172033;
-    background: #f6f7fb;
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
-    --ink: #172033;
-    --muted: #667085;
-    --brand: #7657f6;
-    --brand-dark: #5736d9;
-    --border: #e8eaf2;
-    --surface: #ffffff;
+    --primary: #111827;
+    --primary-soft: #1f2937;
+    --accent: #f59e0b;
+    --accent-dark: #b45309;
+    --bg: #ffffff;
+    --card-bg: #ffffff;
+    --text: #1e293b;
+    --text-light: #6b7280;
+    --border: rgba(17, 24, 39, 0.12);
+    --chip: #f1f1f2;
+    --danger: #dc2626;
+    --star-full: #fbbf24;
+    --star-empty: rgba(255, 255, 255, 0.4);
+
+    --transition: all 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
+    --gutter: 14px;
+    --tap: 44px;
+    --header-h: 56px;
+    --sticky-top: calc(var(--header-h) + env(safe-area-inset-top));
 }
 
-* {
+/* ---------- Reset ---------- */
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
     box-sizing: border-box;
 }
 
@@ -21,309 +41,485 @@
     display: none !important;
 }
 
+html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+}
+
 body {
     min-width: 320px;
     min-height: 100vh;
-    margin: 0;
-    background:
-        radial-gradient(circle at 6% 18%, rgba(118, 87, 246, 0.08), transparent 22rem),
-        #f6f7fb;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Poppins', 'Segoe UI', system-ui, sans-serif;
+    line-height: 1.5;
+    color: var(--text);
+    background: var(--bg);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+}
+
+img {
+    max-width: 100%;
+    display: block;
 }
 
 a {
     color: inherit;
 }
 
+main {
+    flex: 1;
+    width: 100%;
+}
+
+/* =========================================================
+   HEADER (fin, collant)
+   ========================================================= */
 .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
     display: flex;
-    min-height: 72px;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
-    padding: 0.85rem max(1.25rem, calc((100vw - 1180px) / 2));
-    background: #111827;
+    gap: 12px;
+    min-height: var(--sticky-top);
+    padding: env(safe-area-inset-top) var(--gutter) 0;
+    background: rgba(17, 24, 39, 0.94);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
     color: #fff;
 }
 
 .brand {
     display: inline-flex;
     align-items: center;
-    gap: 0.7rem;
-    font-weight: 900;
-    letter-spacing: 0.02em;
+    gap: 10px;
+    min-height: var(--tap);
     text-decoration: none;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #fff;
 }
 
 .brand-mark {
     display: grid;
-    width: 38px;
-    height: 38px;
     place-items: center;
-    border-radius: 13px;
-    background: linear-gradient(135deg, #a78bfa, #6d4aff);
-    font-size: 1.2rem;
+    width: 30px;
+    height: 30px;
+    font-size: 0.95rem;
+    letter-spacing: 0;
+    color: var(--primary);
+    background: linear-gradient(135deg, #fbbf24, var(--accent-dark));
+    border-radius: 9px;
 }
 
-.header-link,
-.site-footer a {
-    color: #e5e7eb;
-    font-size: 0.9rem;
-    font-weight: 700;
+.header-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 38px;
+    padding: 0 14px;
+    font-size: 0.76rem;
+    font-weight: 500;
     text-decoration: none;
+    white-space: nowrap;
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 50px;
+    transition: var(--transition);
 }
 
-.header-link:hover,
-.site-footer a:hover {
-    color: #c4b5fd;
+.header-link:active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--primary);
 }
 
-main {
-    width: min(100% - 2rem, 1180px);
-    margin: 2rem auto 3rem;
-}
-
+/* =========================================================
+   PROFIL (façon TikTok)
+   Mobile : tout centré, empilé
+   ========================================================= */
 .seller-profile {
     position: relative;
     overflow: hidden;
-    border: 1px solid rgba(232, 234, 242, 0.9);
-    border-radius: 26px;
-    background: var(--surface);
-    box-shadow: 0 22px 60px rgba(24, 31, 56, 0.1);
+    background: var(--bg);
 }
 
+/* La "couverture" devient un fond flou et lumineux derrière le profil */
 .profile-cover {
-    height: clamp(145px, 24vw, 245px);
-    position: relative;
-    overflow: hidden;
-    background:
-        radial-gradient(circle at 78% 30%, rgba(255, 255, 255, 0.22), transparent 15%),
-        radial-gradient(circle at 65% 100%, rgba(255, 255, 255, 0.12), transparent 32%),
-        linear-gradient(115deg, #17132d 0%, #5539bc 55%, #f36ca4 130%);
-}
-
-.profile-cover::after {
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, rgba(17, 24, 39, 0.35), rgba(87, 54, 217, 0.15));
-    content: "";
+    z-index: 0;
+    background:
+        radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.22), transparent 60%),
+        radial-gradient(circle at 100% 30%, rgba(17, 24, 39, 0.06), transparent 50%);
 }
 
 .profile-cover-image {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    opacity: 0.72;
+    filter: blur(30px) saturate(1.2);
+    transform: scale(1.4);
+    opacity: 0.3;
 }
 
+.profile-cover::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, transparent 30%, var(--bg) 100%);
+}
+
+/* Grille de placement du profil */
 .profile-content {
     position: relative;
+    z-index: 1;
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 1.4rem;
-    padding: 0 2rem 1.8rem;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    text-align: center;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 28px var(--gutter) 20px;
 }
 
+/* Permet de réordonner nom / bouton / bio sans toucher au HTML */
+.profile-details {
+    display: contents;
+}
+
+.profile-eyebrow {
+    display: none;
+}
+
+/* 1 - Avatar */
 .profile-avatar-wrap {
-    width: 128px;
-    height: 128px;
-    margin-top: -62px;
-    padding: 5px;
+    grid-row: 1;
+    width: 96px;
+    height: 96px;
     border-radius: 50%;
-    background: var(--surface);
-    box-shadow: 0 10px 28px rgba(17, 24, 39, 0.14);
+    padding: 3px;
+    background: linear-gradient(135deg, #fbbf24, var(--accent-dark));
+    box-shadow: 0 8px 24px rgba(17, 24, 39, 0.2);
 }
 
 .profile-avatar {
-    display: block;
     width: 100%;
     height: 100%;
-    border-radius: 50%;
     object-fit: cover;
-    background: #eee9ff;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    background: #fff;
 }
 
 .avatar-placeholder {
     display: grid;
     place-items: center;
-    color: var(--brand-dark);
-    font-size: 2.8rem;
-    font-weight: 900;
-}
-
-.profile-eyebrow,
-.section-eyebrow {
-    margin: 0 0 0.35rem;
-    color: var(--brand-dark);
-    font-size: 0.7rem;
-    font-weight: 900;
-    letter-spacing: 0.14em;
-}
-
-.profile-details h1 {
-    margin: 0;
-    color: var(--ink);
-    font-size: clamp(1.55rem, 3.5vw, 2.4rem);
-    letter-spacing: -0.045em;
-    line-height: 1.12;
-}
-
-.seller-name {
-    margin: 0.35rem 0 0;
-    color: var(--muted);
+    font-family: 'Playfair Display', serif;
+    font-size: 2.4rem;
     font-weight: 700;
+    color: var(--primary);
+    background: linear-gradient(135deg, #fde68a, var(--accent));
 }
 
-.seller-description {
-    max-width: 680px;
-    margin: 0.8rem 0 0;
-    color: #4b5565;
-    line-height: 1.7;
-    white-space: pre-line;
+/* 2 - Nom de la boutique */
+#nom-boutique {
+    grid-row: 2;
+    max-width: 100%;
+    margin-top: 12px;
+    font-size: clamp(1.2rem, 5.2vw, 1.55rem);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: var(--primary);
+    overflow-wrap: anywhere;
 }
 
+/* 3 - Nom du vendeur */
+.seller-name {
+    grid-row: 3;
+    margin-top: 2px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-light);
+}
+
+.seller-name:empty {
+    display: none;
+}
+
+.seller-name:not(:empty)::before {
+    content: "Par ";
+}
+
+/* 4 - Bouton principal (comme "Suivre") */
+.contact-button {
+    grid-row: 4;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 200px;
+    min-height: var(--tap);
+    margin-top: 16px;
+    padding: 0 28px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    color: var(--primary);
+    background: linear-gradient(135deg, #fbbf24, var(--accent));
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(245, 158, 11, 0.35);
+    transition: var(--transition);
+    touch-action: manipulation;
+}
+
+.contact-button::before {
+    content: "📞";
+}
+
+.contact-button:active {
+    transform: scale(0.97);
+}
+
+/* 5 - Pastilles (catégorie, localisation) */
 .profile-tags {
+    grid-row: 5;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.85rem;
+    justify-content: center;
+    gap: 6px;
+    max-width: 100%;
+    margin-top: 14px;
 }
 
 .profile-tag {
-    padding: 0.4rem 0.72rem;
-    border: 1px solid #e7e1ff;
-    border-radius: 999px;
-    background: #f5f2ff;
-    color: #5736d9;
-    font-size: 0.78rem;
-    font-weight: 800;
-}
-
-.contact-button {
     display: inline-flex;
-    min-height: 44px;
     align-items: center;
-    justify-content: center;
-    padding: 0.7rem 1rem;
-    border-radius: 13px;
-    background: var(--brand);
-    box-shadow: 0 10px 22px rgba(118, 87, 246, 0.22);
-    color: white;
-    font-size: 0.87rem;
-    font-weight: 800;
-    text-decoration: none;
-    white-space: nowrap;
-    transition: transform 0.2s ease, background 0.2s ease;
+    gap: 5px;
+    padding: 5px 12px;
+    font-size: 0.76rem;
+    font-weight: 500;
+    color: var(--primary);
+    background: var(--chip);
+    border-radius: 6px;
 }
 
-.contact-button:hover {
-    transform: translateY(-2px);
-    background: var(--brand-dark);
+#localisation-boutique::before {
+    content: "📍";
+    font-size: 0.75rem;
 }
 
+/* 6 - Bio */
+.seller-description {
+    grid-row: 6;
+    max-width: 52ch;
+    margin-top: 14px;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text);
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+/* =========================================================
+   BARRE D'ONGLET (collante, comme TikTok)
+   ========================================================= */
 .products-section {
-    margin-top: 2.5rem;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 0 0 calc(40px + env(safe-area-inset-bottom));
 }
 
 .section-heading {
-    display: flex;
+    position: sticky;
+    top: var(--sticky-top);
+    z-index: 40;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: end;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1.1rem;
+    padding: 0 var(--gutter);
+    background: rgba(255, 255, 255, 0.96);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+}
+
+/* L'onglet actif */
+.section-heading > div {
+    grid-column: 2;
+    position: relative;
+    padding: 12px 8px;
+}
+
+.section-heading > div::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    background: var(--primary);
+}
+
+.section-eyebrow {
+    display: none;
 }
 
 .section-heading h2 {
-    margin: 0;
-    color: var(--ink);
-    font-size: clamp(1.45rem, 3vw, 2rem);
-    letter-spacing: -0.035em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--primary);
+}
+
+.section-heading h2::before {
+    content: "▦";
+    font-size: 1rem;
 }
 
 .product-count {
-    color: var(--muted);
-    font-size: 0.9rem;
-    font-weight: 700;
+    grid-column: 3;
+    justify-self: end;
+    padding-bottom: 12px;
+    font-size: 0.76rem;
+    font-weight: 500;
+    color: var(--text-light);
+    white-space: nowrap;
 }
 
+.product-count:empty {
+    display: none;
+}
+
+/* Messages : chargement / vide / erreur */
+.products-state {
+    margin: 24px var(--gutter);
+    padding: 40px 20px;
+    text-align: center;
+    font-size: 0.95rem;
+    color: var(--text-light);
+    background: #fafafa;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+}
+
+.products-state:empty {
+    display: none;
+}
+
+/* =========================================================
+   GRILLE DE VIGNETTES (3 colonnes collées sur mobile)
+   ========================================================= */
 .products-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2px;
+    margin-top: 2px;
 }
 
+/* ---------- Carte = vignette plein cadre 3:4 ---------- */
 .product-card {
-    overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: 19px;
-    background: var(--surface);
-    box-shadow: 0 8px 24px rgba(24, 31, 56, 0.055);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.product-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 18px 34px rgba(24, 31, 56, 0.12);
-}
-
-.product-image-link {
     position: relative;
     display: block;
+    aspect-ratio: 3 / 4;
     overflow: hidden;
-    aspect-ratio: 4 / 4.2;
-    background: #eeedf5;
+    background: #e5e7eb;
+    animation: fadeUp 0.45s ease both;
+}
+
+.product-card:nth-child(1) { animation-delay: 0.02s; }
+.product-card:nth-child(2) { animation-delay: 0.06s; }
+.product-card:nth-child(3) { animation-delay: 0.10s; }
+.product-card:nth-child(4) { animation-delay: 0.14s; }
+.product-card:nth-child(5) { animation-delay: 0.18s; }
+.product-card:nth-child(6) { animation-delay: 0.22s; }
+
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Toute la vignette est le lien */
+.product-image-link {
+    position: absolute;
+    inset: 0;
+    display: block;
 }
 
 .product-image {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.35s ease;
+    background: #e5e7eb;
+    transition: transform 0.6s ease, filter 0.3s ease;
 }
 
-.product-card:hover .product-image {
-    transform: scale(1.045);
+/* Dégradé sombre en bas pour lire le texte */
+.product-image-link::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 62%;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0.35) 55%, transparent);
+    pointer-events: none;
 }
 
+.product-card:active .product-image {
+    transform: scale(1.03);
+}
+
+/* Produit épuisé : image atténuée */
+.product-card:has(.out-of-stock) .product-image {
+    filter: grayscale(0.8);
+    opacity: 0.8;
+}
+
+/* Texte superposé (ne bloque pas le clic sur l'image) */
 .product-body {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
     display: flex;
-    min-height: 205px;
     flex-direction: column;
-    align-items: flex-start;
-    padding: 0.95rem;
+    gap: 1px;
+    padding: 8px 7px 7px;
+    color: #fff;
+    pointer-events: none;
 }
 
 .product-category {
-    color: var(--brand-dark);
-    font-size: 0.68rem;
-    font-weight: 900;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    display: none;
 }
 
-.product-name {
-    display: -webkit-box;
-    overflow: hidden;
-    min-height: 2.6em;
-    margin: 0.4rem 0 0.3rem;
-    color: var(--ink);
-    font-size: 1rem;
-    line-height: 1.3;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-}
-
+/* ---------- Étoiles (générées par ratings.js) ---------- */
 .product-rating {
+    order: 0;
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    margin: 0.2rem 0 0.65rem;
 }
 
 .rating-stars {
     display: inline-flex;
-    gap: 2px;
-    font-size: 0.88rem;
+    gap: 1px;
+    font-size: 0.7rem;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
 }
 
 .partial-star {
@@ -331,7 +527,7 @@ main {
     display: inline-block;
     width: 1em;
     height: 1em;
-    color: #d9d9d9;
+    color: var(--star-empty);
 }
 
 .partial-star::before,
@@ -346,179 +542,336 @@ main {
     inset: 0;
     overflow: hidden;
     width: var(--fill, 0%);
-    color: #f5a623;
+    color: var(--star-full);
     white-space: nowrap;
 }
 
+/* Valeur en chiffres : masquée visuellement (lue par les lecteurs d'écran) */
 .rating-value {
-    color: var(--muted);
-    font-size: 0.73rem;
-    font-weight: 800;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
+/* Nom */
+.product-name {
+    order: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 0.68rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+    overflow-wrap: anywhere;
+}
+
+/* Prix (mis en avant) */
 .product-price {
-    margin: auto 0 0.45rem;
-    color: var(--ink);
-    font-size: 1.05rem;
-    font-weight: 900;
-}
-
-.product-stock {
-    margin: 0 0 0.75rem;
-    color: #16834a;
-    font-size: 0.78rem;
+    order: 2;
+    margin-top: 1px;
+    font-size: 0.82rem;
     font-weight: 800;
+    line-height: 1.2;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
-.product-stock.out-of-stock {
-    color: #c0344d;
-}
-
+/* Stock et lien : masqués visuellement (toute la vignette est cliquable) */
+.product-stock,
 .product-detail-link {
-    display: inline-flex;
-    width: 100%;
-    min-height: 42px;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #e2dcff;
-    border-radius: 11px;
-    background: #f5f2ff;
-    color: var(--brand-dark);
-    font-size: 0.85rem;
-    font-weight: 900;
-    text-decoration: none;
-    transition: color 0.2s ease, background 0.2s ease;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
-.product-detail-link:hover {
-    background: var(--brand);
+.product-stock::before,
+.product-detail-link::before,
+.product-detail-link::after {
+    content: none;
+}
+
+/* ... sauf "Épuisé", affiché en pastille rouge */
+.product-stock.out-of-stock {
+    position: static;
+    order: -1;
+    align-self: flex-start;
+    width: auto;
+    height: auto;
+    margin: 0 0 4px;
+    padding: 2px 7px;
+    overflow: visible;
+    clip: auto;
+    clip-path: none;
+    font-size: 0.6rem;
+    font-weight: 700;
+    line-height: 1.4;
+    color: #fff;
+    background: var(--danger);
+    border-radius: 4px;
+}
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+.site-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 24px var(--gutter) calc(24px + env(safe-area-inset-bottom));
+    text-align: center;
+    font-size: 0.8rem;
+    color: #94a3b8;
+    background: var(--primary);
+}
+
+.site-footer a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    padding: 0 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
     color: #fff;
 }
 
-.products-state {
-    padding: 2.5rem 1rem;
-    border: 1px dashed #d6d8e2;
-    border-radius: 18px;
-    background: rgba(255, 255, 255, 0.72);
-    color: var(--muted);
-    text-align: center;
+.site-footer a:active {
+    color: var(--accent);
 }
 
-.products-state:empty {
-    display: none;
+/* =========================================================
+   ACCESSIBILITÉ
+   ========================================================= */
+.brand:focus-visible,
+.header-link:focus-visible,
+.contact-button:focus-visible,
+.site-footer a:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 8px;
 }
 
-.site-footer {
-    display: flex;
-    min-height: 78px;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 1rem max(1.25rem, calc((100vw - 1180px) / 2));
-    background: #111827;
-    color: #cbd5e1;
-    font-size: 0.8rem;
+.product-card:focus-within {
+    outline: 3px solid var(--accent);
+    outline-offset: -3px;
 }
 
-@media (max-width: 850px) {
-    .products-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* =========================================================
+   TOUT PETITS ÉCRANS (≤ 329px) : 2 colonnes pour rester lisible
+   ========================================================= */
+@media (max-width: 329px) {
+    :root { --gutter: 10px; }
+
+    .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .brand { letter-spacing: 2px; font-size: 1.05rem; }
+    .header-link { padding: 0 10px; font-size: 0.7rem; }
+    .contact-button { min-width: 0; width: 100%; }
+}
+
+/* =========================================================
+   GRANDS TÉLÉPHONES (≥ 480px) : texte un peu plus grand
+   ========================================================= */
+@media (min-width: 480px) {
+    .product-body { padding: 10px 9px 9px; }
+    .product-name { font-size: 0.76rem; }
+    .product-price { font-size: 0.92rem; }
+    .rating-stars { font-size: 0.78rem; }
+    .product-stock.out-of-stock { font-size: 0.65rem; }
+}
+
+/* =========================================================
+   PETITES TABLETTES (≥ 600px) : 4 colonnes, coins arrondis
+   ========================================================= */
+@media (min-width: 600px) {
+    :root { --gutter: 24px; }
+
+    .profile-avatar-wrap { width: 108px; height: 108px; }
+
+    .products-section { padding-inline: var(--gutter); }
+
+    .section-heading {
+        margin-inline: calc(var(--gutter) * -1);
+        padding-inline: var(--gutter);
     }
 
+    .products-state { margin-inline: 0; }
+
+    .products-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .product-card { border-radius: 8px; }
+
+    .product-body { padding: 12px 11px 11px; }
+    .product-name { font-size: 0.82rem; }
+    .product-price { font-size: 1rem; }
+    .rating-stars { font-size: 0.88rem; }
+}
+
+/* =========================================================
+   TABLETTES / PC (≥ 768px) : profil en 2 colonnes (avatar | infos)
+   ========================================================= */
+@media (min-width: 768px) {
     .profile-content {
         grid-template-columns: auto minmax(0, 1fr);
-    }
-
-    .contact-button {
-        grid-column: 2;
-        justify-self: start;
-    }
-}
-
-@media (max-width: 600px) {
-    main {
-        width: min(100% - 1.25rem, 1180px);
-        margin-top: 1rem;
-    }
-
-    .site-header {
-        min-height: 62px;
-        padding-inline: 0.8rem;
-    }
-
-    .brand {
-        font-size: 0.87rem;
-    }
-
-    .brand-mark {
-        width: 34px;
-        height: 34px;
-    }
-
-    .header-link {
-        font-size: 0.76rem;
-    }
-
-    .seller-profile {
-        border-radius: 20px;
-    }
-
-    .profile-cover {
-        height: 140px;
-    }
-
-    .profile-content {
-        grid-template-columns: 1fr;
-        gap: 0.7rem;
-        padding: 0 1rem 1.25rem;
+        justify-items: start;
+        align-content: start;
+        column-gap: 32px;
+        text-align: left;
+        padding: 40px var(--gutter) 28px;
     }
 
     .profile-avatar-wrap {
-        width: 98px;
-        height: 98px;
-        margin-top: -48px;
+        grid-column: 1;
+        grid-row: 1 / span 6;
+        align-self: start;
+        width: 120px;
+        height: 120px;
     }
 
-    .profile-details h1 {
+    #nom-boutique,
+    .seller-name,
+    .contact-button,
+    .profile-tags,
+    .seller-description {
+        grid-column: 2;
+    }
+
+    #nom-boutique {
+        margin-top: 0;
         font-size: 1.7rem;
     }
 
-    .contact-button {
-        grid-column: auto;
-        justify-self: stretch;
+    .seller-name { font-size: 0.95rem; }
+
+    .contact-button { margin-top: 14px; }
+
+    .profile-tags { justify-content: flex-start; }
+
+    .seller-description { font-size: 0.95rem; }
+
+    /* Onglet aligné à gauche, compteur à côté */
+    .section-heading {
+        display: flex;
+        align-items: flex-end;
+        gap: 16px;
     }
 
-    .products-section {
-        margin-top: 1.8rem;
-    }
+    .section-heading > div { padding-inline: 4px; }
+
+    .product-count { margin-left: auto; }
+}
+
+/* =========================================================
+   PC (≥ 1024px) : 5 colonnes
+   ========================================================= */
+@media (min-width: 1024px) {
+    :root { --gutter: 32px; --header-h: 64px; }
+
+    .site-header { padding-left: var(--gutter); padding-right: var(--gutter); }
+
+    .brand { font-size: 1.3rem; }
+
+    .header-link { font-size: 0.85rem; padding: 0 20px; }
+
+    .profile-avatar-wrap { width: 132px; height: 132px; }
+    .avatar-placeholder { font-size: 3rem; }
+
+    #nom-boutique { font-size: 1.9rem; }
 
     .products-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.65rem;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px;
     }
 
-    .product-body {
-        min-height: 198px;
-        padding: 0.7rem;
-    }
+    .rating-stars { font-size: 0.95rem; }
 
-    .product-name {
-        font-size: 0.9rem;
-    }
-
-    .product-price {
-        font-size: 0.95rem;
+    .product-category {
+        display: block;
+        font-size: 0.6rem;
+        font-weight: 600;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: #fcd34d;
+        order: -2;
     }
 
     .site-footer {
-        flex-direction: column;
-        justify-content: center;
-        text-align: center;
+        flex-direction: row;
+        justify-content: space-between;
     }
 }
 
-@media (max-width: 360px) {
-    .products-grid {
-        grid-template-columns: 1fr;
+/* =========================================================
+   GRANDS ÉCRANS (≥ 1400px) : 6 colonnes
+   ========================================================= */
+@media (min-width: 1400px) {
+    .products-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+/* =========================================================
+   SURVOL : souris uniquement (pas d'effet "collé" au tactile)
+   ========================================================= */
+@media (hover: hover) and (pointer: fine) {
+    .header-link:hover {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--primary);
     }
+
+    .contact-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 26px rgba(245, 158, 11, 0.5);
+    }
+
+    .product-card:hover .product-image {
+        transform: scale(1.07);
+    }
+
+    .product-card:hover {
+        box-shadow: 0 14px 30px rgba(17, 24, 39, 0.25);
+    }
+
+    .site-footer a:hover { color: var(--accent); }
+}
+
+/* =========================================================
+   PAYSAGE SUR TÉLÉPHONE (hauteur réduite)
+   ========================================================= */
+@media (max-height: 500px) and (orientation: landscape) {
+    :root { --header-h: 48px; }
+
+    .profile-content { padding-top: 16px; }
+    .profile-avatar-wrap { width: 76px; height: 76px; }
+    .products-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }

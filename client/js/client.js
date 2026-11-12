@@ -180,7 +180,7 @@ function afficherProduits(produits) {
     container.innerHTML = ''; // On vide pour repartir à zéro
 
     if (produits.length === 0) {
-            container.innerHTML = "<p style='color: black;'>Ce vendeur n'a aucun produit en vente pour le moment.</p>";
+            container.innerHTML = "<p style='color: black;'>Aucun produit disponible pour la catégorie sélectionnée.</p>";
             return;
         }
 
@@ -286,8 +286,8 @@ document.addEventListener('DOMContentLoaded', () => chargerProduits());
 
 // 1. RÉCUPÉRATION : On extrait le panier du stockage local
 function obtenirPanier() {
-    // On cherche la clé 'panier_shopy'
-    const panierData = localStorage.getItem('panier_shopy');
+    // On cherche la clé 'panier_NSOKO'
+    const panierData = localStorage.getItem('panier_NSOKO');
     
     // Si vide, on renvoie un tableau JS vide, sinon on transforme le texte en Objet
     return panierData ? JSON.parse(panierData) : [];
@@ -296,7 +296,7 @@ function obtenirPanier() {
 // 2. SAUVEGARDE : On enregistre le tableau dans le stockage local
 function sauvegarderPanier(panier) {
     // On transforme l'objet JS en texte JSON pour le stockage
-    localStorage.setItem('panier_shopy', JSON.stringify(panier));
+    localStorage.setItem('panier_NSOKO', JSON.stringify(panier));
     
     // On met à jour l'affichage du compteur immédiatement après chaque modif
     mettreAJourCompteurPanier();
