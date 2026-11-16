@@ -82,8 +82,8 @@ router.put('/colis/:colisGroupId/statut', auth, orderCtrl.updateColisStatut);
 
 // PUT /orders/:id/statut
 // Description :
-//   - ancienne route legacy pour mettre à jour le statut d’une commande unique
-//   - utilisée par d’anciens front ou fonctions de compatibilité
+//   - compatibilité mono-colis, redirigée vers la sous-commande vendeur correspondante
+//   - un colisGroupId est requis pour une commande comportant plusieurs vendeurs
 router.put('/:id/statut', auth, orderCtrl.updateStatut);
 
 // PUT /orders/:id/annuler

@@ -17,7 +17,6 @@
 //
 // Cela permet de gérer :
 // - les totaux globaux du panier
-// - le statut global du panier
 // - les colis/logistique de chaque vendeur séparément
 //
 // =============================================================
@@ -127,14 +126,6 @@ const orderSchema = new mongoose.Schema({
     // C’est ici que chaque vendeur a son propre colis, ses produits, son statut, son prix, etc.
     vendorsOrders: [vendorSubOrderSchema],
 
-    // Statut global de la commande du point de vue client.
-    // Il représente le grand ensemble, pas un colis unique.
-    statutGlobal: {
-        type: String,
-        enum: ['en attente', 'En cours', 'partiellement expédiée', 'expédiée', 'livrée', 'annulée'],
-        default: 'en attente'
-    },
-
     // Totaux globaux de la commande, utiles au récapitulatif du panier.
     // Les factures PDF sont ensuite générées séparément pour chaque colis vendeur.
     totalHTGlobal: { type: Number, required: true },
@@ -175,26 +166,13 @@ const orderSchema = new mongoose.Schema({
         required: false,
         get: v => v ? v.toString() : v
     },
-    taille: { type: String, default: null },
-    quantite: { type: Number, default: 1 },
-    statut: {
-        type: String,
-        enum: ['en attente', 'En cours', 'expédiée', 'attribuéeAlivreur', 'prise en charge', 'livrée', 'echec de livraison', 'annulée', 'annulée par acheteur'],
-        default: 'en attente'
-    },
     items: [orderItemSchema],
-    livreurAssignationId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
-    codeOtp: { type: String, default: null },
     prixUnitaire: { type: Number, required: false },
     prixUnitaireHT: { type: Number, required: false },
     totalHT: { type: Number, required: false },
     montantTVA: { type: Number, required: false },
     totalTTC: { type: Number, required: false },
     colisGroupId: { type: String },
-    // Liste de tous les colisGroupId de la commande.
-    // Chaque vendeur a son propre colisGroupId.
-    colisGroupIds: [{ type: String }]
-
 }, {
     timestamps: true,
     toJSON: { getters: true },

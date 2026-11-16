@@ -281,8 +281,6 @@ const calculerStatutGlobalDepuisArticles = (articles = []) => {
 //     * la sous-commande correspondant à ce colis
 //     * les produits de cette sous-commande seulement
 //
-// Cette fonction gère aussi le mode legacy (ancienne architecture) pour ne pas
-// casser les anciennes commandes déjà enregistrées en base.
 const recupererSousCommandesDuColis = async (colisGroupId, queryOptions = {}) => {
     if (!colisGroupId) return [];
 
@@ -300,37 +298,16 @@ const recupererSousCommandesDuColis = async (colisGroupId, queryOptions = {}) =>
             sousCommandeId: sousCommande._id,
             produitId: sousCommande.items?.[0]?.produitId || null,
             quantite: (sousCommande.items || []).reduce((total, item) => total + (Number(item.quantite) || 0), 0),
-            vendeurId: sousCommande.vendeurId || order.vendeurId,
+            vendeurId: sousCommande.vendeurId,
             acheteurId: order.acheteurId,
             adresseLivraison: order.adresseLivraison || null,
             createdAt: order.createdAt,
-            statut: sousCommande.statutVendeur || order.statut,
-            livreurAssignationId: sousCommande.livreurAssignationId || order.livreurAssignationId,
-            codeOtp: sousCommande.codeOtp || order.codeOtp,
+            statut: sousCommande.statutVendeur,
+            livreurAssignationId: sousCommande.livreurAssignationId,
+            codeOtp: sousCommande.codeOtp,
             items: sousCommande.items || [],
             parentOrder: order
         });
-    }
-
-    if (result.length === 0) {
-        const legacyOrders = await Order.find({ colisGroupId }).sort({ createdAt: 1 }).lean(queryOptions);
-        for (const order of legacyOrders) {
-            result.push({
-                _id: order._id,
-                parentId: order._id,
-                produitId: order.produitId,
-                quantite: order.quantite || 1,
-                vendeurId: order.vendeurId,
-                acheteurId: order.acheteurId,
-                adresseLivraison: order.adresseLivraison || null,
-                createdAt: order.createdAt,
-                statut: order.statut,
-                livreurAssignationId: order.livreurAssignationId,
-                codeOtp: order.codeOtp,
-                items: order.items || [],
-                parentOrder: order
-            });
-        }
     }
 
     return result;
@@ -359,7 +336,7 @@ const synchroniserExpeditionDepuisColis = async ({ colisGroupId, statutCommande,
         const queryOptions = session ? { session } : {};//ici On prépare les options de requête pour inclure la session si elle est fournie, afin de garantir que toutes les opérations MongoDB se déroulent dans le même contexte transactionnel.
 
         // 1. Récupérer toutes les commandes du groupe de colis pour reconstruire l'expédition.
-        const commandes = await recupererSousCommandesDuColis(colisGroupId, queryOptions);// On prend en charge à la fois la structure legacy et la nouvelle architecture parent/order.
+        const commandes = await recupererSousCommandesDuColis(colisGroupId, queryOptions);// La recherche utilise la sous-commande vendeur du colis.
 
         if (!commandes.length) {
             return null;
@@ -370,14 +347,9 @@ const synchroniserExpeditionDepuisColis = async ({ colisGroupId, statutCommande,
         const statutExpedition = normaliserStatutExpedition(statutCommande) || 'en attente';
 
         // 2. Construire les produits à enregistrer dans le modèle Expedition.
-        const produitsExpedition = (commandes[0].items && commandes[0].items.length > 0)
-            ? commandes[0].items.map(item => ({
+        const produitsExpedition = (commandes[0].items || []).map(item => ({
                 produit: item.produitId,
                 quantite: item.quantite || 1
-            }))
-            : commandes.map(commande => ({
-                produit: commande.produitId,
-                quantite: commande.quantite || 1
             }));
 
         // 3. Préparer les champs dynamiques à mettre à jour ($set).
@@ -646,7 +618,6 @@ const createOrder = async (req, res, next) => {
                 subTotalTVA: Number(groupe.sousTotalTVA.toFixed(2)),
                 subTotalTTC: Number(groupe.sousTotalTTC.toFixed(2))
             })),
-            statutGlobal: 'en attente',
             totalHTGlobal: Number(totalHTGlobal.toFixed(2)),
             totalTVAGlobal: Number(totalTVAGlobal.toFixed(2)),
             totalTTCGlobal: Number(totalTTCGlobal.toFixed(2)),
@@ -659,15 +630,16 @@ const createOrder = async (req, res, next) => {
                 telephone: adresseLivraison.telephone,
                 latitude: adresseLivraison.latitude || null,
                 longitude: adresseLivraison.longitude || null
-            },
-            colisGroupIds: Array.from(groupesParVendeur.values()).map(groupe => groupe.colisGroupId)
+            }
         });
 
         const savedOrder = await parentOrder.save();
 
         // 7) Après la création de la commande parent, on synchronise les colis de chaque vendeur
         // pour créer ou mettre à jour le document Expedition.
-        const groupesColis = savedOrder.colisGroupIds || [];
+        const groupesColis = (savedOrder.vendorsOrders || [])
+            .map(groupe => groupe.colisGroupId)
+            .filter(Boolean);
         for (const groupeColis of groupesColis) {
             await synchroniserExpeditionDepuisColis({
                 colisGroupId: groupeColis,
@@ -678,8 +650,7 @@ const createOrder = async (req, res, next) => {
         return res.status(201).json({
             message: 'Commande enregistrée avec succès.',
             order: savedOrder,
-            colisGroupId: groupesColis.length === 1 ? groupesColis[0] : groupesColis,
-            colisGroupIds: groupesColis
+            colisGroupId: groupesColis.length === 1 ? groupesColis[0] : groupesColis
         });
 
     } catch (error) {
@@ -932,115 +903,30 @@ const updateColisStatut = async (req, res, next) => {
 };
 
 
-// =========================================================================
-// 4. FONCTION LEGACY DE MISE À JOUR DE STATUT UNIQUE
-// =========================================================================
-// Cette méthode est conservée pour éviter de casser les anciens boutons ou anciens
-// appels front qui utilisent un routeur basé sur une commande unique.
-//
-// Elle fonctionne encore, mais on préfèrera désormais l’approche plus moderne
-// updateColisStatut qui manipule les sous-commandes par colis.
+// Compatibilité pour les commandes mono-colis : le statut est toujours modifié
+// au niveau de la sous-commande vendeur.
 const updateStatut = async (req, res, next) => {
     try {
-        const nouveauStatut = req.body.statut;
-        const idUtilisateurConnecte = req.auth.userId; // La personne qui clique actuellement
-        const roleUtilisateur = req.auth?.role; // Le rôle de la personne qui clique actuellement
-
-        const statutNorm = (nouveauStatut || '').toLowerCase().trim();
-        const estLivreur = roleUtilisateur === 'livreur' || roleUtilisateur === 'admin';
-
-        // 🛑 LE VERROU DE SÉCURITÉ ANTI-TRICHE POUR "EN COURS"
-        if (statutNorm === 'en cours' || statutNorm === 'encours' || statutNorm === 'en-cours') {
-            if (roleUtilisateur !== 'vendeur') {
-                return res.status(403).json({
-                    error: "🛑 Sécurité : Seul le vendeur de cette commande peut la passer au statut 'en cours'."
-                });
-            }
-
-            const commande = await Order.findOne({ _id: req.params.id });
-            if (!commande) {
-                return res.status(404).json({ error: "Commande introuvable." });
-            }
-
-            const vendeurIdCommande = commande.vendeurId;
-            if (!vendeurIdCommande || vendeurIdCommande.toString() !== idUtilisateurConnecte.toString()) {
-                return res.status(403).json({
-                    error: "🛑 Sécurité : Vous ne pouvez modifier que les commandes dont vous êtes le vendeur."
-                });
-            }
+        const commande = await Order.findById(req.params.id).select('vendorsOrders.colisGroupId');
+        if (!commande) {
+            return res.status(404).json({ error: 'Commande introuvable.' });
         }
 
-        // 🛑 LE VERROU DE SÉCURITÉ ANTI-TRICHE POUR LA PRISE EN CHARGE
-        if (statutNorm === 'prise en charge' || statutNorm === 'prise-en-charge' || statutNorm === 'priseencharge') {
-            if (!estLivreur) {
-                return res.status(403).json({
-                    error: "🛑 Sécurité : Seul un livreur peut passer une commande au statut 'prise en charge'."
-                });
-            }
-        }
+        const sousCommandes = commande.vendorsOrders || [];
+        const colisGroupId = req.body?.colisGroupId
+            || (sousCommandes.length === 1 ? sousCommandes[0].colisGroupId : null);
 
-        // 🛑 LE VERROU DE SÉCURITÉ ANTI-TRICHE POUR L'ÉCHEC DE LIVRAISON
-        if (statutNorm === 'echec de livraison' || statutNorm === 'échec de livraison' || statutNorm === 'echecdelivraison' || statutNorm === 'échecdelivraison') {
-            if (!estLivreur) {
-                return res.status(403).json({
-                    error: "🛑 Sécurité : Seul un livreur peut passer une commande au statut 'échec de livraison'."
-                });
-            }
-        }
-
-        // 🛑 LE VERROU DE SÉCURITÉ ANTI-TRICHE
-        if (statutNorm === 'livrée' || statutNorm === 'livree' || statutNorm === 'livré' || statutNorm === 'livre') {
-            if (!estLivreur) {
-                return res.status(403).json({
-                    error: "🛑 Sécurité : Seul un livreur peut passer une commande au statut 'livrée'."
-                });
-            }
-        }
-
-        // 🛑 LE VERROU DE SÉCURITÉ ANTI-TRICHE POUR LA RÉCEPTION
-        if (statutNorm === 'reçue' || statutNorm === 'recue') {
-            // On va chercher LA commande en question pour vérifier l'identité de l'acheteur
-            const commande = await Order.findOne({ _id: req.params.id });
-
-            if (!commande) {
-                return res.status(404).json({ error: "Commande introuvable." });
-            }
-
-            // On vérifie si l'ID de la personne connectée correspond à l'acheteur
-            if (commande.acheteurId.toString() !== idUtilisateurConnecte.toString()) {
-                return res.status(403).json({
-                    error: "🛑 Sécurité : Seul le client qui a acheté cet article peut confirmer sa réception !"
-                });
-            }
-        }
-
-        // 🟢 MISE À JOUR : Si la sécurité est OK (ou si ce n'est pas un statut "Livré")
-        const result = await Order.updateOne(
-            { _id: req.params.id }, 
-            { statut: nouveauStatut }
-        );
-
-        if (result.matchedCount === 0) {
-            return res.status(404).json({ error: "Commande introuvable." });
-        }
-
-        // Même logique sur la route de statut par commande unique : on synchronise l'expédition
-        // pour conserver une vue cohérente du workflow de livraison.
-        const commandePourExpedition = await Order.findOne({ _id: req.params.id });
-        const notesLivreur = (req.body?.notesLivreur || '').toString().trim();
-        if (commandePourExpedition?.colisGroupId) {
-            await synchroniserExpeditionDepuisColis({
-                colisGroupId: commandePourExpedition.colisGroupId,
-                statutCommande: nouveauStatut,
-                livreurId: estLivreur ? idUtilisateurConnecte : null,
-                notesLivreur: notesLivreur || null
+        if (!colisGroupId || !sousCommandes.some(sousCommande => sousCommande.colisGroupId === colisGroupId)) {
+            return res.status(400).json({
+                error: 'Un colisGroupId valide est obligatoire pour modifier le statut du colis.'
             });
         }
 
-        res.status(200).json({ message: `Statut mis à jour : ${nouveauStatut} !` });
-
+        req.params.colisGroupId = colisGroupId;
+        return await updateColisStatut(req, res, next);
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        console.error('Erreur lors de la mise à jour du statut de la commande :', error);
+        return res.status(400).json({ error: error.message });
     }
 };
 
@@ -1220,36 +1106,7 @@ const annulerCommandeParVendeur = async (req, res, next) => {
             return res.status(200).json({ message: 'Article annulé et stock restitué.' });
         }
 
-        const statutNettoye = (commande.statut || '').toLowerCase();
-        if (
-            statutNettoye === 'livrée' ||
-            statutNettoye === 'annulée' ||
-            statutNettoye === 'annulée par acheteur' ||
-            statutNettoye === 'expédiée' ||
-            statutNettoye === 'attribuéealivreur' ||
-            statutNettoye === 'prise en charge' ||
-            statutNettoye === 'reçue' ||
-            statutNettoye === 'recue' ||
-            statutNettoye === 'echec de livraison' ||
-            statutNettoye === 'échec de livraison'
-        ) {
-            return res.status(400).json({ error: "Impossible d'annuler une commande déjà clôturée ou déjà engagée dans un workflow de livraison." });
-        }
-
-        // 🌟 Mise à jour propre avec le statut explicite décidé (utilise 'annulée' conforme au schéma)
-        commande.statut = 'annulée';
-        await commande.save();
-
-        // 📈 Restitution physique au stock
-        // On restaure le stock de la variante demandée si le produit est en mode variante ;
-        // sinon on revient au stock global du produit.
-        const produit = await Thing.findOne({ _id: commande.produitId });
-        if (produit) {
-            const quantiteA_Restituer = commande.quantite || 1;
-            await restaurerStockProduit(produit, quantiteA_Restituer, commande.taille || null);
-        }
-
-        res.status(200).json({ message: "Commande annulée avec succès et stock restitué !" });
+        return res.status(400).json({ error: 'Cette commande ne contient pas de sous-commandes vendeur annulables.' });
 
     } catch (error) {
         console.error("Erreur lors de l'annulation :", error);
@@ -1366,26 +1223,11 @@ const annulerCommandeParAcheteur = async (req, res, next) => {
             return res.status(200).json({ message: 'Article annulé et stock restitué.' });
         }
 
-        // Ancien format : une commande plate correspond à un seul produit.
-        if (!commande.statut || commande.statut.toLowerCase() !== 'en attente') {
-            return res.status(400).json({
-                error: 'Impossible d’annuler cette commande. Elle a déjà été traitée ou engagée dans le workflow de livraison.'
-            });
+        if (Array.isArray(commande.vendorsOrders) && commande.vendorsOrders.length > 0) {
+            return res.status(400).json({ error: 'Le colisGroupId est obligatoire pour annuler un article de la commande.' });
         }
 
-        // 🌟 Mise à jour propre avec le statut explicite décidé (conforme au schéma)
-        commande.statut = 'annulée par acheteur';
-        await commande.save();
-
-        // 📈 Restitution physique au stock
-        // Même en mode legacy, on rétablit la variante sélectionnée si elle existe ;
-        // sinon on revient au stock global du produit.
-        const produit = await Thing.findOne({ _id: commande.produitId });
-        if (produit) {
-            await restaurerStockProduit(produit, commande.quantite || 1, commande.taille || null);
-        }
-
-        res.status(200).json({ message: "Votre commande a été annulée avec succès." });
+        return res.status(400).json({ error: 'Cette commande ne contient pas de sous-commandes vendeur annulables.' });
 
     } catch (error) {
         console.error(error);
