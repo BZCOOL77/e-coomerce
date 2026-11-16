@@ -51,6 +51,18 @@ const { TAUX_USD_EN_CDF } = require('../utilitaire/tauxdechange'); // Taux de co
 const normaliserStatutExpedition = (statut) => {
     const statutNettoye = (statut || '').toString().toLowerCase().trim();
 
+    if (['en attente', 'en-attente', 'enattente'].includes(statutNettoye)) {
+        return 'en attente';
+    }
+
+    if (['en cours', 'en-cours', 'encours'].includes(statutNettoye)) {
+        return 'En cours';
+    }
+
+    if (['expediee', 'expedie', 'expédiée', 'expediee'].includes(statutNettoye)) {
+        return 'expédiée';
+    }
+
     if (['prise en charge', 'prise-en-charge', 'priseencharge'].includes(statutNettoye)) {
         return 'prise en charge';
     }
@@ -64,7 +76,11 @@ const normaliserStatutExpedition = (statut) => {
     }
 
     if (['echec de livraison', 'échec de livraison', 'echecdelivraison', 'échecdelivraison'].includes(statutNettoye)) {
-        return 'échec de livraison';
+        return 'echec de livraison';
+    }
+
+    if (['annulee', 'annulée', 'annulee par acheteur', 'annulée par acheteur', 'annulee par l acheteur', 'annulée par l acheteur'].includes(statutNettoye)) {
+        return 'annulée par acheteur';
     }
 
     return null;
@@ -351,7 +367,7 @@ const synchroniserExpeditionDepuisColis = async ({ colisGroupId, statutCommande,
 
         const commandeReference = commandes[0].parentOrder || commandes[0];// On prend la première commande comme référence pour les informations globales du colis (vendeur, client, adresse, etc.).
         const vendeurReference = commandes[0].vendeurId || (commandeReference.vendorsOrders || []).find(sub => sub.colisGroupId === colisGroupId)?.vendeurId || commandeReference.vendeurId;
-        const statutExpedition = normaliserStatutExpedition(statutCommande) || 'prise en charge';
+        const statutExpedition = normaliserStatutExpedition(statutCommande) || 'en attente';
 
         // 2. Construire les produits à enregistrer dans le modèle Expedition.
         const produitsExpedition = (commandes[0].items && commandes[0].items.length > 0)
@@ -655,7 +671,7 @@ const createOrder = async (req, res, next) => {
         for (const groupeColis of groupesColis) {
             await synchroniserExpeditionDepuisColis({
                 colisGroupId: groupeColis,
-                statutCommande: 'prise en charge'
+                statutCommande: 'en attente'
             });
         }
 
@@ -1183,10 +1199,15 @@ const annulerCommandeParVendeur = async (req, res, next) => {
             await commande.save();
 
             if (colisGroupId) {
+                const statutExpeditionFinal = articlesActifsSousCommande.length === 0
+                    ? 'annulée'
+                    : (sousCommande.statutVendeur || 'en attente');
+
                 await Expedition.updateOne(
                     { colisGroupId },
                     {
                         $set: {
+                            statut: statutExpeditionFinal,
                             produits: articlesActifsSousCommande.map(item => ({
                                 produit: item.produitId,
                                 quantite: item.quantite || 1
@@ -1326,10 +1347,20 @@ const annulerCommandeParAcheteur = async (req, res, next) => {
 
             await commande.save();
 
-            // L’expédition ne doit plus lister l’article dont le stock vient d’être remis.
+            // L’expédition doit refléter le vrai statut du colis : annulé si tous les articles sont annulés,
+            // ou rester dans son état actuel si le colis continue d’exister partiellement.
+            const statutExpeditionFinal = articlesActifs.length === 0
+                ? 'annulée par acheteur'
+                : (sousCommande.statutVendeur || 'en attente');
+
             await Expedition.updateOne(
                 { colisGroupId },
-                { $set: { produits: articlesActifs.map(item => ({ produit: item.produitId, quantite: item.quantite || 1 })) } }
+                {
+                    $set: {
+                        statut: statutExpeditionFinal,
+                        produits: articlesActifs.map(item => ({ produit: item.produitId, quantite: item.quantite || 1 }))
+                    }
+                }
             );
 
             return res.status(200).json({ message: 'Article annulé et stock restitué.' });

@@ -79,16 +79,23 @@ const expeditionSchema = new mongoose.Schema({
     },
 
     // Statut logistique du colis pour le livreur.
-    // Le vendeur garde aussi son propre statut dans Order.vendorsOrders[].statutVendeur.
+    // Il doit refléter exactement le workflow réel du colis, comme dans Order.vendorsOrders[].statutVendeur.
+    // Cela permet d’avoir une vue cohérente sur l’état du colis à chaque étape :
+    // en attente -> En cours -> expédiée -> attribuéeAlivreur -> prise en charge -> livrée
     statut: {
         type: String,
         enum: [
-            'attribuéeAlivreur', // Colis reserve/attribue a un livreur
-            'prise en charge',   // Livreur a recupere le colis chez le vendeur
-            'livrée',            // Colis remis au client
-            'échec de livraison' // Absence, refus ou adresse introuvable
+            'en attente',
+            'En cours',
+            'expédiée',
+            'attribuéeAlivreur',
+            'prise en charge',
+            'livrée',
+            'echec de livraison',
+            'annulée',
+            'annulée par acheteur'
         ],
-        default: 'prise en charge'
+        default: 'en attente'
     },
 
     // Note du livreur pour expliquer un problème de livraison.
