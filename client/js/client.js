@@ -1,13 +1,7 @@
 // On récupère les éléments principaux de navigation pour gérer les clics dans le header et la navbar.
 const navbarre = document.getElementById('navbarre');
 const header = document.querySelector('header');
-const tousLesProduitsBtn = document.getElementById('tous-les-produits');
 
-// Si l'utilisateur arrive sur une page de vendeur, on affiche le bouton "Tous les produits".
-if (tousLesProduitsBtn) {
-    const vendeurId = new URLSearchParams(window.location.search).get('vendeurId');
-    tousLesProduitsBtn.style.display = vendeurId ? '' : 'none';
-}
 
 // Gestion du bouton pour devenir vendeur.
 const besellerBtn = document.getElementById('beseller-btn');

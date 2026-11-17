@@ -1,4 +1,4 @@
-// controllers/reviewController.js
+// controllers des avis clients sur les produits (reviews) et commentaires sur les produits
 const Review = require('../models/review');
 const Order = require('../models/Order');
 const Thing = require('../models/Thing');

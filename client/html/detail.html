@@ -6,6 +6,7 @@
     <title>Détails du Produit | NSOKO</title>
     <script src="../js/url.js"></script>
     <script src="../js/ratings.js" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
@@ -17,11 +18,12 @@
     <header>
         <h1>NSOKO</h1>
         <h2>Fiche Produit détaillée</h2>
+        <a href="client.html" class="btn-retour">← Retour au catalogue</a>
     </header>
 
     <main id="main">
         <div class="detail-shell">
-            <a href="client.html" class="btn-retour">← Retour au catalogue</a>
+            
 
             <div class="detail-container" id="product-content">
                 <div class="detail-gallery">
@@ -45,21 +47,21 @@
                     <div class="description" id="product-desc">
                         Veuillez patienter pendant que nous récupérons les détails du produit...
                     </div>
+                    <!-- 👗 SECTION SÉLECTION DE LA TAILLE (Façon Pro) -->
+                    <div class="selection-taille-group" style="margin: 20px 0;">
+                        <label style="display: block; font-weight: bold; margin-bottom: 8px;">Choisissez votre taille :</label>
+
+                        <!-- Conteneur des boutons radio dynamiques -->
+                        <div id="taille-options-container" class="taille-options">
+                        <!-- Injecté par JavaScript -->
+                        </div>
+
+                        <!-- Message d'erreur si l'utilisateur oublie de cliquer -->
+                        <span id="erreur-taille" class="erreur-taille" role="alert" aria-live="assertive" style="display: none;">Veuillez sélectionner une taille avant l’ajout au panier.</span>
+                    </div>
                     <button class="ajouter-panier" id="add-to-cart-btn">Ajouter au panier</button>
                 </div>
             </div>
-    <!-- 👗 SECTION SÉLECTION DE LA TAILLE (Façon Pro) -->
-        <div class="selection-taille-group" style="margin: 20px 0;">
-            <label style="display: block; font-weight: bold; margin-bottom: 8px;">Choisissez votre taille :</label>
-        
-            <!-- Conteneur des boutons radio dynamiques -->
-            <div id="taille-options-container" class="taille-options">
-            <!-- Injecté par JavaScript -->
-            </div>
-        
-            <!-- Message d'erreur si l'utilisateur oublie de cliquer -->
-            <span id="erreur-taille" class="erreur-taille" role="alert" aria-live="assertive" style="display: none;">Veuillez sélectionner une taille avant l’ajout au panier.</span>
-        </div>
 
             <section class="reviews-section" aria-labelledby="reviews-title">
                 <div class="reviews-header">
