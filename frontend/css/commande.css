@@ -3,8 +3,8 @@
     --primary-color: #2c3e50;
     --secondary-color: #3498db;
     --accent-color: #e74c3c;
-    --light-bg: #ecf0f1;
-    --white: #ffffff;
+    --light-bg: #eaf0f6;
+    --white: #f8fafc;
     --text-dark: #2c3e50;
     --text-light: #7f8c8d;
     --border-color: #bdc3c7;
@@ -25,6 +25,74 @@ body {
     color: var(--text-dark);
     line-height: 1.6;
     min-height: 100vh;
+}
+
+.gestion-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+    background: linear-gradient(130deg, #142f4d, #205d91);
+    box-shadow: 0 8px 22px rgba(20, 47, 77, 0.14);
+}
+
+.gestion-header__contenu {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    width: min(100%, 1440px);
+    margin: 0 auto;
+    padding: 1rem clamp(1rem, 2.5vw, 2rem);
+}
+
+.gestion-header__identite {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.gestion-header__marque {
+    flex: 0 0 auto;
+    padding-right: 1rem;
+    border-right: 1px solid rgba(255, 255, 255, 0.28);
+    color: #ffffff;
+    font-size: 1.55rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1;
+}
+
+.gestion-header h2 {
+    min-width: 0;
+    margin: 0;
+    color: rgba(239, 247, 255, 0.86);
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.gestion-header .btn-retour {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    min-height: 42px;
+    margin: 0 0 0 auto;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid rgba(255, 255, 255, 0.32);
+    border-radius: 10px;
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: none;
+    font-size: 0.86rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.gestion-header .btn-retour:hover {
+    border-color: rgba(255, 255, 255, 0.55);
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.19);
 }
 
 .btn-retour {
@@ -283,33 +351,37 @@ main {
     border-radius: 12px;
     font-weight: 700;
     font-size: 0.82rem;
-    color: var(--text-dark);
-    background: rgba(0,0,0,0.04);
+    color: #526579;
+    background: #e9eff5;
     box-shadow: none;
 }
 
-/* Badges qui s'accordent avec le thème du colis (pair/impair) */
-.colis-block:nth-of-type(odd) .badge {
-    background: linear-gradient(90deg, rgba(59,130,246,0.18), rgba(59,130,246,0.08));
-    color: #0b3d91;
-}
-.colis-block:nth-of-type(even) .badge {
-    background: linear-gradient(90deg, rgba(249,115,22,0.16), rgba(249,115,22,0.06));
-    color: #7a2b00;
+/* Couleurs de statut : leur sens dépend de l’état, pas de l’ordre des cartes. */
+.badge.statut-en-attente {
+    background: #fff3d6;
+    color: #805500;
 }
 
-/* Couleurs prioritaires pour statuts explicites */
+.badge.statut-en-cours,
+.badge.statut-chez-livreur,
+.badge.statut-expediee,
+.badge.statut-expédiée {
+    background: #e3f2ff;
+    color: #15558a;
+}
+
 .badge.statut-livree,
 .badge.statut-livrée {
-    background: linear-gradient(90deg,#38a169,#2f855a);
-    color: #ffffff;
+    background: #e3f5eb;
+    color: #216b42;
 }
+
 .badge.statut-annulée,
 .badge.statut-annulee,
 .badge.statut-annulée-par-acheteur,
 .badge.statut-annulee-par-acheteur {
-    background: linear-gradient(90deg,#f56565,#c53030);
-    color: #ffffff;
+    background: #fde8e7;
+    color: #a52e2b;
 }
 
 /* Petite adaptation responsive si l'espace manque */
@@ -317,41 +389,21 @@ main {
     .badge { font-size: 0.75rem; padding: 0.2rem 0.45rem; }
 }
 
-/* Alternance harmonieuse : deux palettes complémentaires par bloc */
+/* Les colis et leurs articles gardent une base neutre et uniforme. */
 #liste-commandes .colis-block {
-    --colis-bg: #f0f8ff; /* bleu pâle plus visible */
-    --ligne-bg: #e6f2ff; /* ligne légèrement plus saturée */
-    --colis-accent: rgba(59,130,246,0.18);
+    --colis-bg: var(--white);
+    --ligne-bg: #f0f4f8;
+    --colis-accent: #d7e2ec;
     background: var(--colis-bg);
-    border: 1px solid rgba(59,130,246,0.08);
+    border: 1px solid #e1e8ef;
 }
 
-/* Palette alternative pour les blocs pairs */
-#liste-commandes .colis-block:nth-of-type(even) {
-    --colis-bg: #fff7ec; /* crème chaude plus visible */
-    --ligne-bg: #fff0d9; /* ligne chaude plus saturée */
-    --colis-accent: rgba(249,115,22,0.14);
-    background: var(--colis-bg);
-    border: 1px solid rgba(249,115,22,0.06);
-}
-
-/* Appliquer la couleur de ligne aux articles à l'intérieur du colis */
 .colis-block .ligne-commande {
     background: var(--ligne-bg);
     border-radius: 12px;
-    border: 1px solid rgba(15, 23, 42, 0.04);
+    border: 1px solid #e7edf3;
     padding: 10px;
-}
-
-/* Accent visuel à gauche pour renforcer la distinction */
-#liste-commandes .colis-block:nth-of-type(odd) .ligne-commande {
-    box-shadow: 0 1px 0 rgba(59,130,246,0.04) inset;
-    border-left: 6px solid var(--colis-accent);
-}
-
-#liste-commandes .colis-block:nth-of-type(even) .ligne-commande {
-    box-shadow: 0 1px 0 rgba(249,115,22,0.03) inset;
-    border-left: 6px solid var(--colis-accent);
+    border-left: 3px solid var(--colis-accent);
 }
 
 /* Garder la section colis distincte visuellement tout en gardant contraste doux */
@@ -946,7 +998,11 @@ main {
 }
 
 .badge.statut-expédiée,
-.badge.statut-expediee,
+.badge.statut-expediee {
+    background: rgba(52, 152, 219, 0.14);
+    color: #15558a;
+}
+
 .badge.statut-livrée,
 .badge.statut-livree {
     background: rgba(56, 161, 105, 0.14);
@@ -1067,11 +1123,10 @@ main {
     margin-top: 0.5rem;
 }
 
-#liste-commandes .colis-block,
-#liste-commandes .colis-block:nth-of-type(even) {
+#liste-commandes .colis-block {
     --colis-bg: var(--white);
-    --ligne-bg: #e6f2ff;
-    --colis-accent: rgba(59, 130, 246, 0.18);
+    --ligne-bg: #f0f4f8;
+    --colis-accent: #d7e2ec;
     background: var(--white);
     border: 1px solid rgba(44, 62, 80, 0.08);
     border-radius: 12px;
@@ -1409,6 +1464,423 @@ main {
 
     .onglet {
         min-width: 0;
+    }
+}
+
+/* Navigation latérale sur ordinateur, commandes tactiles en grille sur mobile. */
+.commande-layout {
+    display: grid;
+    grid-template-columns: minmax(190px, 230px) minmax(0, 1fr);
+    align-items: start;
+    gap: clamp(1rem, 2.5vw, 2rem);
+    width: min(100%, 1440px);
+    margin: 0 auto;
+    padding: 1rem clamp(1rem, 2.5vw, 2rem);
+}
+
+.commande-sidebar {
+    position: sticky;
+    top: 1rem;
+    padding: 0.75rem;
+    border: 1px solid #e1eaf2;
+    border-radius: 18px;
+    background: #f2f6fa;
+    box-shadow: 0 8px 24px rgba(24, 50, 75, 0.06);
+}
+
+.commande-layout main {
+    min-width: 0;
+    max-width: none;
+    margin: 0;
+    padding: 0.5rem 0;
+}
+
+.commande-layout .onglets-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    overflow: visible;
+}
+
+.commande-layout .onglet {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.7rem;
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    text-align: left;
+    white-space: normal;
+    font-size: 0.9rem;
+    flex: 0 0 auto;
+    color: #526579;
+    background: transparent;
+    transition: color 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.commande-layout .onglet:hover {
+    border-color: #dce8f3;
+    color: #174b78;
+    background: #f0f6fc;
+    transform: translateX(2px);
+}
+
+.commande-layout .onglet i {
+    flex: 0 0 1.2rem;
+    margin: 0;
+    text-align: center;
+}
+
+.commande-layout .onglet-label {
+    min-width: 0;
+    flex: 1;
+}
+
+.commande-layout .onglet .badge-compteur {
+    margin-left: auto;
+}
+
+.commande-layout .onglet.active {
+    border-left: 3px solid #8bd4ff;
+    border-bottom: 1px solid transparent;
+    color: #ffffff;
+    background: linear-gradient(120deg, #174b78, #2875ad);
+    box-shadow: 0 7px 16px rgba(23, 75, 120, 0.2);
+}
+
+.commande-layout .onglet.active:hover {
+    border-color: transparent;
+    border-left-color: #8bd4ff;
+    color: #ffffff;
+    background: linear-gradient(120deg, #123d63, #1d5d91);
+}
+
+.commande-layout .onglet .badge-compteur {
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    color: #9c2f3d;
+    background: #ffe4e8;
+    box-shadow: none;
+}
+
+.commande-layout .onglet.active .badge-compteur {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.commande-topbar {
+    align-items: center;
+    min-width: 0;
+    margin-bottom: 1.25rem;
+    padding: clamp(1.25rem, 2.5vw, 2rem);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    color: #ffffff;
+    background: linear-gradient(130deg, #142f4d, #205d91);
+    box-shadow: 0 14px 30px rgba(20, 47, 77, 0.18);
+}
+
+.commande-topbar .page-title h1 {
+    color: #ffffff;
+    letter-spacing: 0;
+}
+
+.commande-topbar .page-title small {
+    max-width: 58ch;
+    color: rgba(239, 247, 255, 0.78);
+}
+
+.commande-topbar .search-box {
+    border-color: rgba(255, 255, 255, 0.7);
+    background: #f7f9fc;
+    box-shadow: 0 6px 18px rgba(9, 29, 49, 0.16);
+}
+
+.commande-topbar .search-box:focus-within {
+    box-shadow: 0 0 0 3px rgba(139, 212, 255, 0.45), 0 6px 18px rgba(9, 29, 49, 0.16);
+}
+
+.commande-topbar .search-box button {
+    background: #1d5d91;
+}
+
+.commande-topbar .search-box button:hover {
+    background: #174b78;
+}
+
+.commande-layout #liste-commandes {
+    gap: 1rem;
+    margin-top: 0;
+}
+
+.commande-layout #liste-commandes .colis-block {
+    border-radius: 18px;
+    box-shadow: 0 10px 24px rgba(24, 50, 75, 0.09);
+}
+
+/* Organise le résumé, le statut et les actions sans modifier leurs comportements. */
+.commande-layout .colis-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(190px, 240px);
+    align-items: start;
+    gap: 1.25rem;
+    padding: 1.15rem 1.25rem;
+    margin-bottom: 0;
+    border-bottom: 1px solid #e8eef4;
+}
+
+.commande-layout .colis-summary {
+    min-width: 0;
+}
+
+.commande-layout .colis-summary h2 {
+    margin: 0 0 0.45rem;
+    font-size: 1.08rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.commande-layout .colis-summary p {
+    margin: 0.25rem 0 0;
+    font-size: 0.86rem;
+    line-height: 1.5;
+}
+
+.commande-layout .colis-summary a {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.commande-layout .colis-statut-global {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.commande-layout .colis-statut-global strong {
+    color: #687a8b;
+}
+
+.commande-layout .colis-tools {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.commande-layout .colis-tools .btn-pdf {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid #d3e0eb;
+    border-radius: 10px;
+    color: #24557f;
+    background: #f1f5f9;
+    box-shadow: none;
+    text-align: center;
+    white-space: normal;
+}
+
+.commande-layout .colis-tools .btn-pdf:hover {
+    border-color: #b7cde0;
+    color: #174b78;
+    background: #f3f8fc;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(24, 50, 75, 0.08);
+}
+
+.commande-layout .colis-actions {
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    gap: 0.5rem;
+}
+
+.commande-layout .colis-actions > .btn-action,
+.commande-layout .colis-actions > .badge-attente-acheteur {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    min-height: 44px;
+    margin: 0;
+    justify-content: center;
+    text-align: center;
+    white-space: normal;
+}
+
+.commande-layout .colis-actions > .btn-suivant {
+    background: #238653;
+    box-shadow: 0 4px 12px rgba(35, 134, 83, 0.18);
+}
+
+.commande-layout .colis-actions > .btn-suivant:hover {
+    background: #1b7044;
+}
+
+.commande-layout .colis-articles {
+    gap: 0.6rem;
+    padding: 0.85rem;
+}
+
+.commande-layout .colis-articles .ligne-commande {
+    grid-template-columns: 50px minmax(0, 1fr) minmax(110px, 150px);
+    gap: 0.85rem;
+    padding: 0.85rem;
+    border: 1px solid #e4ebf2;
+    border-left: 3px solid #d7e2ec;
+    border-radius: 12px;
+    background: #f1f5f9;
+    box-shadow: none;
+}
+
+.commande-layout .colis-articles .ligne-commande:hover {
+    border-color: #cbd9e6;
+    border-left-color: #7aa9cf;
+    box-shadow: 0 5px 14px rgba(24, 50, 75, 0.07);
+}
+
+.commande-layout .info-main {
+    gap: 0.6rem;
+}
+
+.commande-layout .info-main .info-value {
+    font-weight: 700;
+}
+
+.commande-layout .info-secondary {
+    gap: 0.35rem 0.75rem;
+    margin-top: 0.2rem;
+}
+
+.commande-layout .info-secondary .info-item {
+    color: #63778a;
+}
+
+.commande-layout .info-secondary .info-value {
+    color: #34495e;
+}
+
+.btn-retour {
+    border: 1px solid #d7e2ec;
+    border-radius: 10px;
+    color: #24557f;
+    background: #f2f6fa;
+    box-shadow: 0 3px 10px rgba(24, 50, 75, 0.05);
+    font-weight: 700;
+}
+
+.btn-retour:hover {
+    border-color: #c4d8e9;
+    color: #174b78;
+    background: #eaf2f9;
+}
+
+.commande-layout .onglet:focus-visible {
+    outline: 3px solid rgba(49, 130, 206, 0.45);
+    outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+    .gestion-header__contenu {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+        gap: 0.4rem 0.6rem;
+        padding: 0.85rem 1rem;
+    }
+
+    .gestion-header__identite {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .gestion-header__marque {
+        padding-right: 0;
+        border-right: 0;
+        font-size: 1.35rem;
+    }
+
+    .gestion-header h2 {
+        font-size: 0.9rem;
+    }
+
+    .commande-layout {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0;
+        padding: 0.5rem 0.75rem 1rem;
+    }
+
+    .commande-sidebar {
+        position: static;
+        padding: 0.6rem;
+        border-radius: 16px;
+    }
+
+    .commande-layout .onglets-container {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .commande-topbar {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1rem;
+        margin-bottom: 1rem;
+        padding: 1.2rem;
+        border-radius: 17px;
+    }
+
+    .commande-layout .colis-header {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.85rem;
+        padding: 1rem;
+    }
+
+    .commande-layout .colis-tools {
+        width: 100%;
+    }
+
+    .commande-layout .colis-articles {
+        padding: 0.65rem;
+    }
+
+    .commande-layout .colis-articles .ligne-commande {
+        grid-template-columns: 44px minmax(0, 1fr);
+        gap: 0.65rem;
+        padding: 0.7rem;
+    }
+
+    .commande-layout .colis-articles .actions-statut {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+    }
+
+    .commande-layout .onglet {
+        min-height: 54px;
+        gap: 0.5rem;
+        padding: 0.7rem;
+        font-size: 0.84rem;
+    }
+
+    .commande-layout main {
+        padding: 0.5rem 0;
     }
 }
 

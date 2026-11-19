@@ -225,48 +225,49 @@ header h2 {
 
 #main nav {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 7px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
     width: 100%;
     margin: auto;
 }
 
 #main nav > button,
 #main nav > a {
-    min-width: 0;
-    width: 100%;
-}
-
-#main nav > a {
-    grid-column: 1 / -1;
-    text-decoration: none;
-}
-
-#main nav button {
-    display: inline-flex;
+    display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 7px;
+    gap: 5px;
+    min-width: 0;
     width: 100%;
-    min-height: 44px;
-    padding: 8px;
-    border: 0;
-    border-radius: 10px;
-    background: transparent;
+    min-height: 58px;
+    padding: 7px 4px;
+    border: 1px solid transparent;
+    border-radius: 12px;
     color: var(--blue-800);
-    font-size: .8rem;
+    text-decoration: none;
+    text-align: center;
+    font-size: .72rem;
     font-weight: 700;
-    cursor: pointer;
+    line-height: 1.2;
     transition: background-color .18s ease, transform .18s ease;
 }
 
-#main nav button:hover {
+#main nav button {
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+#main nav > button:hover,
+#main nav > a:hover {
     background: var(--blue-100);
 }
 
 #main nav #menu {
     color: var(--white);
     background: var(--blue-800);
+    box-shadow: 0 4px 10px rgba(23, 75, 120, .18);
 }
 
 #main nav #menu:hover {
@@ -276,10 +277,15 @@ header h2 {
 #main nav #compte {
     color: var(--white);
     background: var(--coral);
+    box-shadow: 0 4px 10px rgba(232, 117, 79, .2);
 }
 
 #main nav #compte:hover {
     background: #d96440;
+}
+
+#main nav i {
+    font-size: 1rem;
 }
 
 /* Product catalogue: three cards per row on phones */
@@ -568,25 +574,27 @@ a:focus-visible {
 
     #main nav {
         display: flex;
-        justify-content: center;
-        gap: 9px;
-        width: min(100%, 1280px);
+        justify-content: flex-start;
+        gap: 10px;
+        width: min(100%, 1180px);
     }
 
     #main nav > button,
     #main nav > a {
         width: auto;
+        min-height: 44px;
+        flex-direction: row;
+        gap: 8px;
+        padding: 10px 15px;
+        font-size: .9rem;
     }
 
     #main nav > a {
         margin-left: auto;
     }
 
-    #main nav button {
-        width: auto;
-        min-height: 44px;
-        padding: 10px 15px;
-        font-size: .9rem;
+    #main nav i {
+        font-size: .95rem;
     }
 
     #catalogue {

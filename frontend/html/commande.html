@@ -10,43 +10,56 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
     <body>
-    <!-- Les quatre onglets regroupent les commandes selon leur parcours. -->
-    <div class="onglets-container">
-        <button id="onglet-en-attente" class="onglet active" onclick="basculerOnglet('en-attente')">
-            <i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> En attente <span id="compteur-en-attente" class="badge-compteur" style="display: none;">0</span>
-        </button>
-        <button id="onglet-traitement" class="onglet" onclick="basculerOnglet('traitement')">
-            <i class="fa-solid fa-gears" aria-hidden="true"></i> En traitement <span id="compteur-traitement" class="badge-compteur" style="display: none;">0</span>
-        </button>
-        <button id="onglet-chez-livreur" class="onglet" onclick="basculerOnglet('chez-livreur')">
-            <i class="fa-solid fa-truck" aria-hidden="true"></i> Chez livreur <span id="compteur-chez-livreur" class="badge-compteur" style="display: none;">0</span>
-        </button>
-        <button id="onglet-historique" class="onglet" onclick="basculerOnglet('historique')">
-            <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Historique <span id="compteur-historique" class="badge-compteur" style="display: none;">0</span>
-        </button>
-    </div>
+        <header class="gestion-header">
+            <div class="gestion-header__contenu">
+                <div class="gestion-header__identite">
+                    <span class="gestion-header__marque">NSOKO</span>
+                    <h2>Espace vendeur — centre de gestion des commandes</h2>
+                </div>
+                <a href="nav.html" class="btn-retour"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Retour a ma boutique</a>
+            </div>
+        </header>
+
         <!-- Loader et overlay (doivent être uniques dans la page) -->
         <div id="overlay"></div>
         <div id="loader"><div class="spinner"></div></div>
 
-        <a href="nav.html" class="btn-retour"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Retour a ma boutique</a>
-<main>
-    <div class="commande-topbar">
-        <div class="page-title">
-            <h1>Mes Commandes</h1>
-            <small>Suivez vos colis, mettez à jour les statuts et gérez les annulations rapidement.</small>
+        <div class="commande-layout">
+            <aside class="commande-sidebar">
+                <!-- Les quatre onglets regroupent les commandes selon leur parcours. -->
+                <nav class="onglets-container" aria-label="Filtrer les commandes">
+                    <button id="onglet-en-attente" class="onglet active" onclick="basculerOnglet('en-attente')">
+                        <i class="fa-solid fa-hourglass-half" aria-hidden="true"></i><span class="onglet-label">En attente</span><span id="compteur-en-attente" class="badge-compteur" style="display: none;">0</span>
+                    </button>
+                    <button id="onglet-traitement" class="onglet" onclick="basculerOnglet('traitement')">
+                        <i class="fa-solid fa-gears" aria-hidden="true"></i><span class="onglet-label">En traitement</span><span id="compteur-traitement" class="badge-compteur" style="display: none;">0</span>
+                    </button>
+                    <button id="onglet-chez-livreur" class="onglet" onclick="basculerOnglet('chez-livreur')">
+                        <i class="fa-solid fa-truck" aria-hidden="true"></i><span class="onglet-label">Chez livreur</span><span id="compteur-chez-livreur" class="badge-compteur" style="display: none;">0</span>
+                    </button>
+                    <button id="onglet-historique" class="onglet" onclick="basculerOnglet('historique')">
+                        <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i><span class="onglet-label">Historique</span><span id="compteur-historique" class="badge-compteur" style="display: none;">0</span>
+                    </button>
+                </nav>
+            </aside>
+            <main>
+                <div class="commande-topbar">
+                    <div class="page-title">
+                        <h1>Mes Commandes</h1>
+                        <small>Suivez vos colis, mettez à jour les statuts et gérez les annulations rapidement.</small>
+                    </div>
+                    <div class="commande-actions">
+                        <div class="search-box">
+                            <input id="recherche-commande" type="search" placeholder="Rechercher ID, client, article..." aria-label="Recherche de commande">
+                            <button id="btn-recherche-commande" type="button" aria-label="Rechercher"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <div id="liste-commandes">
+                    <!-- Les commandes seront affichées ici -->
+                </div>
+            </main>
         </div>
-        <div class="commande-actions">
-            <div class="search-box">
-                <input id="recherche-commande" type="search" placeholder="Rechercher ID, client, article..." aria-label="Recherche de commande">
-                <button id="btn-recherche-commande" type="button" aria-label="Rechercher"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button>
-            </div>
-        </div>
-    </div>
-    <div id="liste-commandes">
-        <!-- Les commandes seront affichées ici -->
-    </div>
-</main>
 
 
 
@@ -380,22 +393,24 @@ async function chargerMesVentes() {
                 return nomProduit;
             }).join(' ')}`);
 
+            // Le résumé et les actions sont séparés pour clarifier la carte sans toucher aux handlers.
             container.innerHTML += `
                 <section class="colis-block" data-statut="${statutGlobal}" data-recherche="${rechercheBloc}">
                     <header class="colis-header">
-                         ${boutonFacture}
-                        <div>
-                            
+                        <div class="colis-summary">
                             <h2>Colis: ${idColis}</h2>
                             <p><strong>Acheteur:</strong> ${nomAcheteur} ${emailAcheteur ? `• <a href="mailto:${emailAcheteur}">${emailAcheteur}</a>` : ''}</p>
-                            <p><strong>Statut global:</strong> <span class="badge statut-${statutGlobal.toLowerCase().replace(/ /g,'-')}">${statutGlobal}</span></p>
+                            <p class="colis-statut-global"><strong>Statut global:</strong> <span class="badge statut-${statutGlobal.toLowerCase().replace(/ /g,'-')}">${statutGlobal}</span></p>
                         </div>
-                       <div class="colis-actions">
-                        ${peutAfficherBoutonProgression(statutGlobal, prochainStatutColis)
-                        ? `<button class="btn-action btn-suivant" onclick="changerStatutColis('${idColis}', '${prochainStatutColis}')"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i> Passer le colis à : ${prochainStatutColis}</button>`
-                        : (prochainStatutColis ? `<span class="badge-attente-acheteur"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> En attente de livraison (livreur)</span>` : '')
-                     }
-                    </div>
+                        <div class="colis-tools">
+                            ${boutonFacture}
+                            <div class="colis-actions">
+                                ${peutAfficherBoutonProgression(statutGlobal, prochainStatutColis)
+                                ? `<button class="btn-action btn-suivant" onclick="changerStatutColis('${idColis}', '${prochainStatutColis}')"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i> Passer le colis à : ${prochainStatutColis}</button>`
+                                : (prochainStatutColis ? `<span class="badge-attente-acheteur"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> En attente de livraison (livreur)</span>` : '')
+                                }
+                            </div>
+                        </div>
                     </header>
                     <div class="colis-articles">${articlesHtml}</div>
                 </section>

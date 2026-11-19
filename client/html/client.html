@@ -26,8 +26,17 @@
 
 
         <header>
-            <h1>NSOKO</h1>
-            <h2>meilleur experience shopping en ligne</h2>
+            <div class="header-brand">
+                <h1>NSOKO</h1>
+                <h2>meilleur experience shopping en ligne</h2>
+            </div>
+
+            <div id="bloc-devenir-vendeur" style="display: none;">
+                <button type="button" id="beseller-btn" class="beseller-butn">
+                    <span>🏪 Devenir vendeur</span>
+                </button>
+            </div>
+
             <div class="header-actions">
                 <!-- Menu déroulant du header.
                      Pour ajouter un autre élément dans ce menu, il suffit de rajouter
@@ -61,14 +70,6 @@
                     <span class="cart-count-badge" id="cart-count-badge">0</span>
                 </button>
             </div>
-
-            <!-- Élément caché par défaut -->
-            <div id="bloc-devenir-vendeur" style="display: none;">
-                <button type="button" id="beseller-btn" class="beseller-butn">
-                    🏪 Devenir Vendeur
-                </button>
-            </div>
-
         </header>
 
 
@@ -101,6 +102,7 @@
             <input type="text" id="search-input" onkeyup="filtrerAvecDebounce()" placeholder="Rechercher des produits...">
             
         </div>
+        
         <div class="bouton-categorie">
             <button onclick="chargerProduits('', event)" class="active">Tous</button>
             <button onclick="chargerProduits('Électronique', event)">📱 Électronique</button>

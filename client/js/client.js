@@ -172,6 +172,7 @@ function afficherProduits(produits) {
     if (!container) return; // Sécurité si l'élément n'existe pas
 
     container.innerHTML = ''; // On vide pour repartir à zéro
+    container.dataset.count = String(produits.length);
 
     if (produits.length === 0) {
             container.innerHTML = "<p style='color: black;'>Aucun produit disponible pour la catégorie sélectionnée.</p>";
